@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Tourlast">
+  <rect width="64" height="64" rx="12" fill="#FFFFFF"/>
+  <g transform="translate(18 4) scale(0.19)">
+    <g fill="#0F5495">
+      <path d="M0 10 L65 0 V67 H0 Z"/>
+      <path d="M0 121 H65 V205 C65 235 75 247 103 247 C119 247 133 243 143 240 L153 292 C135 299 118 302 93 302 C28 302 0 270 0 205 Z"/>
+    </g>
+    <g fill="#A0D3FE">
+      <rect x="0" y="67" width="65" height="54"/>
+      <rect x="88" y="67" width="56" height="54"/>
+    </g>
+  </g>
+</svg>

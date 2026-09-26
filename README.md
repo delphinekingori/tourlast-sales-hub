@@ -1,58 +1,80 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Tourlast Sales Hub
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A private sales and partner-onboarding tracker for the Tourlast team. Providers sign up on **tourlast.com** through a salesperson's referral link. The Hub credits each signup to that salesperson, shows everyone their progress against the monthly target they set themselves, and gives HR and Accounts a register of onboarded partners with Excel and PDF exports.
 
-## About Laravel
+**Stack:** Laravel 13, Livewire 4, Tailwind CSS 4, MySQL in production (SQLite locally), spatie/laravel-permission, maatwebsite/excel, barryvdh/laravel-dompdf.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Local setup
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+npm install && npm run build
+cp .env.example .env && php artisan key:generate
+# set APP_ENV=local and TOURLAST_SOURCE=sandbox
+php artisan migrate --seed
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Demo accounts are created only when `APP_ENV=local`. Every password is `password`:
 
-## Contributing
+| Email | Role |
+|---|---|
+| admin@tourlast.test | Super Admin |
+| grace@tourlast.test | Sales Admin |
+| david@tourlast.test | Sales Manager |
+| john@tourlast.test, mary@tourlast.test, peter@tourlast.test, james@tourlast.test | Salesperson |
+| faith@tourlast.test | HR |
+| samuel@tourlast.test | Accounts |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+In production there is no public registration. Create the first admin with `php artisan hub:create-super-admin you@tourlast.com "Your Name"`, then invite everyone else from **Admin → Users & Invites**.
 
-## Code of Conduct
+## Key rules
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **Onboarded** follows the incentive policy (Schedule 1): a provider counts on its **Activation Date**, the day it goes live on tourlast.com. A rejection removes the credit.
+- **Targets** are in points and set by each salesperson (18 and 30 are suggested because they unlock the retainer). They can be changed until the 7th of the month (`HUB_TARGET_LOCK_DAY`); managers can see targets but not change them.
+- **Referral codes** such as `TL-JOHN-2847` are permanent. Tracked links (`/r/{code}`) count clicks, then redirect to `HUB_LIST_PROPERTY_URL?ref={code}`.
+- **Signups without a code** wait under **Unattributed**. A Sales Admin can assign one with a written reason, which is kept on record.
 
-## Security Vulnerabilities
+## Incentives (Schedule 1)
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- **Partner Accounts** group every property of one legal business. Points come from verified rooms/units (stays: 1–10 → 1, 11–50 → 3, 51–100 → 5, 101–200 → 7, 201+ → 9) or bookable services (experiences: 1–5 → 1 … 51+ → 5).
+- Points start **provisional** and become **approved** when a Sales Admin completes the 13-item qualification checklist and verifies the Account. Every change is written to the points history; old lines are cancelled, never edited.
+- **My Earnings** shows each salesperson, live, the expected retainer (18/30 points), four fixed bonus weeks (18+ points = KES 1,500), the Monthly Bonus bands, the Exceptional-Performance payment (KES 300 per point above 76, capped at KES 10,000), airtime (KES 400 cap) and transport.
+- **90-day expansion**: growth to a higher category earns the difference; 50%+ growth in the same category earns one 0.5 award; caps of 9 (stays) and 5 (experiences). Only while the salesperson's incentive agreement is in force.
+- **14-day review**: a failed Account loses its points; anything already paid is recovered on the next statement.
+- **Claims**: airtime (straight to Finance), transport reimbursements with receipts or Bolt/Uber trip ID and ride details, and transport requests before a trip. Transport is approved by the Sales Manager, then HR, then Finance.
+- **Payouts**: draft statements on the 1st; a Sales Admin confirms the retainer conditions, Accounts approves (figures freeze) and marks them paid by the 5th. PDF statements include the paragraph 13 report.
+- Pay tables live in `incentive_policies` (seeded from `App\Incentives\Policy::schedule1()`). The approval chain is in `config/incentives.php`.
 
-## License
+## People, pay details and notifications
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- **Payout details**: salespeople choose M-Pesa (number + registered name) or a bank account (bank, account number, account name) on My Earnings. Stored encrypted; visible under **Payment details** to admins, HR and Finance only (not Sales Managers). HR and Finance get an alert on every change.
+- **Profiles**: everyone can upload a photo and set their position, bio and emergency contact under My profile. Admins, Sales Managers, HR and Finance browse colleagues under **People**.
+- **Online status**: anyone active in the last five minutes shows as Online (badge in their own top bar; dot and pill for admins, Sales Managers, HR and Finance). Signing out clears it.
+- **Notifications**: announcements can be written by admins, Sales Managers, HR and Finance and targeted by role; salespeople read only. **Smart Alerts** (new property referred, new onboarding submitted, partner approved/rejected, deal won/lost, contract expiring, follow-up overdue, property inactive, first booking) go to management and to the salesperson concerned. `php artisan hub:send-daily-alerts` runs daily at 07:00.
+
+## Roles
+
+| Role | Can do |
+|---|---|
+| Super Admin | Everything, including Admin → Integration |
+| Sales Admin | Manage users and invites, see all sales data, assign unattributed signups, verify Accounts and run reviews, confirm retainer conditions, approve claims as manager, manage agreements, Partner Register and exports |
+| Sales Manager | Team Performance and Targets (points, not pay), view all leads and Accounts, invite salespeople, first approval of transport claims |
+| Salesperson | Own progress, earnings, Accounts, onboardings, leads, activities and claims only |
+| HR | Partner Register, everyone's earnings, incentive agreements, second approval of transport claims |
+| Accounts (Finance) | Partner Register, everyone's earnings, final approval of claims, transport disbursement, approve and pay statements |
+
+## Handover documents
+
+- **[docs/SYSTEM_GUIDE.md](docs/SYSTEM_GUIDE.md):** the complete guide: how every module works, roles, integration status, configuration, deployment, and pending work and open decisions. Start here.
+- **[docs/TOURLAST_INTEGRATION.md](docs/TOURLAST_INTEGRATION.md):** what tourlast.com must add (ref capture, read-only access, optional webhook), with the exact settings.
+- **[docs/DEPLOYMENT_AWS.md](docs/DEPLOYMENT_AWS.md):** server, database, email, scheduler and queue setup for `sales.tourlast.com`.
+
+## Useful commands
+
+```bash
+php artisan hub:sync-tourlast [--full]     # pull referred providers from tourlast.com now
+php artisan hub:send-manager-alerts        # send the managers' daily summary now
+php artisan hub:generate-statements [YYYY-MM]  # create or refresh draft payout statements
+php artisan hub:create-super-admin EMAIL NAME
+php artisan test                           # full test suite
+```

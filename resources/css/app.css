@@ -3,7 +3,219 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+/*
+ * Tourlast Sales Hub design tokens.
+ * Brand: Tourlast Navy #0C5295 and Tourlast Sky #A0D3FE, taken from the Tourlast logo.
+ * Components use the semantic names (canvas, surface, ink, line, brand...), and the
+ * dark theme only swaps the underlying variables.
+ */
+:root {
+    --tl-navy: #0c5295;
+    --tl-navy-deep: #083b6b;
+    --tl-sky: #a0d3fe;
+    --tl-mist: #d9ecff;
+
+    --tl-canvas: #f4f7fb;
+    --tl-surface: #ffffff;
+    --tl-surface-muted: #eef3f9;
+    --tl-line: #dce5ef;
+    --tl-line-strong: #c9d6e4;
+    --tl-ink: #0f1b2d;
+    --tl-ink-muted: #44546a;
+    --tl-ink-subtle: #6b7a90;
+
+    --tl-brand: var(--tl-navy);
+    --tl-brand-hover: var(--tl-navy-deep);
+    --tl-brand-soft: var(--tl-mist);
+    --tl-brand-ink: #ffffff;
+    --tl-brand-text: var(--tl-navy);
+
+    --tl-sidebar: var(--tl-navy);
+    --tl-sidebar-ink: #e6f2ff;
+    --tl-sidebar-muted: #a0d3fe;
+    --tl-sidebar-active: rgb(160 211 254 / 0.18);
+
+    --tl-success: #15803d;
+    --tl-success-soft: #dcf5e4;
+    --tl-warning: #b45309;
+    --tl-warning-soft: #fdefd9;
+    --tl-danger: #b91c1c;
+    --tl-danger-soft: #fbe1e1;
+
+    color-scheme: light;
+}
+
+/* Dark theme is opt-in: set data-theme="dark" on <html>. Light Tourlast branding is the default. */
+@layer base {
+    :root[data-theme='dark'] {
+        --tl-canvas: #0a1320;
+        --tl-surface: #101c2d;
+        --tl-surface-muted: #15243a;
+        --tl-line: #223550;
+        --tl-line-strong: #2d4566;
+        --tl-ink: #e8eef6;
+        --tl-ink-muted: #b3c1d4;
+        --tl-ink-subtle: #8496ae;
+
+        --tl-brand: #a0d3fe;
+        --tl-brand-hover: #c4e3ff;
+        --tl-brand-soft: #16304f;
+        --tl-brand-ink: #0a1320;
+        --tl-brand-text: #a0d3fe;
+
+        --tl-sidebar: #0b2440;
+        --tl-sidebar-ink: #e6f2ff;
+        --tl-sidebar-muted: #7fb6e6;
+
+        --tl-success: #4ade80;
+        --tl-success-soft: #12321f;
+        --tl-warning: #fbbf24;
+        --tl-warning-soft: #3a2a0e;
+        --tl-danger: #f87171;
+        --tl-danger-soft: #3b1515;
+
+        color-scheme: dark;
+    }
+}
+
+@theme inline {
+    --font-sans: 'Ubuntu', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono: 'Ubuntu Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+    /*
+     * Ubuntu ships 400, 500 and 700. Map Tailwind's weights onto real faces so
+     * nothing is synthesised: semibold (600) uses Medium, extrabold (800) uses Bold.
+     */
+    --font-weight-semibold: 500;
+    --font-weight-extrabold: 700;
+
+    /* One radius scale: 6px controls, 8px containers. */
+    --radius-md: 6px;
+    --radius-lg: 6px;
+    --radius-xl: 8px;
+    --radius-2xl: 10px;
+
+    --color-navy: var(--tl-navy);
+    --color-sky: var(--tl-sky);
+    --color-mist: var(--tl-mist);
+
+    --color-canvas: var(--tl-canvas);
+    --color-surface: var(--tl-surface);
+    --color-surface-muted: var(--tl-surface-muted);
+    --color-line: var(--tl-line);
+    --color-line-strong: var(--tl-line-strong);
+    --color-ink: var(--tl-ink);
+    --color-ink-muted: var(--tl-ink-muted);
+    --color-ink-subtle: var(--tl-ink-subtle);
+
+    --color-brand: var(--tl-brand);
+    --color-brand-hover: var(--tl-brand-hover);
+    --color-brand-soft: var(--tl-brand-soft);
+    --color-brand-ink: var(--tl-brand-ink);
+    --color-brand-text: var(--tl-brand-text);
+
+    --color-sidebar: var(--tl-sidebar);
+    --color-sidebar-ink: var(--tl-sidebar-ink);
+    --color-sidebar-muted: var(--tl-sidebar-muted);
+    --color-sidebar-active: var(--tl-sidebar-active);
+
+    --color-success: var(--tl-success);
+    --color-success-soft: var(--tl-success-soft);
+    --color-warning: var(--tl-warning);
+    --color-warning-soft: var(--tl-warning-soft);
+    --color-danger: var(--tl-danger);
+    --color-danger-soft: var(--tl-danger-soft);
+
+    --shadow-card: 0 1px 2px rgb(15 27 45 / 0.04);
+    --shadow-overlay: 0 10px 32px rgb(8 59 107 / 0.16);
+}
+
+@layer base {
+    html {
+        -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+        @apply bg-canvas font-sans text-sm leading-normal text-ink;
+    }
+
+    h1,
+    h2,
+    h3 {
+        text-wrap: balance;
+    }
+
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-brand;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+
+    /* Scrollbars are hidden everywhere; areas still scroll with wheel, touch and keyboard. */
+    * {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    *::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Every table header uses the sidebar colour; table-card adds stickiness on top. */
+    thead th {
+        padding: 0.5rem 1rem;
+        background-color: var(--tl-sidebar);
+        color: var(--tl-sidebar-ink);
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+    }
+
+    tbody td {
+        padding: 0.625rem 1rem;
+        vertical-align: middle;
+    }
+}
+
+/* Scrolls without showing a scrollbar (sidebar navigation). */
+@utility scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+@utility tabular {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Placeholder block shown while content loads. */
+@utility skeleton {
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--tl-surface-muted) 25%, var(--tl-line) 50%, var(--tl-surface-muted) 75%);
+    background-size: 200% 100%;
+    animation: tl-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes tl-shimmer {
+    from {
+        background-position: 200% 0;
+    }
+    to {
+        background-position: -200% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
 }

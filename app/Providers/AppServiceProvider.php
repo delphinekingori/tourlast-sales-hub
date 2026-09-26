@@ -2,7 +2,19 @@
 
 namespace App\Providers;
 
+use App\Enums\Permission;
+use App\Enums\Role;
+use App\Integrations\Tourlast\ApiProviderSource;
+use App\Integrations\Tourlast\DatabaseProviderSource;
+use App\Integrations\Tourlast\ProviderSource;
+use App\Integrations\Tourlast\SandboxProviderSource;
+use App\Models\ExpenseClaim;
+use App\Models\PartnerAccount;
+use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
+use InvalidArgumentException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -11,7 +23,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(ProviderSource::class, fn ($app): ProviderSource => match (config('tourlast.source')) {
+            'sandbox' => $app->make(SandboxProviderSource::class),
+            'database' => $app->make(DatabaseProviderSource::class),
+            'api' => $app->make(ApiProviderSource::class),
+            default => throw new InvalidArgumentException('TOURLAST_SOURCE must be sandbox, database or api.'),
+        });
     }
 
     /**
@@ -19,6 +36,23 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Password::defaults(fn () => Password::min(10)->letters()->numbers());
+
+        // Super Admin can do everything, except that actions on a person's account
+        // go through UserPolicy so nobody (Super Admin included) can act on themselves.
+        Gate::before(fn (User $user, string $ability, array $arguments): ?bool => $user->hasRole(Role::SuperAdmin->value) && ! (($arguments[0] ?? null) instanceof User) ? true : null);
+
+        Gate::define('view-earnings', fn (User $user, User $subject): bool => $user->is($subject) || $user->can(Permission::ViewTeamEarnings->value));
+
+        Gate::define('view-account', fn (User $user, PartnerAccount $account): bool => $account->user_id === $user->id
+            || $user->can(Permission::VerifyAccounts->value)
+            || $user->can(Permission::ViewTeamPerformance->value)
+            || $user->can(Permission::ViewTeamEarnings->value));
+
+        Gate::define('view-claim', fn (User $user, ExpenseClaim $claim): bool => $claim->user_id === $user->id
+            || $user->can(Permission::ApproveClaimsManager->value)
+            || $user->can(Permission::ApproveClaimsHr->value)
+            || $user->can(Permission::ApproveClaimsFinance->value)
+            || $user->can(Permission::ViewTeamEarnings->value));
     }
 }
