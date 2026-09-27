@@ -68,6 +68,24 @@ class Target extends Model
         return $now->day > config('hub.target_lock_day');
     }
 
+    /**
+     * Months a salesperson may still set: this month until the lock day, and next month.
+     *
+     * @return array<string, string> Y-m-d => "September 2026"
+     */
+    public static function settableMonths(): array
+    {
+        $options = [];
+
+        foreach ([CarbonImmutable::now()->startOfMonth(), CarbonImmutable::now()->startOfMonth()->addMonth()] as $month) {
+            if (! self::isLockedFor($month)) {
+                $options[$month->toDateString()] = $month->format('F Y');
+            }
+        }
+
+        return $options;
+    }
+
     public static function lockDateFor(CarbonInterface $month): CarbonImmutable
     {
         return CarbonImmutable::instance($month)->startOfMonth()->day((int) config('hub.target_lock_day'));

@@ -70,6 +70,20 @@
                     </div>
                 </x-ui.card>
             @endif
+
+            <x-ui.card title="API tokens" description="Apps and systems signed in to the Sales Hub API as you." :padding="false">
+                @forelse ($tokens as $token)
+                    <div wire:key="ptok-{{ $token->id }}" class="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5 last:border-b-0">
+                        <div class="grid min-w-0 leading-tight">
+                            <span class="truncate text-[13px] font-medium text-ink">{{ $token->name }}</span>
+                            <span class="truncate text-xs text-ink-subtle">Last used {{ $token->last_used_at?->diffForHumans() ?? 'never' }}{{ $token->expires_at ? ' · expires '.$token->expires_at->format('j M Y') : '' }}{{ $token->issuer && $token->issued_by !== $user->id ? ' · issued by '.$token->issuer->name : '' }}</span>
+                        </div>
+                        <x-ui.button size="sm" variant="danger-ghost" wire:click="revokeToken({{ $token->id }})" wire:confirm="Revoke {{ $token->name }}?">Revoke</x-ui.button>
+                    </div>
+                @empty
+                    <p class="px-4 py-3 text-[13px] text-ink-subtle">No apps are signed in as you.</p>
+                @endforelse
+            </x-ui.card>
         </div>
     </div>
 </div>

@@ -92,6 +92,7 @@ enum Role: string
                 Permission::SuspendUsers,
                 Permission::TerminateUsers,
                 Permission::DeleteUsers,
+                Permission::ManageApiTokens,
             ],
             self::SalesManager => [
                 Permission::InviteSalespeople,

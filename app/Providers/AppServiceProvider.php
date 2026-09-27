@@ -7,14 +7,20 @@ use App\Enums\Role;
 use App\Integrations\Tourlast\ApiProviderSource;
 use App\Integrations\Tourlast\DatabaseProviderSource;
 use App\Integrations\Tourlast\ProviderSource;
+use App\Integrations\Tourlast\PushOnlyProviderSource;
 use App\Integrations\Tourlast\SandboxProviderSource;
 use App\Models\ExpenseClaim;
 use App\Models\PartnerAccount;
+use App\Models\PersonalAccessToken;
 use App\Models\User;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use InvalidArgumentException;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,7 +33,8 @@ class AppServiceProvider extends ServiceProvider
             'sandbox' => $app->make(SandboxProviderSource::class),
             'database' => $app->make(DatabaseProviderSource::class),
             'api' => $app->make(ApiProviderSource::class),
-            default => throw new InvalidArgumentException('TOURLAST_SOURCE must be sandbox, database or api.'),
+            'push' => $app->make(PushOnlyProviderSource::class),
+            default => throw new InvalidArgumentException('TOURLAST_SOURCE must be sandbox, database, api or push.'),
         });
     }
 
@@ -36,6 +43,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // API: 120 requests a minute per token owner (or IP), 10 sign-in attempts a minute.
+        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
+        RateLimiter::for('api-login', fn (Request $request) => Limit::perMinute(10)->by(strtolower((string) $request->input('email')).'|'.$request->ip()));
+
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+
         Password::defaults(fn () => Password::min(10)->letters()->numbers());
 
         // Super Admin can do everything, except that actions on a person's account

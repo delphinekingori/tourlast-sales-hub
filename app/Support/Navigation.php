@@ -123,6 +123,10 @@ class Navigation
             $admin[] = self::item('Integration', 'link', 'admin.integration');
         }
 
+        if ($user->can(Permission::ManageApiTokens->value)) {
+            $admin[] = self::item('API tokens', 'lock', 'admin.api-tokens');
+        }
+
         if ($admin !== []) {
             $sections[] = ['label' => 'Admin', 'items' => $admin];
         }

@@ -9,11 +9,13 @@ use Illuminate\Support\Facades\Schedule;
 */
 
 Schedule::command('hub:sync-tourlast')
+    ->skip(fn (): bool => config('tourlast.source') === 'push')
     ->cron('*/'.max(1, (int) config('tourlast.sync_every_minutes')).' * * * *')
     ->withoutOverlapping()
     ->onOneServer();
 
 Schedule::command('hub:sync-tourlast --full')
+    ->skip(fn (): bool => config('tourlast.source') === 'push')
     ->dailyAt(config('tourlast.full_sync_at'))
     ->withoutOverlapping()
     ->onOneServer();

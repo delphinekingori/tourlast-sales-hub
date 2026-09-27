@@ -8,6 +8,7 @@ This is the complete reference for the Tourlast Sales Hub: what it does, how eac
 |---|---|
 | Management or a new team lead | Sections 1–5 |
 | The tourlast.com developer | Section 7, then [TOURLAST_INTEGRATION.md](TOURLAST_INTEGRATION.md) |
+| Anyone building on the API (apps, reporting, other systems) | Section 7.4, then [API.md](API.md) |
 | The person deploying the Hub | Sections 8–9, then [DEPLOYMENT_AWS.md](DEPLOYMENT_AWS.md) |
 | A developer maintaining the Hub | Sections 6, 10 and 11 |
 
@@ -66,7 +67,8 @@ The Hub **only reads** from tourlast.com. It never writes to it.
 | Database | MySQL 8 in production (SQLite locally) |
 | Permissions | spatie/laravel-permission (roles + permissions) |
 | Exports | maatwebsite/excel (Excel), barryvdh/laravel-dompdf (PDF) |
-| Tests | PHPUnit feature tests (242 tests, all passing) |
+| API | REST API v1 with Laravel Sanctum tokens and scopes (docs/API.md) |
+| Tests | PHPUnit feature tests (320+ tests, all passing) |
 
 ---
 
@@ -317,7 +319,7 @@ A **queue worker** must also run to send emails. Every command can be run by han
 |---|---|---|
 | Referral redirect `/r/{code}` → tourlast.com `?ref=` | ✅ Built in the Hub | — |
 | tourlast.com **stores the `ref` code** on the provider | ⏳ **To do on tourlast.com** | tourlast.com dev |
-| Hub **read access** to provider records (DB view or JSON API) | ⏳ **To do on tourlast.com** | tourlast.com dev |
+| Connection for provider records: Hub reads (DB view or JSON API) **or** tourlast.com pushes to the Hub API | ⏳ **To do on tourlast.com** (push needs no access to tourlast.com) | tourlast.com dev |
 | Partner **Account fields** (`account_id`, `legal_name`, `category`, `inventory_count`) | ⏳ To do on tourlast.com (Hub works without them meanwhile) | tourlast.com dev |
 | **First booking** date (`first_booking_at`) | ⏳ To do on tourlast.com (only needed for the "First booking" alert) | tourlast.com dev |
 | **Webhook** for instant updates | Optional — the 10-minute sync covers it | tourlast.com dev |
@@ -354,7 +356,17 @@ Full details, code samples and SQL are in **[TOURLAST_INTEGRATION.md](TOURLAST_I
 | `account_id`, `legal_name`, `category`, `inventory_count` | For incentives | See 7.2 step 5 |
 | `first_booking_at` | Optional | Enables the "First booking received" alert |
 
-### 7.4 Testing the connection
+### 7.4 The Sales Hub API
+
+Everything in the Hub is also available through a REST API at `https://sales.tourlast.com/api/v1`, documented in **[API.md](API.md)** with a machine-readable OpenAPI 3.1 file at `docs/api/openapi.json` (regenerate with `php artisan hub:api-spec`).
+
+- **Tokens:** people sign in with `POST /auth/tokens`; systems get tokens from **Admin → API tokens** (Super Admin, Sales Admin). Everyone can see and revoke their own tokens on their profile.
+- **Scopes plus permissions:** each token is limited to scopes (e.g. `leads:read`, `registry:write`) and can never do more than its owner can in the Hub. Suspending or firing someone stops their tokens immediately.
+- **Same rules as the web app:** duplicate protection (`409`), required lost reasons, append-only history and role permissions all apply.
+- **tourlast.com push:** `php artisan hub:create-integration-account` creates a least-privilege integration account and prints a token that can only push provider records to `POST /integrations/tourlast/providers`; set `TOURLAST_SOURCE=push`.
+- Rate limit: 120 requests per minute per user.
+
+### 7.5 Testing the connection
 
 1. Set the `.env` values (section 8), run `php artisan config:clear`.
 2. Run `php artisan hub:sync-tourlast --full`. It prints how many records were read, created and updated, or the exact error.
@@ -413,7 +425,7 @@ Full details, code samples and SQL are in **[TOURLAST_INTEGRATION.md](TOURLAST_I
 
 | Setting | Meaning |
 |---|---|
-| `TOURLAST_SOURCE` | `sandbox` (default, simulator) · `database` · `api` |
+| `TOURLAST_SOURCE` | `sandbox` (default, simulator) · `database` · `api` (Hub reads tourlast.com) · `push` (tourlast.com calls the Hub API; scheduled sync skipped) |
 | `TOURLAST_SYNC_EVERY_MINUTES` / `TOURLAST_FULL_SYNC_AT` | Sync frequency (10) and nightly full check (`02:00`) |
 | `TOURLAST_DB_HOST`, `_PORT`, `_DATABASE`, `_USERNAME`, `_PASSWORD`, `_TABLE` | Read-only database access (Option A) |
 | `TOURLAST_COL_*` | Column name mapping (property ID, ref code, name, type, location, contact fields, status, dates, account fields, first booking) |
@@ -501,7 +513,7 @@ sudo supervisorctl restart sales-hub-worker
 | # | Item | Owner | What is needed |
 |---|---|---|---|
 | 1 | Store `ref` codes on tourlast.com | tourlast.com dev | Section 7.2 steps 1–2 |
-| 2 | Read access for the Hub | tourlast.com dev | Database view or JSON API (7.2 step 3) |
+| 2 | Connect tourlast.com | tourlast.com dev | Hub reads (database view or JSON API), or tourlast.com pushes to the Hub API with the integration account token (7.4) |
 | 3 | Confirm status/type values | tourlast.com dev | Update `config/tourlast.php` maps if needed |
 | 4 | Server, database, DNS, HTTPS | DevOps | Section 9 |
 | 5 | Email sending | DevOps | SES (+ `composer require aws/aws-sdk-php`, domain verification) or SMTP |
@@ -553,6 +565,7 @@ Demo accounts: `admin@` (Super Admin), `grace@` (Sales Admin), `david@` (Sales M
 | Area | Location |
 |---|---|
 | Pages (Livewire components + views) | `app/Livewire/*`, `resources/views/livewire/*` |
+| API v1 | `routes/api.php` + `routes/api/v1/*.php`, `app/Http/Controllers/Api/V1/*`, `app/Http/Resources/V1/*`, scopes in `app/Enums/ApiScope.php`, tests in `tests/Feature/Api/*` |
 | Business actions (one job per class) | `app/Actions/*` — e.g. `ApplyProviderRecord`, `SavePropertyEngagement`, `LogEngagement`, `TransferLead`, `MarkLeadLost`, `ChangeAccountStatus`, `DeleteUser` |
 | Incentive engine | `app/Incentives/*` (`Calculator`, `AccountPoints`, `MonthlyEarnings`, `Statements`, `Claims`, `Policy`) |
 | tourlast.com integration | `app/Integrations/Tourlast/*`, `config/tourlast.php` |

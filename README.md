@@ -2,7 +2,7 @@
 
 A private sales and partner-onboarding tracker for the Tourlast team. Providers sign up on **tourlast.com** through a salesperson's referral link. The Hub credits each signup to that salesperson, shows everyone their progress against the monthly target they set themselves, and gives HR and Accounts a register of onboarded partners with Excel and PDF exports.
 
-**Stack:** Laravel 13, Livewire 4, Tailwind CSS 4, MySQL in production (SQLite locally), spatie/laravel-permission, maatwebsite/excel, barryvdh/laravel-dompdf.
+**Stack:** Laravel 13, Livewire 4, Tailwind CSS 4, MySQL in production (SQLite locally), spatie/laravel-permission, Laravel Sanctum (API tokens), maatwebsite/excel, barryvdh/laravel-dompdf.
 
 ## Local setup
 
@@ -66,6 +66,7 @@ In production there is no public registration. Create the first admin with `php 
 ## Handover documents
 
 - **[docs/SYSTEM_GUIDE.md](docs/SYSTEM_GUIDE.md):** the complete guide: how every module works, roles, integration status, configuration, deployment, and pending work and open decisions. Start here.
+- **[docs/API.md](docs/API.md):** the Sales Hub REST API (v1): tokens and scopes, every endpoint with examples, errors, and the tourlast.com push integration. OpenAPI 3.1 file: `docs/api/openapi.json`.
 - **[docs/TOURLAST_INTEGRATION.md](docs/TOURLAST_INTEGRATION.md):** what tourlast.com must add (ref capture, read-only access, optional webhook), with the exact settings.
 - **[docs/DEPLOYMENT_AWS.md](docs/DEPLOYMENT_AWS.md):** server, database, email, scheduler and queue setup for `sales.tourlast.com`.
 
@@ -76,5 +77,7 @@ php artisan hub:sync-tourlast [--full]     # pull referred providers from tourla
 php artisan hub:send-manager-alerts        # send the managers' daily summary now
 php artisan hub:generate-statements [YYYY-MM]  # create or refresh draft payout statements
 php artisan hub:create-super-admin EMAIL NAME
+php artisan hub:create-integration-account [--rotate]  # least-privilege account + token for tourlast.com push
+php artisan hub:api-spec                    # regenerate docs/api/openapi.json from the routes
 php artisan test                           # full test suite
 ```

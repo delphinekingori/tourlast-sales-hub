@@ -8,7 +8,6 @@ use App\Enums\Permission;
 use App\Enums\Role;
 use App\Incentives\MonthlyEarnings;
 use App\Models\Activity;
-use App\Models\FollowUp;
 use App\Models\Invitation;
 use App\Models\Lead;
 use App\Models\Onboarding;
@@ -16,6 +15,7 @@ use App\Models\Target;
 use App\Models\User;
 use App\Support\Period;
 use App\Support\SalesMetrics;
+use App\Support\TodayOverview;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -121,16 +121,8 @@ class Dashboard extends Component
             'targetMonthOptions' => $this->targetMonthOptions(),
             'needsAttention' => $this->needsAttention($subject),
             'pipeline' => Lead::query()->where('user_id', $subject->id)->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
-            'today' => $this->todayCounts($subject),
-            'schedule' => FollowUp::query()
-                ->where('user_id', $subject->id)
-                ->where(fn ($query) => $query
-                    ->whereBetween('due_at', [now()->startOfDay(), now()->endOfDay()])
-                    ->orWhere(fn ($overdue) => $overdue->whereNull('completed_at')->where('due_at', '<', now()->startOfDay())))
-                ->with('lead:id,business_name,location')
-                ->chronological()
-                ->limit(12)
-                ->get(),
+            'today' => TodayOverview::counts($subject),
+            'schedule' => TodayOverview::schedule($subject),
             'approvedInPeriod' => Onboarding::query()->where('user_id', $subject->id)->whereBetween('approved_at', [$period->from, $period->to])->count(),
             'recentActivities' => Activity::query()->where('user_id', $subject->id)->with('lead')->latest('happened_at')->limit(6)->get(),
         ])->title($subject->is($viewer) ? 'My Progress' : $subject->name);
@@ -143,40 +135,13 @@ class Dashboard extends Component
     }
 
     /**
-     * The "Today" strip: what is due today, meetings, anything overdue and
-     * signups still going through onboarding.
-     *
-     * @return array{follow_ups: int, meetings: int, overdue: int, onboardings: int}
-     */
-    private function todayCounts(User $subject): array
-    {
-        $today = FollowUp::query()->open()->where('user_id', $subject->id)->whereBetween('due_at', [now()->startOfDay(), now()->endOfDay()]);
-        $meetingTypes = array_map(fn ($type) => $type->value, FollowUp::meetingTypes());
-
-        return [
-            'follow_ups' => (clone $today)->whereNotIn('type', $meetingTypes)->count(),
-            'meetings' => (clone $today)->whereIn('type', $meetingTypes)->count(),
-            'overdue' => FollowUp::query()->open()->where('user_id', $subject->id)->where('due_at', '<', now()->startOfDay())->count(),
-            'onboardings' => Onboarding::query()->where('user_id', $subject->id)->awaitingApproval()->count(),
-        ];
-    }
-
-    /**
      * Months a salesperson may still set: this month until the lock day, and next month.
      *
      * @return array<string, string>
      */
     private function targetMonthOptions(): array
     {
-        $options = [];
-
-        foreach ([CarbonImmutable::now()->startOfMonth(), CarbonImmutable::now()->startOfMonth()->addMonth()] as $month) {
-            if (! Target::isLockedFor($month)) {
-                $options[$month->toDateString()] = $month->format('F Y');
-            }
-        }
-
-        return $options;
+        return Target::settableMonths();
     }
 
     private function isOwnProgress(): bool

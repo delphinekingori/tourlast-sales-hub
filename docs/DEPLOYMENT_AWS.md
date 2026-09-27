@@ -63,6 +63,12 @@ php artisan storage:link
 php artisan optimize
 ```
 
+If tourlast.com will push provider records to the API instead of the Hub reading tourlast.com, create its integration account and give the printed token to the tourlast.com developer:
+
+```bash
+php artisan hub:create-integration-account   # set TOURLAST_SOURCE=push in .env
+```
+
 Don't run the plain `db:seed` in production. The demo data only seeds when `APP_ENV=local`, but the roles seeder is all production needs.
 
 ## Background processes

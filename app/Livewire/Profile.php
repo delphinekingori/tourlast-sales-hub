@@ -104,8 +104,20 @@ class Profile extends Component
         $this->dispatch('toast', message: 'Your password was changed.');
     }
 
+    /**
+     * Revoke one of your own API tokens (apps and devices signed in to the API).
+     */
+    public function revokeToken(int $tokenId): void
+    {
+        Auth::user()->tokens()->whereKey($tokenId)->firstOrFail()->delete();
+        $this->dispatch('toast', message: 'Token revoked.');
+    }
+
     public function render(): View
     {
-        return view('livewire.profile', ['user' => Auth::user()->fresh()]);
+        return view('livewire.profile', [
+            'user' => Auth::user()->fresh(),
+            'tokens' => Auth::user()->tokens()->with('issuer:id,name')->latest()->get(),
+        ]);
     }
 }

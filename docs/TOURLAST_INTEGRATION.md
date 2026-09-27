@@ -43,7 +43,9 @@ $property->ref_code = request()->cookie('tl_ref');
 
 Keep the first code a provider arrived with, so later visits through other links don't overwrite it.
 
-### 3. Give the Hub read access (choose one)
+### 3. Connect tourlast.com to the Hub (choose one)
+
+Options A and B let the Hub **read** from tourlast.com. Option C lets tourlast.com **push** to the Hub, so the Hub needs no access to tourlast.com at all.
 
 #### Option A: read-only database user (simplest)
 
@@ -121,6 +123,24 @@ TOURLAST_API_URL=https://www.tourlast.com
 TOURLAST_API_PATH=/api/sales-hub/referrals
 TOURLAST_API_TOKEN=<token>
 ```
+
+#### Option C: push to the Sales Hub API (no access to tourlast.com needed)
+
+tourlast.com sends each provider record to the Hub whenever it changes:
+
+```
+POST https://sales.tourlast.com/api/v1/integrations/tourlast/providers
+Authorization: Bearer <integration token>
+Content-Type: application/json
+
+{"providers": [ { ...same fields as the API item above... } ]}
+```
+
+- Get the token by running `php artisan hub:create-integration-account` on the Hub server. It creates a least-privilege integration account (no role, no usable password, can only push provider records) and prints a token limited to the `integration:push` scope. Rotate it with `--rotate`.
+- Send up to 100 records per request; each gets its own `result` (`created`, `updated`, `unchanged`) or `error`. Re-sending is safe.
+- Set `TOURLAST_SOURCE=push` in the Hub's `.env`. The scheduled read sync is then skipped, because tourlast.com sends every change itself.
+
+Full reference, examples and errors: [API.md → tourlast.com integration](API.md#tourlastcom-integration).
 
 ### 4. Optional: instant updates (webhook)
 

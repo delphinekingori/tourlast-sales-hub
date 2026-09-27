@@ -9,6 +9,7 @@ use App\Http\Controllers\TourlastWebhookController;
 use App\Livewire\Accounts\Index as AccountsIndex;
 use App\Livewire\Accounts\Show as AccountsShow;
 use App\Livewire\Activities\Index as ActivitiesIndex;
+use App\Livewire\Admin\ApiTokens;
 use App\Livewire\Admin\Incentives as AdminIncentives;
 use App\Livewire\Admin\Integration;
 use App\Livewire\Auth\AcceptInvitation;
@@ -110,6 +111,7 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::livewire('/admin/integration', Integration::class)->name('admin.integration');
     Route::livewire('/admin/incentives', AdminIncentives::class)->name('admin.incentives');
+    Route::livewire('/admin/api-tokens', ApiTokens::class)->name('admin.api-tokens');
 
     Route::livewire('/profile', Profile::class)->name('profile');
     Route::livewire('/people', PeopleIndex::class)->name('people.index');

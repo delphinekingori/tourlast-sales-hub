@@ -54,6 +54,12 @@ enum Permission: string
     /** Permanently delete accounts that have no business history. */
     case DeleteUsers = 'delete-users';
 
+    /** Send tourlast.com provider records to the API. Held by the integration account only (and Super Admin). */
+    case PushProviderRecords = 'push-provider-records';
+
+    /** Issue and revoke API tokens for anyone (Admin → API tokens). */
+    case ManageApiTokens = 'manage-api-tokens';
+
     /** Assign and transfer leads between salespeople. */
     case TransferOwnership = 'transfer-ownership';
 

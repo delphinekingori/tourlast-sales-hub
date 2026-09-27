@@ -18,6 +18,12 @@ class EnsureUserIsActive
     {
         if ($request->user() && ! $request->user()->is_active) {
             $message = $request->user()->inactiveMessage();
+
+            if ($request->is('api/*') || $request->expectsJson()) {
+                // API tokens of suspended or fired people stop working immediately.
+                return response()->json(['message' => $message], 403);
+            }
+
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
