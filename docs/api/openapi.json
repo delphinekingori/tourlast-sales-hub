@@ -1,0 +1,3493 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Tourlast Sales Hub API",
+        "version": "v1",
+        "description": "REST API for the Tourlast Sales Hub. A request needs the token scope listed on the operation AND the token owner's permission in the Hub. Full guide: docs/API.md."
+    },
+    "servers": [
+        {
+            "url": "http://tourlast-sales-crm.test/api/v1"
+        }
+    ],
+    "security": [
+        {
+            "bearerAuth": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "Authentication"
+        },
+        {
+            "name": "Your account"
+        },
+        {
+            "name": "Option lists"
+        },
+        {
+            "name": "Notifications"
+        },
+        {
+            "name": "Leads"
+        },
+        {
+            "name": "Schedule"
+        },
+        {
+            "name": "Duplicate check"
+        },
+        {
+            "name": "Property Engagement Registry"
+        },
+        {
+            "name": "Onboardings"
+        },
+        {
+            "name": "Partner accounts"
+        },
+        {
+            "name": "Earnings and statements"
+        },
+        {
+            "name": "Claims"
+        },
+        {
+            "name": "Team and accounts"
+        },
+        {
+            "name": "Insights and reports"
+        },
+        {
+            "name": "tourlast.com integration"
+        },
+        {
+            "name": "Admin: API tokens"
+        }
+    ],
+    "paths": {
+        "/admin/tokens": {
+            "get": {
+                "tags": [
+                    "Admin: API tokens"
+                ],
+                "operationId": "adminTokensIndex",
+                "summary": "GET /admin/tokens?user_id=",
+                "description": "**Scope:** `team:write`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:write"
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Admin: API tokens"
+                ],
+                "operationId": "adminTokensStore",
+                "summary": "the plain-text token is returned once, never again",
+                "description": "**Scope:** `team:write`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:write"
+                ]
+            }
+        },
+        "/admin/tokens/{token}": {
+            "delete": {
+                "tags": [
+                    "Admin: API tokens"
+                ],
+                "operationId": "adminTokensDestroy",
+                "summary": "DELETE /admin/tokens/{id}",
+                "description": "**Scope:** `team:write`",
+                "parameters": [
+                    {
+                        "name": "token",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:write"
+                ]
+            }
+        },
+        "/announcements": {
+            "post": {
+                "tags": [
+                    "Notifications"
+                ],
+                "operationId": "announcementsStore",
+                "summary": "admins, Sales Managers, HR and Finance",
+                "description": "**Scope:** `notifications:write`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "notifications:write"
+                ]
+            }
+        },
+        "/auth/tokens": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "operationId": "authTokensStore",
+                "summary": "exchange email and password for a token",
+                "description": "**Public** (no token).",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "security": []
+            },
+            "get": {
+                "tags": [
+                    "Authentication"
+                ],
+                "operationId": "authTokensIndex",
+                "summary": "your tokens (all devices and apps)",
+                "description": "**Scope:** any token.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                }
+            }
+        },
+        "/auth/tokens/current": {
+            "delete": {
+                "tags": [
+                    "Authentication"
+                ],
+                "operationId": "authTokensCurrent",
+                "summary": "sign out this token",
+                "description": "**Scope:** any token.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                }
+            }
+        },
+        "/auth/tokens/{token}": {
+            "delete": {
+                "tags": [
+                    "Authentication"
+                ],
+                "operationId": "authTokensDestroy",
+                "summary": "revoke one of your tokens",
+                "description": "**Scope:** any token.",
+                "parameters": [
+                    {
+                        "name": "token",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                }
+            }
+        },
+        "/claims": {
+            "get": {
+                "tags": [
+                    "Claims"
+                ],
+                "operationId": "claimsIndex",
+                "summary": "your own claims",
+                "description": "**Scope:** `claims:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "claims:read"
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Claims"
+                ],
+                "operationId": "claimsStore",
+                "summary": "multipart when files are attached (receipts[], ride_details[])",
+                "description": "**Scope:** `claims:write`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "claims:write"
+                ]
+            }
+        },
+        "/claims/approvals": {
+            "get": {
+                "tags": [
+                    "Claims"
+                ],
+                "operationId": "claimsApprovals",
+                "summary": "claims waiting for your approval step",
+                "description": "**Scope:** `claims:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "claims:read"
+                ]
+            }
+        },
+        "/claims/{claim}": {
+            "get": {
+                "tags": [
+                    "Claims"
+                ],
+                "operationId": "claimsShow",
+                "summary": "GET /claims/{id}",
+                "description": "**Scope:** `claims:read`",
+                "parameters": [
+                    {
+                        "name": "claim",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "claims:read"
+                ]
+            }
+        },
+        "/claims/{claim}/approve": {
+            "post": {
+                "tags": [
+                    "Claims"
+                ],
+                "operationId": "claimsApprove",
+                "summary": "note optional; Finance sets the approved amount",
+                "description": "**Scope:** `claims:write`",
+                "parameters": [
+                    {
+                        "name": "claim",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "claims:write"
+                ]
+            }
+        },
+        "/claims/{claim}/attachments/{attachment}": {
+            "get": {
+                "tags": [
+                    "Claims"
+                ],
+                "operationId": "claimsAttachmentsShow",
+                "summary": "download a receipt or ride details file",
+                "description": "**Scope:** `claims:read`",
+                "parameters": [
+                    {
+                        "name": "claim",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "attachment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "claims:read"
+                ]
+            }
+        },
+        "/claims/{claim}/disburse": {
+            "post": {
+                "tags": [
+                    "Claims"
+                ],
+                "operationId": "claimsDisburse",
+                "summary": "Finance releases an approved transport request",
+                "description": "**Scope:** `claims:write`",
+                "parameters": [
+                    {
+                        "name": "claim",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "claims:write"
+                ]
+            }
+        },
+        "/claims/{claim}/reject": {
+            "post": {
+                "tags": [
+                    "Claims"
+                ],
+                "operationId": "claimsReject",
+                "summary": "a reason is required",
+                "description": "**Scope:** `claims:write`",
+                "parameters": [
+                    {
+                        "name": "claim",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "claims:write"
+                ]
+            }
+        },
+        "/duplicates/check": {
+            "post": {
+                "tags": [
+                    "Duplicate check"
+                ],
+                "operationId": "duplicatesCheck",
+                "summary": "Duplicates.check",
+                "description": "**Scope:** `leads:read` or `registry:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "leads:read",
+                    "registry:read"
+                ]
+            }
+        },
+        "/earnings/{user}": {
+            "get": {
+                "tags": [
+                    "Earnings and statements"
+                ],
+                "operationId": "earningsShow",
+                "summary": "GET /earnings/{userId}?month=YYYY-MM",
+                "description": "**Scope:** `incentives:read`",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "incentives:read"
+                ]
+            }
+        },
+        "/insights/objections": {
+            "get": {
+                "tags": [
+                    "Insights and reports"
+                ],
+                "operationId": "insightsObjections",
+                "summary": "team view (managers)",
+                "description": "**Scope:** `reports:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "reports:read"
+                ]
+            }
+        },
+        "/integrations/tourlast/providers": {
+            "post": {
+                "tags": [
+                    "tourlast.com integration"
+                ],
+                "operationId": "integrationsTourlastProviders",
+                "summary": "{\"provider\": {...}} or {\"providers\": [...]} (max 100)",
+                "description": "Each record goes through the same credit rules as the scheduled sync.\n\n**Scope:** `integration:push`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "integration:push"
+                ]
+            }
+        },
+        "/integrations/tourlast/sync": {
+            "post": {
+                "tags": [
+                    "tourlast.com integration"
+                ],
+                "operationId": "integrationsTourlastSync",
+                "summary": "run a sync now (mode: incremental|full)",
+                "description": "**Scope:** `integration:push`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "integration:push"
+                ]
+            }
+        },
+        "/integrations/tourlast/sync-runs": {
+            "get": {
+                "tags": [
+                    "tourlast.com integration"
+                ],
+                "operationId": "integrationsTourlastSyncRuns",
+                "summary": "the sync log, newest first",
+                "description": "**Scope:** `integration:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "integration:read"
+                ]
+            }
+        },
+        "/invitations": {
+            "get": {
+                "tags": [
+                    "Team and accounts"
+                ],
+                "operationId": "invitationsIndex",
+                "summary": "GET /invitations?status=&q=",
+                "description": "**Scope:** `team:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:read"
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Team and accounts"
+                ],
+                "operationId": "invitationsStore",
+                "summary": "sends the single-use link by email",
+                "description": "**Scope:** `team:write`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:write"
+                ]
+            }
+        },
+        "/invitations/{invitation}": {
+            "delete": {
+                "tags": [
+                    "Team and accounts"
+                ],
+                "operationId": "invitationsDestroy",
+                "summary": "cancel a pending invitation",
+                "description": "**Scope:** `team:write`",
+                "parameters": [
+                    {
+                        "name": "invitation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:write"
+                ]
+            }
+        },
+        "/invitations/{invitation}/resend": {
+            "post": {
+                "tags": [
+                    "Team and accounts"
+                ],
+                "operationId": "invitationsResend",
+                "summary": "a new link; the old one stops working",
+                "description": "**Scope:** `team:write`",
+                "parameters": [
+                    {
+                        "name": "invitation",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:write"
+                ]
+            }
+        },
+        "/leads": {
+            "get": {
+                "tags": [
+                    "Leads"
+                ],
+                "operationId": "leadsIndex",
+                "summary": "own leads; managers with team performance see everyone's",
+                "description": "**Scope:** `leads:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "leads:read"
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Leads"
+                ],
+                "operationId": "leadsStore",
+                "summary": "sellers only. Applies the Hub-wide duplicate rule: a lead",
+                "description": "that looks like a known property must either continue that engagement (property_engagement_id) or be confirmed different (confirm_different).\n\n**Scope:** `leads:write`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "leads:write"
+                ]
+            }
+        },
+        "/leads/transfer-bulk": {
+            "post": {
+                "tags": [
+                    "Leads"
+                ],
+                "operationId": "leadsTransferBulk",
+                "summary": "hand every open lead of one salesperson to another",
+                "description": "**Scope:** `leads:write`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "leads:write"
+                ]
+            }
+        },
+        "/leads/{lead}": {
+            "get": {
+                "tags": [
+                    "Leads"
+                ],
+                "operationId": "leadsShow",
+                "summary": "the owner or managers with team performance",
+                "description": "**Scope:** `leads:read`",
+                "parameters": [
+                    {
+                        "name": "lead",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "leads:read"
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Leads"
+                ],
+                "operationId": "leadsUpdate",
+                "summary": "owner only",
+                "description": "**Scope:** `leads:write`",
+                "parameters": [
+                    {
+                        "name": "lead",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "leads:write"
+                ]
+            }
+        },
+        "/leads/{lead}/activities": {
+            "get": {
+                "tags": [
+                    "Leads"
+                ],
+                "operationId": "leadsActivitiesIndex",
+                "summary": "newest first; owner or managers",
+                "description": "**Scope:** `leads:read`",
+                "parameters": [
+                    {
+                        "name": "lead",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "leads:read"
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Leads"
+                ],
+                "operationId": "leadsActivitiesStore",
+                "summary": "owner only. Moves the lead forward like the",
+                "description": "web app does and can book the next follow-up.\n\n**Scope:** `leads:write`",
+                "parameters": [
+                    {
+                        "name": "lead",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "leads:write"
+                ]
+            }
+        },
+        "/leads/{lead}/lost": {
+            "post": {
+                "tags": [
+                    "Leads"
+                ],
+                "operationId": "leadsLost",
+                "summary": "owner; the primary objection is required",
+                "description": "**Scope:** `leads:write`",
+                "parameters": [
+                    {
+                        "name": "lead",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "leads:write"
+                ]
+            }
+        },
+        "/leads/{lead}/status": {
+            "post": {
+                "tags": [
+                    "Leads"
+                ],
+                "operationId": "leadsStatus",
+                "summary": "set a manual status (not Lost: use /lost)",
+                "description": "**Scope:** `leads:write`",
+                "parameters": [
+                    {
+                        "name": "lead",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "leads:write"
+                ]
+            }
+        },
+        "/leads/{lead}/transfer": {
+            "post": {
+                "tags": [
+                    "Leads"
+                ],
+                "operationId": "leadsTransfer",
+                "summary": "managers with the transfer permission",
+                "description": "**Scope:** `leads:write`",
+                "parameters": [
+                    {
+                        "name": "lead",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "leads:write"
+                ]
+            }
+        },
+        "/me": {
+            "get": {
+                "tags": [
+                    "Your account"
+                ],
+                "operationId": "meShow",
+                "summary": "GET /me",
+                "description": "**Scope:** `profile`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "profile"
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Your account"
+                ],
+                "operationId": "meUpdate",
+                "summary": "update your own profile details",
+                "description": "**Scope:** `profile`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "profile"
+                ]
+            }
+        },
+        "/me/dashboard": {
+            "get": {
+                "tags": [
+                    "Your account"
+                ],
+                "operationId": "meDashboard",
+                "summary": "today, schedule, pipeline and performance",
+                "description": "**Scope:** `profile`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "profile"
+                ]
+            }
+        },
+        "/me/earnings": {
+            "get": {
+                "tags": [
+                    "Your account"
+                ],
+                "operationId": "meEarnings",
+                "summary": "your pay for a month",
+                "description": "**Scope:** `profile`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "profile"
+                ]
+            }
+        },
+        "/me/losses": {
+            "get": {
+                "tags": [
+                    "Insights and reports"
+                ],
+                "operationId": "insightsMine",
+                "summary": "the salesperson's own losses",
+                "description": "**Scope:** `reports:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "reports:read"
+                ]
+            }
+        },
+        "/me/payment-details": {
+            "get": {
+                "tags": [
+                    "Your account"
+                ],
+                "operationId": "mePaymentDetails",
+                "summary": "how you are paid (masked)",
+                "description": "**Scope:** `profile`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "profile"
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Your account"
+                ],
+                "operationId": "mePaymentDetailsUpdate",
+                "summary": "set M-Pesa or bank details. HR and Finance are alerted",
+                "description": "**Scope:** `profile`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "profile"
+                ]
+            }
+        },
+        "/me/referral": {
+            "get": {
+                "tags": [
+                    "Your account"
+                ],
+                "operationId": "meReferral",
+                "summary": "your link and its funnel",
+                "description": "**Scope:** `profile`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "profile"
+                ]
+            }
+        },
+        "/me/target": {
+            "get": {
+                "tags": [
+                    "Your account"
+                ],
+                "operationId": "meTarget",
+                "summary": "your targets and which months can still change",
+                "description": "**Scope:** `profile`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "profile"
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Your account"
+                ],
+                "operationId": "meTargetUpdate",
+                "summary": "set your points target for this month (until the lock day) or next month",
+                "description": "**Scope:** `profile`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "profile"
+                ]
+            }
+        },
+        "/meta": {
+            "get": {
+                "tags": [
+                    "Option lists"
+                ],
+                "operationId": "meta",
+                "summary": "Meta",
+                "description": "**Scope:** any token.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                }
+            }
+        },
+        "/notifications": {
+            "get": {
+                "tags": [
+                    "Notifications"
+                ],
+                "operationId": "notificationsIndex",
+                "summary": "GET /notifications?filter=all|alerts|announcements&limit=50",
+                "description": "**Scope:** `notifications:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "notifications:read"
+                ]
+            }
+        },
+        "/notifications/read-all": {
+            "post": {
+                "tags": [
+                    "Notifications"
+                ],
+                "operationId": "notificationsReadAll",
+                "summary": "POST /notifications/read-all",
+                "description": "**Scope:** `notifications:write`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "notifications:write"
+                ]
+            }
+        },
+        "/notifications/{key}/read": {
+            "post": {
+                "tags": [
+                    "Notifications"
+                ],
+                "operationId": "notificationsRead",
+                "summary": "key as returned by the list (a-12 or n-uuid)",
+                "description": "**Scope:** `notifications:write`",
+                "parameters": [
+                    {
+                        "name": "key",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "notifications:write"
+                ]
+            }
+        },
+        "/onboardings": {
+            "get": {
+                "tags": [
+                    "Onboardings"
+                ],
+                "operationId": "onboardingsIndex",
+                "summary": "GET /onboardings?status=all|awaiting|onboarded|rejected|<status>&user_id=&from=&to=&q=",
+                "description": "**Scope:** `onboardings:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "onboardings:read"
+                ]
+            }
+        },
+        "/onboardings/unattributed": {
+            "get": {
+                "tags": [
+                    "Onboardings"
+                ],
+                "operationId": "onboardingsUnattributed",
+                "summary": "signups without a referral code (admins)",
+                "description": "**Scope:** `onboardings:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "onboardings:read"
+                ]
+            }
+        },
+        "/onboardings/{onboarding}": {
+            "get": {
+                "tags": [
+                    "Onboardings"
+                ],
+                "operationId": "onboardingsShow",
+                "summary": "GET /onboardings/{id}",
+                "description": "**Scope:** `onboardings:read`",
+                "parameters": [
+                    {
+                        "name": "onboarding",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "onboardings:read"
+                ]
+            }
+        },
+        "/onboardings/{onboarding}/assign": {
+            "post": {
+                "tags": [
+                    "Onboardings"
+                ],
+                "operationId": "onboardingsAssign",
+                "summary": "credit an unattributed signup, with a reason on record",
+                "description": "**Scope:** `onboardings:write`",
+                "parameters": [
+                    {
+                        "name": "onboarding",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "onboardings:write"
+                ]
+            }
+        },
+        "/partner-accounts": {
+            "get": {
+                "tags": [
+                    "Partner accounts"
+                ],
+                "operationId": "partnerAccountsIndex",
+                "summary": "GET /partner-accounts?queue=all|verify|review|expansion|failed&user_id=&q=",
+                "description": "**Scope:** `incentives:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "incentives:read"
+                ]
+            }
+        },
+        "/partner-accounts/{account}": {
+            "get": {
+                "tags": [
+                    "Partner accounts"
+                ],
+                "operationId": "partnerAccountsShow",
+                "summary": "checklist, properties, inventory and points (replaced lines hidden)",
+                "description": "**Scope:** `incentives:read`",
+                "parameters": [
+                    {
+                        "name": "account",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "incentives:read"
+                ]
+            }
+        },
+        "/partner-accounts/{account}/fail-review": {
+            "post": {
+                "tags": [
+                    "Partner accounts"
+                ],
+                "operationId": "partnerAccountsFailReview",
+                "summary": "the 14-day review failed; points are cancelled and recovered",
+                "description": "**Scope:** `incentives:write`",
+                "parameters": [
+                    {
+                        "name": "account",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "incentives:write"
+                ]
+            }
+        },
+        "/partner-accounts/{account}/verify": {
+            "post": {
+                "tags": [
+                    "Partner accounts"
+                ],
+                "operationId": "partnerAccountsVerify",
+                "summary": "approve the Account's points (Sales Admin)",
+                "description": "**Scope:** `incentives:write`",
+                "parameters": [
+                    {
+                        "name": "account",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "incentives:write"
+                ]
+            }
+        },
+        "/partners": {
+            "get": {
+                "tags": [
+                    "Insights and reports"
+                ],
+                "operationId": "partnersIndex",
+                "summary": "the Partner Register (onboarded partners by default)",
+                "description": "**Scope:** `reports:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "reports:read"
+                ]
+            }
+        },
+        "/registry": {
+            "get": {
+                "tags": [
+                    "Property Engagement Registry"
+                ],
+                "operationId": "registryIndex",
+                "summary": "GET /registry",
+                "description": "**Scope:** `registry:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "registry:read"
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Property Engagement Registry"
+                ],
+                "operationId": "registryStore",
+                "summary": "POST /registry",
+                "description": "**Scope:** `registry:write`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "registry:write"
+                ]
+            }
+        },
+        "/registry/{engagement}": {
+            "get": {
+                "tags": [
+                    "Property Engagement Registry"
+                ],
+                "operationId": "registryShow",
+                "summary": "GET /registry/{engagement}",
+                "description": "**Scope:** `registry:read`",
+                "parameters": [
+                    {
+                        "name": "engagement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "registry:read"
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Property Engagement Registry"
+                ],
+                "operationId": "registryUpdate",
+                "summary": "send only the fields that change",
+                "description": "**Scope:** `registry:write`",
+                "parameters": [
+                    {
+                        "name": "engagement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "registry:write"
+                ]
+            }
+        },
+        "/registry/{engagement}/archive": {
+            "post": {
+                "tags": [
+                    "Property Engagement Registry"
+                ],
+                "operationId": "registryArchive",
+                "summary": "hide the record; its history is kept",
+                "description": "**Scope:** `registry:write`",
+                "parameters": [
+                    {
+                        "name": "engagement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "registry:write"
+                ]
+            }
+        },
+        "/registry/{engagement}/assign": {
+            "post": {
+                "tags": [
+                    "Property Engagement Registry"
+                ],
+                "operationId": "registryAssign",
+                "summary": "assign (no rep yet) or transfer ownership",
+                "description": "**Scope:** `registry:write`",
+                "parameters": [
+                    {
+                        "name": "engagement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "registry:write"
+                ]
+            }
+        },
+        "/registry/{engagement}/contacts": {
+            "post": {
+                "tags": [
+                    "Property Engagement Registry"
+                ],
+                "operationId": "registryContactsStore",
+                "summary": "POST /registry/{engagement}/contacts",
+                "description": "**Scope:** `registry:write`",
+                "parameters": [
+                    {
+                        "name": "engagement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "registry:write"
+                ]
+            }
+        },
+        "/registry/{engagement}/contacts/{contact}": {
+            "delete": {
+                "tags": [
+                    "Property Engagement Registry"
+                ],
+                "operationId": "registryContactsDestroy",
+                "summary": "the primary contact can't be removed",
+                "description": "**Scope:** `registry:write`",
+                "parameters": [
+                    {
+                        "name": "engagement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "contact",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "registry:write"
+                ]
+            }
+        },
+        "/registry/{engagement}/contacts/{contact}/primary": {
+            "post": {
+                "tags": [
+                    "Property Engagement Registry"
+                ],
+                "operationId": "registryContactsPrimary",
+                "summary": "POST /registry/{engagement}/contacts/{contact}/primary",
+                "description": "**Scope:** `registry:write`",
+                "parameters": [
+                    {
+                        "name": "engagement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "contact",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "registry:write"
+                ]
+            }
+        },
+        "/registry/{engagement}/engagements": {
+            "post": {
+                "tags": [
+                    "Property Engagement Registry"
+                ],
+                "operationId": "registryEngagementsStore",
+                "summary": "add a call, meeting, proposal… to the history",
+                "description": "**Scope:** `registry:write`",
+                "parameters": [
+                    {
+                        "name": "engagement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "registry:write"
+                ]
+            }
+        },
+        "/registry/{engagement}/links": {
+            "post": {
+                "tags": [
+                    "Property Engagement Registry"
+                ],
+                "operationId": "registryLinksStore",
+                "summary": "link a salesperson lead or a tourlast.com signup",
+                "description": "**Scope:** `registry:write`",
+                "parameters": [
+                    {
+                        "name": "engagement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "registry:write"
+                ]
+            }
+        },
+        "/registry/{engagement}/restore": {
+            "post": {
+                "tags": [
+                    "Property Engagement Registry"
+                ],
+                "operationId": "registryRestore",
+                "summary": "POST /registry/{engagement}/restore",
+                "description": "**Scope:** `registry:write`",
+                "parameters": [
+                    {
+                        "name": "engagement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "registry:write"
+                ]
+            }
+        },
+        "/reports/partner-register.pdf": {
+            "get": {
+                "tags": [
+                    "Insights and reports"
+                ],
+                "operationId": "reportsPartnerRegisterPdf",
+                "summary": "GET /reports/partner-register.pdf",
+                "description": "**Scope:** `reports:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "reports:read"
+                ]
+            }
+        },
+        "/reports/partner-register.xlsx": {
+            "get": {
+                "tags": [
+                    "Insights and reports"
+                ],
+                "operationId": "reportsPartnerRegisterXlsx",
+                "summary": "GET /reports/partner-register.xlsx",
+                "description": "**Scope:** `reports:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "reports:read"
+                ]
+            }
+        },
+        "/reports/registry.pdf": {
+            "get": {
+                "tags": [
+                    "Insights and reports"
+                ],
+                "operationId": "reportsRegistryPdf",
+                "summary": "GET /reports/registry.pdf?from=&to=",
+                "description": "**Scope:** `reports:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "reports:read"
+                ]
+            }
+        },
+        "/reports/registry.xlsx": {
+            "get": {
+                "tags": [
+                    "Insights and reports"
+                ],
+                "operationId": "reportsRegistryXlsx",
+                "summary": "GET /reports/registry.xlsx",
+                "description": "**Scope:** `reports:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "reports:read"
+                ]
+            }
+        },
+        "/schedule": {
+            "get": {
+                "tags": [
+                    "Schedule"
+                ],
+                "operationId": "scheduleIndex",
+                "summary": "salespeople see their own; managers see",
+                "description": "the team (\"team\"), one person (id) or, if they sell, themselves by default.\n\n**Scope:** `schedule:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "schedule:read"
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Schedule"
+                ],
+                "operationId": "scheduleStore",
+                "summary": "sellers only, on their own leads",
+                "description": "**Scope:** `schedule:write`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "schedule:write"
+                ]
+            }
+        },
+        "/schedule/{item}": {
+            "patch": {
+                "tags": [
+                    "Schedule"
+                ],
+                "operationId": "scheduleUpdate",
+                "summary": "owner only",
+                "description": "**Scope:** `schedule:write`",
+                "parameters": [
+                    {
+                        "name": "item",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "schedule:write"
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Schedule"
+                ],
+                "operationId": "scheduleDestroy",
+                "summary": "owner only, open items only",
+                "description": "**Scope:** `schedule:write`",
+                "parameters": [
+                    {
+                        "name": "item",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "schedule:write"
+                ]
+            }
+        },
+        "/schedule/{item}/complete": {
+            "post": {
+                "tags": [
+                    "Schedule"
+                ],
+                "operationId": "scheduleComplete",
+                "summary": "record the outcome (logged on the lead) and",
+                "description": "optionally book the next step.\n\n**Scope:** `schedule:write`",
+                "parameters": [
+                    {
+                        "name": "item",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "schedule:write"
+                ]
+            }
+        },
+        "/statements": {
+            "get": {
+                "tags": [
+                    "Earnings and statements"
+                ],
+                "operationId": "statementsIndex",
+                "summary": "GET /statements?month=YYYY-MM&user_id=&status=",
+                "description": "**Scope:** `incentives:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "incentives:read"
+                ]
+            }
+        },
+        "/statements/{statement}": {
+            "get": {
+                "tags": [
+                    "Earnings and statements"
+                ],
+                "operationId": "statementsShow",
+                "summary": "GET /statements/{id}",
+                "description": "**Scope:** `incentives:read`",
+                "parameters": [
+                    {
+                        "name": "statement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "incentives:read"
+                ]
+            }
+        },
+        "/statements/{statement}/approve": {
+            "post": {
+                "tags": [
+                    "Earnings and statements"
+                ],
+                "operationId": "statementsApprove",
+                "summary": "freeze the figures (Accounts)",
+                "description": "**Scope:** `incentives:write`",
+                "parameters": [
+                    {
+                        "name": "statement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "incentives:write"
+                ]
+            }
+        },
+        "/statements/{statement}/compliance": {
+            "post": {
+                "tags": [
+                    "Earnings and statements"
+                ],
+                "operationId": "statementsCompliance",
+                "summary": "retainer conditions (Sales Admin)",
+                "description": "**Scope:** `incentives:write`",
+                "parameters": [
+                    {
+                        "name": "statement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "incentives:write"
+                ]
+            }
+        },
+        "/statements/{statement}/pay": {
+            "post": {
+                "tags": [
+                    "Earnings and statements"
+                ],
+                "operationId": "statementsPay",
+                "summary": "mark paid with the payment reference (Accounts)",
+                "description": "**Scope:** `incentives:write`",
+                "parameters": [
+                    {
+                        "name": "statement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "incentives:write"
+                ]
+            }
+        },
+        "/statements/{statement}/pdf": {
+            "get": {
+                "tags": [
+                    "Earnings and statements"
+                ],
+                "operationId": "statementsPdf",
+                "summary": "the statement with the paragraph 13 report",
+                "description": "**Scope:** `incentives:read`",
+                "parameters": [
+                    {
+                        "name": "statement",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "incentives:read"
+                ]
+            }
+        },
+        "/team/performance": {
+            "get": {
+                "tags": [
+                    "Team and accounts"
+                ],
+                "operationId": "teamPerformance",
+                "summary": "every active salesperson's",
+                "description": "points, partners and pace; pay only for people who may see team earnings.\n\n**Scope:** `team:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:read"
+                ]
+            }
+        },
+        "/team/targets": {
+            "get": {
+                "tags": [
+                    "Team and accounts"
+                ],
+                "operationId": "teamTargets",
+                "summary": "the targets salespeople set themselves (read only)",
+                "description": "**Scope:** `team:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:read"
+                ]
+            }
+        },
+        "/users": {
+            "get": {
+                "tags": [
+                    "Team and accounts"
+                ],
+                "operationId": "usersIndex",
+                "summary": "people with \"view presence\" (admins, Sales Managers, HR, Finance)",
+                "description": "or \"invite salespeople\".\n\n**Scope:** `team:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:read"
+                ]
+            }
+        },
+        "/users/{user}": {
+            "get": {
+                "tags": [
+                    "Team and accounts"
+                ],
+                "operationId": "usersShow",
+                "summary": "one person, with account history for directory viewers",
+                "description": "**Scope:** `team:read`",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:read"
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Team and accounts"
+                ],
+                "operationId": "usersUpdate",
+                "summary": "change role and/or region (Sales Admin, Super Admin)",
+                "description": "**Scope:** `team:write`",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:write"
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Team and accounts"
+                ],
+                "operationId": "usersDestroy",
+                "summary": "only for accounts with no business history",
+                "description": "**Scope:** `team:write`",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:write"
+                ]
+            }
+        },
+        "/users/{user}/reinstate": {
+            "post": {
+                "tags": [
+                    "Team and accounts"
+                ],
+                "operationId": "usersReinstate",
+                "summary": "POST /users/{id}/reinstate",
+                "description": "**Scope:** `team:write`",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:write"
+                ]
+            }
+        },
+        "/users/{user}/suspend": {
+            "post": {
+                "tags": [
+                    "Team and accounts"
+                ],
+                "operationId": "usersSuspend",
+                "summary": "POST /users/{id}/suspend",
+                "description": "**Scope:** `team:write`",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:write"
+                ]
+            }
+        },
+        "/users/{user}/terminate": {
+            "post": {
+                "tags": [
+                    "Team and accounts"
+                ],
+                "operationId": "usersTerminate",
+                "summary": "fire; every record is kept",
+                "description": "**Scope:** `team:write`",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "team:write"
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "description": "Sanctum token from POST /auth/tokens or Admin → API tokens. Scopes: profile, leads:read, leads:write, schedule:read, schedule:write, registry:read, registry:write, onboardings:read, onboardings:write, incentives:read, incentives:write, claims:read, claims:write, team:read, team:write, notifications:read, notifications:write, reports:read, integration:read, integration:push."
+            }
+        },
+        "responses": {
+            "Unauthenticated": {
+                "description": "Missing, invalid or expired token",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "Forbidden": {
+                "description": "Token lacks the scope, or the person may not do this",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "NotFound": {
+                "description": "Record does not exist",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "ValidationError": {
+                "description": "Validation failed (see errors)",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "schemas": {
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    },
+                    "errors": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "required_scopes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
