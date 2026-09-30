@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
- * Reads referred providers from a read-only JSON endpoint on tourlast.com.
+ * Reads referred providers from one or more read-only JSON endpoints, one
+ * per source app (tourlast-stays, experiences-v1), using the shared path
+ * and bearer token.
  *
  * Expected response: {"data": [ {provider}, ... ], "next_page": 2|null}
  * where each provider uses the Hub field names documented in
@@ -30,10 +32,28 @@ class ApiProviderSource implements ProviderSource
             throw new RuntimeException('TOURLAST_API_TOKEN is not set.');
         }
 
+        $baseUrls = array_values(array_filter(array_map('trim', explode(',', (string) $config['base_url']))));
+
+        if ($baseUrls === []) {
+            throw new RuntimeException('TOURLAST_API_URL is not set.');
+        }
+
+        foreach ($baseUrls as $baseUrl) {
+            yield from $this->pull($baseUrl, $config, $since);
+        }
+    }
+
+    /**
+     * Walks every page of a single app's feed.
+     *
+     * @param  array{path: string, token: string, timeout: int}  $config
+     */
+    private function pull(string $baseUrl, array $config, ?CarbonImmutable $since): iterable
+    {
         $page = 1;
 
         do {
-            $response = Http::baseUrl($config['base_url'])
+            $response = Http::baseUrl($baseUrl)
                 ->withToken($config['token'])
                 ->acceptJson()
                 ->timeout($config['timeout'])

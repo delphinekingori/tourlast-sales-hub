@@ -68,12 +68,21 @@ class ProviderRecordMapper
         return OnboardingStatus::tryFrom((string) $mapped) ?? OnboardingStatus::Submitted;
     }
 
+    /**
+     * Anything the source app sends is kept as sent, after normalising it to a
+     * slug. config/tourlast.php only lists aliases that should collapse onto an
+     * existing Hub type ("guest house" -> guesthouse), so a type the Hub has
+     * never seen still arrives intact instead of landing in "other".
+     */
     public function type(mixed $value): string
     {
-        $key = Str::of((string) $value)->lower()->trim()->replace([' ', '-', '/'], '_')->toString();
-        $mapped = config('tourlast.type_map.'.$key, $key);
+        $key = Str::of((string) $value)->lower()->trim()->replace([' ', '-', '/', '.'], '_')->toString();
 
-        return array_key_exists($mapped, config('hub.property_types')) ? $mapped : 'other';
+        if ($key === '') {
+            return 'other';
+        }
+
+        return (string) config('tourlast.type_map.'.$key, $key);
     }
 
     private function refCode(mixed $value): ?string

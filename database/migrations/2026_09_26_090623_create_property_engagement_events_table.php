@@ -26,7 +26,7 @@ return new class extends Migration
             $table->timestamp('happened_at');
             $table->timestamps();
 
-            $table->index(['property_engagement_id', 'happened_at']);
+            $table->index(['property_engagement_id', 'happened_at'], 'pee_engagement_happened_idx');
             $table->index('sales_rep_id');
         });
     }

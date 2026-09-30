@@ -156,9 +156,15 @@ class PropertyEngagement extends Model
         return $this->hasMany(Onboarding::class)->latest('submitted_at');
     }
 
+    /**
+     * The configured label when the type is known, otherwise a readable name
+     * built from the value the source app sent.
+     */
     public function propertyTypeLabel(): string
     {
-        return config('hub.property_types.'.$this->property_type, 'Other');
+        $type = (string) $this->property_type;
+
+        return config('hub.property_types.'.$type) ?? ($type === '' ? 'Other' : Str::headline($type));
     }
 
     public function isAccommodation(): bool

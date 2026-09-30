@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 #[Fillable([
     'user_id', 'business_name', 'trading_name', 'property_type', 'location', 'contact_name', 'contact_role',
@@ -122,9 +123,15 @@ class Lead extends Model
         return $this->hasOne(FollowUp::class)->whereNull('completed_at')->oldestOfMany('due_at');
     }
 
+    /**
+     * The configured label when the type is known, otherwise a readable name
+     * built from the value the source app sent.
+     */
     public function propertyTypeLabel(): string
     {
-        return config('hub.property_types.'.$this->property_type, 'Other');
+        $type = (string) $this->property_type;
+
+        return config('hub.property_types.'.$type) ?? ($type === '' ? 'Other' : Str::headline($type));
     }
 
     /**

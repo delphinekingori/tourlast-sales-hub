@@ -334,9 +334,9 @@ Full details, code samples and SQL are in **[TOURLAST_INTEGRATION.md](TOURLAST_I
 
 1. **Capture the referral code.** On `/list-your-property`, read `?ref=` and keep it in a 60-day cookie.
 2. **Store it** on the host/property record (e.g. `ref_code VARCHAR(40) NULL`). Keep the first code a provider arrived with.
-3. **Give the Hub read access**, either:
-   - **Option A — read-only database user** with `SELECT` on the property table (or a view that joins contact details), then map column names with `TOURLAST_COL_*` settings; or
-   - **Option B — read-only JSON endpoint** `GET /api/sales-hub/referrals?updated_since=…&page=…` with a bearer token.
+3. **Give the Hub read access over the API only.** The Hub never connects to another app's database (`TOURLAST_SOURCE=database` is rejected), so either:
+   - **Option A - read-only JSON endpoint** `GET /api/sales-hub/referrals?updated_since=…&page=…` with a bearer token; or
+   - **Option B - push** provider records into the Hub API.
 4. **Keep `updated_at` current** whenever status or inventory changes (the Hub reads changes since the last sync).
 5. **Add the Account fields** for incentives when possible: `account_id`, `legal_name`, `category` (`stay`/`experience`), `inventory_count`. Until then each property is its own Account and the Sales Admin enters verified counts.
 6. **Optionally** expose `first_booking_at` and send the signed **webhook** on signup and status changes.
@@ -425,11 +425,9 @@ Everything in the Hub is also available through a REST API at `https://sales.tou
 
 | Setting | Meaning |
 |---|---|
-| `TOURLAST_SOURCE` | `sandbox` (default, simulator) · `database` · `api` (Hub reads tourlast.com) · `push` (tourlast.com calls the Hub API; scheduled sync skipped) |
+| `TOURLAST_SOURCE` | `api` (Hub reads source apps over their API) · `push` (source apps call the Hub API; scheduled sync skipped) · `sandbox` (local simulator) |
 | `TOURLAST_SYNC_EVERY_MINUTES` / `TOURLAST_FULL_SYNC_AT` | Sync frequency (10) and nightly full check (`02:00`) |
-| `TOURLAST_DB_HOST`, `_PORT`, `_DATABASE`, `_USERNAME`, `_PASSWORD`, `_TABLE` | Read-only database access (Option A) |
-| `TOURLAST_COL_*` | Column name mapping (property ID, ref code, name, type, location, contact fields, status, dates, account fields, first booking) |
-| `TOURLAST_API_URL`, `TOURLAST_API_PATH`, `TOURLAST_API_TOKEN`, `TOURLAST_API_TIMEOUT` | JSON endpoint (Option B) |
+| `TOURLAST_API_URL`, `TOURLAST_API_PATH`, `TOURLAST_API_TOKEN`, `TOURLAST_API_TIMEOUT` | Read-only JSON endpoint (Option A); `TOURLAST_API_URL` accepts a comma-separated list of app bases |
 | `TOURLAST_WEBHOOK_SECRET` | Shared secret for the optional webhook |
 
 After changing `.env` in production, run `php artisan optimize` (or `config:clear`).
@@ -553,7 +551,7 @@ sudo supervisorctl restart sales-hub-worker
 ```bash
 composer install
 npm install && npm run build
-cp .env.example .env && php artisan key:generate      # APP_ENV=local, TOURLAST_SOURCE=sandbox
+cp .env.example .env && php artisan key:generate      # APP_ENV=local, TOURLAST_SOURCE=api
 php artisan migrate --seed                            # demo data, password "password"
 php artisan test                                      # 242 tests
 ```

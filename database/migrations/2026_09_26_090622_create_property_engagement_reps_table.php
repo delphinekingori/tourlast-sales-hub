@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreignId('assigned_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['property_engagement_id', 'ended_on']);
+            $table->index(['property_engagement_id', 'ended_on'], 'per_engagement_ended_idx');
             $table->index('user_id');
         });
     }

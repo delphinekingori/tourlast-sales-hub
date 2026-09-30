@@ -5,7 +5,6 @@ namespace App\Providers;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Integrations\Tourlast\ApiProviderSource;
-use App\Integrations\Tourlast\DatabaseProviderSource;
 use App\Integrations\Tourlast\ProviderSource;
 use App\Integrations\Tourlast\PushOnlyProviderSource;
 use App\Integrations\Tourlast\SandboxProviderSource;
@@ -31,10 +30,9 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(ProviderSource::class, fn ($app): ProviderSource => match (config('tourlast.source')) {
             'sandbox' => $app->make(SandboxProviderSource::class),
-            'database' => $app->make(DatabaseProviderSource::class),
             'api' => $app->make(ApiProviderSource::class),
             'push' => $app->make(PushOnlyProviderSource::class),
-            default => throw new InvalidArgumentException('TOURLAST_SOURCE must be sandbox, database, api or push.'),
+            default => throw new InvalidArgumentException('TOURLAST_SOURCE must be sandbox, api or push. Reading another app\'s database is not supported: the Hub connects to source apps over the API only.'),
         });
     }
 

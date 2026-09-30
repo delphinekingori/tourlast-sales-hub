@@ -260,7 +260,7 @@
                     <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ink-subtle">
                         <span class="flex items-center gap-1.5"><span class="inline-block w-4 border-t-2 border-dashed border-ink"></span> Target</span>
                         @foreach ($metrics['byType'] as $type => $count)
-                            <x-ui.pill tone="brand" :dot="false">{{ config('hub.property_types.'.$type, 'Other') }} · {{ $count }}</x-ui.pill>
+                            <x-ui.pill tone="brand" :dot="false">{{ config('hub.property_types.'.$type) ?? \Illuminate\Support\Str::headline((string) ($type ?: 'Other')) }} · {{ $count }}</x-ui.pill>
                         @endforeach
                     </div>
                 </x-ui.card>

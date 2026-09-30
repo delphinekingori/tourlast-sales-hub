@@ -43,47 +43,11 @@ $property->ref_code = request()->cookie('tl_ref');
 
 Keep the first code a provider arrived with, so later visits through other links don't overwrite it.
 
-### 3. Connect tourlast.com to the Hub (choose one)
+### 3. Connect source apps to the Hub (API only)
 
-Options A and B let the Hub **read** from tourlast.com. Option C lets tourlast.com **push** to the Hub, so the Hub needs no access to tourlast.com at all.
+Option A lets the Hub **read** source apps over their API. Option B lets a source app **push** into the Hub. There is no third option: the Hub only connects to its own database, `TOURLAST_SOURCE=database` is rejected, and `config/database.php` defines no `tourlast` connection.
 
-#### Option A: read-only database user (simplest)
-
-Create a MySQL user with SELECT rights on the provider/property table only:
-
-```sql
-CREATE USER 'sales_hub_readonly'@'<sales-hub-server-ip>' IDENTIFIED BY '<strong password>';
-GRANT SELECT ON tourlast.properties TO 'sales_hub_readonly'@'<sales-hub-server-ip>';
-```
-
-Then set these in the Hub's `.env` and map your column names:
-
-```dotenv
-TOURLAST_SOURCE=database
-TOURLAST_DB_HOST=...
-TOURLAST_DB_DATABASE=tourlast
-TOURLAST_DB_USERNAME=sales_hub_readonly
-TOURLAST_DB_PASSWORD=...
-TOURLAST_DB_TABLE=properties
-
-# Map only what differs from the defaults in config/tourlast.php
-TOURLAST_COL_PROPERTY_ID=id
-TOURLAST_COL_REF_CODE=ref_code
-TOURLAST_COL_NAME=name
-TOURLAST_COL_TYPE=property_type
-TOURLAST_COL_LOCATION=city
-TOURLAST_COL_STATUS=status
-TOURLAST_COL_SUBMITTED_AT=created_at
-TOURLAST_COL_APPROVED_AT=approved_at
-TOURLAST_COL_ACTIVE_AT=published_at
-TOURLAST_COL_UPDATED_AT=updated_at
-```
-
-If contact details live in another table, create a read-only **view** that joins them, and point `TOURLAST_DB_TABLE` at the view.
-
-`updated_at` must change whenever the status changes; the Hub uses it to read only recent changes. A full re-check also runs every night.
-
-#### Option B: read-only JSON endpoint
+#### Option A: read-only JSON endpoint
 
 `GET /api/sales-hub/referrals?updated_since=<ISO-8601>&page=<n>`, protected with a bearer token. Return only providers that have a ref code:
 
@@ -124,7 +88,7 @@ TOURLAST_API_PATH=/api/sales-hub/referrals
 TOURLAST_API_TOKEN=<token>
 ```
 
-#### Option C: push to the Sales Hub API (no access to tourlast.com needed)
+#### Option B: push to the Sales Hub API (no access to tourlast.com needed)
 
 tourlast.com sends each provider record to the Hub whenever it changes:
 
@@ -162,12 +126,12 @@ Send one on signup and on every status change. Duplicate `event_id`s are ignored
 
 Salespeople are paid points per **legal Account**, sized by verified rooms/units (stays) or bookable services (experiences). The Hub needs four more fields per property. Expose them in the same view, API or webhook:
 
-| Hub field | Meaning | `.env` column setting (database source) |
+| Hub field | Meaning | API / webhook payload key |
 |---|---|---|
-| `account_id` | The host / legal business the property belongs to. Every property of one legal entity must share it. | `TOURLAST_COL_ACCOUNT_ID` |
-| `legal_name` | Registered business name of that entity | `TOURLAST_COL_LEGAL_NAME` |
-| `category` | `stay` or `experience` (derived from the property type if missing) | `TOURLAST_COL_CATEGORY` |
-| `inventory_count` | Live rooms/units for a stay, or live bookable services for an experience | `TOURLAST_COL_INVENTORY_COUNT` |
+| `account_id` | The host / legal business the property belongs to. Every property of one legal entity must share it. | `account_id` |
+| `legal_name` | Registered business name of that entity | `legal_name` |
+| `category` | `stay` or `experience` (derived from the property type if missing) | `category` |
+| `inventory_count` | Live rooms/units for a stay, or live bookable services for an experience | `inventory_count` |
 
 - The **Activation Date** is `active_at`, the moment the property is live and bookable. Points are credited to the month and bonus week of that date, so `active_at` must be accurate.
 - When `inventory_count` grows within 90 days of activation (a new branch, more rooms, more services), keep `updated_at` current. The Hub records the growth for a Sales Admin to verify, then awards expansion points.
@@ -201,8 +165,8 @@ While `TOURLAST_SOURCE=sandbox`, the Integration page has a simulator that creat
 | Purpose | File |
 |---|---|
 | Settings and value maps | `config/tourlast.php` |
-| Read-only DB connection | `config/database.php` (`tourlast` connection) |
-| Sources | `app/Integrations/Tourlast/{Database,Api,Sandbox}ProviderSource.php` |
+| Source binding | `app/Providers/AppServiceProvider.php` |
+| Sources | `app/Integrations/Tourlast/{Api,Sandbox,PushOnly}ProviderSource.php` |
 | Field and value translation | `app/Integrations/Tourlast/ProviderRecordMapper.php` |
 | Credit rules | `app/Actions/ApplyProviderRecord.php` |
 | Sync run and log | `app/Actions/SyncOnboardings.php`, `php artisan hub:sync-tourlast` |

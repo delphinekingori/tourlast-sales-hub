@@ -50,7 +50,10 @@ MAIL_FROM_ADDRESS="sales@tourlast.com"
 MAIL_FROM_NAME="Tourlast Sales"
 
 # tourlast.com connection: see docs/TOURLAST_INTEGRATION.md
-TOURLAST_SOURCE=database
+TOURLAST_SOURCE=api
+TOURLAST_API_URL=https://www.tourlast.com
+TOURLAST_API_PATH=/api/sales-hub/referrals
+TOURLAST_API_TOKEN=...
 ```
 
 SES needs `composer require aws/aws-sdk-php`. To use the company SMTP server instead, set `MAIL_MAILER=smtp` and the `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME` and `MAIL_PASSWORD` values.

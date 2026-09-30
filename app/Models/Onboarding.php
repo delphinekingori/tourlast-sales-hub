@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 #[Fillable([
     'tourlast_property_id', 'tourlast_account_id', 'partner_account_id', 'legal_name', 'category', 'inventory_count',
@@ -107,9 +108,15 @@ class Onboarding extends Model
         return $this->hasOne(Lead::class);
     }
 
+    /**
+     * The configured label when the type is known, otherwise a readable name
+     * built from the value the source app sent.
+     */
     public function propertyTypeLabel(): string
     {
-        return config('hub.property_types.'.$this->property_type, 'Other');
+        $type = (string) $this->property_type;
+
+        return config('hub.property_types.'.$type) ?? ($type === '' ? 'Other' : Str::headline($type));
     }
 
     public function isStalled(): bool

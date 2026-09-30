@@ -35,7 +35,7 @@
             <td class="muted" style="text-align: right">
                 Status: {{ $statusLabel }}<br>
                 Salesperson: {{ $salesperson?->name ?? 'All' }}<br>
-                Type: {{ $filters->type ? config('hub.property_types.'.$filters->type) : 'All' }}
+                Type: {{ $filters->type ? (config('hub.property_types.'.$filters->type) ?? \Illuminate\Support\Str::headline($filters->type)) : 'All' }}
             </td>
         </tr>
     </table>
