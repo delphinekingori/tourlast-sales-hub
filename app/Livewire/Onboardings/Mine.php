@@ -6,6 +6,7 @@ use App\Enums\OnboardingStatus;
 use App\Models\Onboarding;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -22,6 +23,7 @@ class Mine extends Component
     #[Url(as: 'q')]
     public string $search = '';
 
+    #[Locked]
     public ?int $viewingId = null;
 
     public bool $showDetail = false;
@@ -71,7 +73,7 @@ class Mine extends Component
                 'inactive' => (clone $base)->where('status', OnboardingStatus::Inactive)->count(),
                 'rejected' => (clone $base)->where('status', OnboardingStatus::Rejected)->count(),
             ],
-            'viewing' => $this->viewingId ? Onboarding::withTrashed()->with('statusChanges', 'attributionChanges.changedBy')->find($this->viewingId) : null,
+            'viewing' => $this->viewingId ? Onboarding::withTrashed()->with('statusChanges', 'attributionChanges.changedBy')->where('user_id', Auth::id())->find($this->viewingId) : null,
         ]);
     }
 }

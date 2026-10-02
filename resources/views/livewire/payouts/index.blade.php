@@ -100,7 +100,7 @@
                 <div class="grid gap-3 rounded-xl border border-line p-4">
                     <p class="text-[13px] font-bold text-ink">Retainer conditions (paragraph 5)</p>
                     @foreach (\App\Models\PayoutStatement::ComplianceItems as $key => $label)
-                        <label class="flex items-center gap-2.5 text-sm text-ink">
+                        <label wire:key="compliance-item-{{ $key }}" class="flex items-center gap-2.5 text-sm text-ink">
                             <input type="checkbox" wire:model="compliance.{{ $key }}" id="compliance-{{ $key }}" class="size-4 accent-[var(--tl-brand)]" @disabled(! $canConfirm || $viewing->isLocked())>
                             {{ $label }}
                         </label>

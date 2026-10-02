@@ -8,6 +8,7 @@ use App\Models\ExpenseClaim;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -24,6 +25,7 @@ class Approvals extends Component
     #[Url]
     public string $tab = 'mine';
 
+    #[Locked]
     public ?int $viewingId = null;
 
     public bool $showDetail = false;

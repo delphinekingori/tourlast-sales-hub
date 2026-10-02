@@ -153,7 +153,7 @@
                         <div class="flex flex-wrap gap-2">
                             @foreach ($manualStatuses as $option)
                                 @continue($option === \App\Enums\LeadStatus::Lost || $option === $lead->status)
-                                <x-ui.button size="sm" variant="secondary" wire:click="setStatus('{{ $option->value }}')">{{ $lead->status === \App\Enums\LeadStatus::Lost ? 'Re-open as '.$option->label() : $option->label() }}</x-ui.button>
+                                <x-ui.button wire:key="status-{{ $option->value }}" size="sm" variant="secondary" wire:click="setStatus('{{ $option->value }}')">{{ $lead->status === \App\Enums\LeadStatus::Lost ? 'Re-open as '.$option->label() : $option->label() }}</x-ui.button>
                             @endforeach
                             @if ($lead->status !== \App\Enums\LeadStatus::Lost)
                                 <x-ui.button size="sm" variant="danger-ghost" wire:click="openLost">Mark lost…</x-ui.button>

@@ -8,6 +8,7 @@ use App\Models\Invitation;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -66,7 +67,7 @@ class AcceptInvitation extends Component
         return Invitation::findByToken($this->token);
     }
 
-    public function render()
+    public function render(): View
     {
         $invitation = $this->invitation();
 

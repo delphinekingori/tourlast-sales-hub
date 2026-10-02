@@ -44,6 +44,7 @@ class Index extends Component
 
     public bool $showEdit = false;
 
+    #[Locked]
     public ?int $editingUserId = null;
 
     /** @var array{role: string, region: string, ref_code: string} */

@@ -96,7 +96,7 @@
                 <fieldset class="grid gap-1.5">
                     <legend class="mb-1 text-xs font-medium text-ink-muted">Scopes</legend>
                     @foreach ($scopes as $scope)
-                        <label class="flex items-start gap-2 text-[13px]">
+                        <label wire:key="scope-{{ $scope->value }}" class="flex items-start gap-2 text-[13px]">
                             <input type="checkbox" wire:model="form.scopes" value="{{ $scope->value }}" class="mt-0.5 size-4 accent-[var(--tl-brand)]">
                             <span class="grid leading-tight"><span class="font-mono text-xs text-ink">{{ $scope->value }}</span><span class="text-xs text-ink-subtle">{{ $scope->label() }}</span></span>
                         </label>

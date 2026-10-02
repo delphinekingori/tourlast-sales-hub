@@ -61,7 +61,7 @@
                                             @endif
                                             @foreach ($statuses as $next)
                                                 @continue($next === $status || $next === \App\Enums\OnboardingStatus::Submitted)
-                                                <x-ui.button size="sm" :variant="$next === \App\Enums\OnboardingStatus::Rejected ? 'danger-ghost' : 'ghost'" wire:click="advance({{ $provider->id }}, '{{ $next->value }}')">{{ $next->label() }}</x-ui.button>
+                                                <x-ui.button wire:key="advance-{{ $provider->id }}-{{ $next->value }}" size="sm" :variant="$next === \App\Enums\OnboardingStatus::Rejected ? 'danger-ghost' : 'ghost'" wire:click="advance({{ $provider->id }}, '{{ $next->value }}')">{{ $next->label() }}</x-ui.button>
                                             @endforeach
                                         </div>
                                     </td>
