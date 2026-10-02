@@ -89,17 +89,23 @@ class ApplyProviderRecord
                 'rejected_at' => $record->rejectedAt,
                 'first_booking_at' => $onboarding->first_booking_at ?? $record->firstBookingAt,
                 'source_updated_at' => $this->sourceUpdatedAt($onboarding, $record),
-                'source_payload' => $record->raw,
+                'source_payload' => $this->payload($onboarding, $record),
             ]);
 
             // The Hub's own code wins: a feed row without one never clears credit
             // the Hub already gave, and a row that carries one re-points attribution
             // (source apps copy the list from GET /integrations/tourlast/ref-codes).
+            // A code the Hub does not know (renamed since, or retyped wrongly at the
+            // source) never removes credit already given: that is by design. Only a
+            // property with no credit yet is left unattributed by an unknown code.
             if ($onboarding->attribution !== 'manual' && $record->refCode) {
                 $referralCode = ReferralCode::query()->where('code', $record->refCode)->first();
-                $onboarding->referral_code_id = $referralCode?->id;
-                $onboarding->user_id = $referralCode?->user_id;
-                $onboarding->attribution = 'referral';
+
+                if ($referralCode || ! ($onboarding->referral_code_id || $onboarding->user_id)) {
+                    $onboarding->referral_code_id = $referralCode?->id;
+                    $onboarding->user_id = $referralCode?->user_id;
+                    $onboarding->attribution = 'referral';
+                }
             }
 
             $this->applyCredit($onboarding, $record);
@@ -148,6 +154,39 @@ class ApplyProviderRecord
         $this->deleteOnboarding->handle($onboarding, $record->deletedAt);
 
         return self::Deleted;
+    }
+
+    /**
+     * The payload to store. MySQL hands JSON object keys back in its own order,
+     * so an identical feed row would look changed to Eloquent on every sync.
+     * When only the key order differs the stored payload is kept as it is.
+     *
+     * @return array<string, mixed>
+     */
+    private function payload(Onboarding $onboarding, ProviderRecord $record): array
+    {
+        $stored = $onboarding->source_payload;
+
+        return is_array($stored) && $this->sortKeys($stored) === $this->sortKeys($record->raw) ? $stored : $record->raw;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $value
+     * @return array<array-key, mixed>
+     */
+    private function sortKeys(array $value): array
+    {
+        foreach ($value as $key => $item) {
+            if (is_array($item)) {
+                $value[$key] = $this->sortKeys($item);
+            }
+        }
+
+        if (! array_is_list($value)) {
+            ksort($value);
+        }
+
+        return $value;
     }
 
     /**
