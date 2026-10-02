@@ -69,6 +69,24 @@ class OnboardingFactory extends Factory
         ]);
     }
 
+    /**
+     * Went live on the Activation Date and stopped since: history that keeps
+     * the credit it earned.
+     */
+    public function inactive(?\DateTimeInterface $at = null): static
+    {
+        $at ??= now()->subDay();
+        $liveAt = now()->subMonth();
+
+        return $this->state(fn (array $attributes) => [
+            'status' => OnboardingStatus::Inactive,
+            'approved_at' => $liveAt,
+            'active_at' => $liveAt,
+            'inactive_at' => $at,
+            'credited_at' => $liveAt,
+        ]);
+    }
+
     public function rejected(): static
     {
         return $this->state(fn (array $attributes) => [

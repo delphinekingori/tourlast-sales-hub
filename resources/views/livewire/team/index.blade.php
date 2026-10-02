@@ -233,6 +233,12 @@
 
             <x-ui.input label="Region" wire:model="edit.region" id="edit-region" />
 
+            @can('manage-ref-codes')
+                @if ($editingUser?->role()?->earnsReferrals())
+                    <x-ui.input label="Referral code" wire:model="edit.ref_code" id="edit-ref-code" placeholder="TL-NAME-1234" hint="The Hub is the source of truth: source apps pull this list. Leave empty to keep the current code." />
+                @endif
+            @endcan
+
             <p class="text-xs text-ink-subtle">To suspend, fire, reinstate or delete this account, use <span class="font-medium text-ink">Account</span> on their row.</p>
         </form>
 

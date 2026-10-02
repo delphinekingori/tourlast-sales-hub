@@ -52,7 +52,7 @@ class GenerateApiSpec extends Command
             'info' => [
                 'title' => 'Tourlast Sales Hub API',
                 'version' => 'v1',
-                'description' => 'REST API for the Tourlast Sales Hub. A request needs the token scope listed on the operation AND the token owner\'s permission in the Hub. Full guide: docs/API.md.',
+                'description' => 'REST API for the Tourlast Sales Hub. A request needs the token scope listed on the operation AND the token owner\'s permission in the Hub. The tourlast.com feed endpoints instead authenticate with the one shared sync token (php artisan hub:generate-token) — each operation says which it wants. Full guide: docs/API.md.',
             ],
             'servers' => [['url' => rtrim((string) config('app.url'), '/').'/api/v1']],
             'security' => [['bearerAuth' => []]],
@@ -63,7 +63,7 @@ class GenerateApiSpec extends Command
                     'bearerAuth' => [
                         'type' => 'http',
                         'scheme' => 'bearer',
-                        'description' => 'Sanctum token from POST /auth/tokens or Admin → API tokens. Scopes: '.implode(', ', ApiScope::values()).'.',
+                        'description' => 'Sanctum token from POST /auth/tokens or Admin → API tokens. Scopes: '.implode(', ', ApiScope::values()).'. The tourlast.com feed endpoints take the shared sync token instead (php artisan hub:generate-token).',
                     ],
                 ],
                 'responses' => [
@@ -103,13 +103,14 @@ class GenerateApiSpec extends Command
         $scopes = $this->scopes($route);
         [$summary, $description] = $this->docs($route);
         $prefix = Str::before((string) Str::after((string) $route->getName(), 'api.v1.'), '.');
-        $public = ! in_array('auth:sanctum', $route->gatherMiddleware(), true);
+        $shared = in_array('shared-token', $route->gatherMiddleware(), true);
+        $public = ! $shared && ! in_array('auth:sanctum', $route->gatherMiddleware(), true);
 
         $operation = [
             'tags' => [self::Tags[$prefix] ?? Str::headline($prefix)],
             'operationId' => Str::camel(str_replace(['api.v1.', '.', '-'], ['', ' ', ' '], (string) $route->getName())),
             'summary' => $summary,
-            'description' => trim($description."\n\n".($scopes ? '**Scope:** `'.implode('` or `', $scopes).'`' : ($public ? '**Public** (no token).' : '**Scope:** any token.'))),
+            'description' => trim($description."\n\n".$this->authNote($scopes, $shared, $public)),
             'parameters' => collect($route->parameterNames())->map(fn (string $name) => [
                 'name' => $name,
                 'in' => 'path',
@@ -134,6 +135,24 @@ class GenerateApiSpec extends Command
         }
 
         return $operation;
+    }
+
+    /**
+     * How the operation authenticates: a scope, the one shared sync token, or nothing.
+     *
+     * @param  list<string>  $scopes
+     */
+    private function authNote(array $scopes, bool $shared, bool $public): string
+    {
+        if ($scopes) {
+            return '**Scope:** `'.implode('` or `', $scopes).'`';
+        }
+
+        if ($shared) {
+            return '**Shared token:** the one sync secret from `php artisan hub:generate-token` (no user, role or scope).';
+        }
+
+        return $public ? '**Public** (no token).' : '**Scope:** any token.';
     }
 
     /**

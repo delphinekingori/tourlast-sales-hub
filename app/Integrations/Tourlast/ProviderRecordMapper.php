@@ -38,6 +38,7 @@ class ProviderRecordMapper
             submittedAt: $this->date($row['submitted_at'] ?? null),
             approvedAt: $this->date($row['approved_at'] ?? null),
             activeAt: $this->date($row['active_at'] ?? null),
+            inactiveAt: $this->date($row['inactive_at'] ?? null),
             rejectedAt: $this->date($row['rejected_at'] ?? null),
             updatedAt: $this->date($row['updated_at'] ?? null),
             raw: $row,
@@ -46,6 +47,8 @@ class ProviderRecordMapper
             category: $this->category($row['category'] ?? null),
             inventoryCount: is_numeric($row['inventory_count'] ?? null) && (int) $row['inventory_count'] > 0 ? (int) $row['inventory_count'] : null,
             firstBookingAt: $this->date($row['first_booking_at'] ?? null),
+            isDeleted: $this->deleted($row['is_deleted'] ?? null),
+            deletedAt: $this->date($row['deleted_at'] ?? null),
         );
     }
 
@@ -97,6 +100,20 @@ class ProviderRecordMapper
         $text = trim((string) $value);
 
         return $text === '' ? null : $text;
+    }
+
+    /**
+     * The deletion flag, accepting the usual spellings a source app might send.
+     * Anything unrecognised counts as a live property, so a feed that has not
+     * adopted the field keeps behaving exactly as it does today.
+     */
+    private function deleted(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 
     private function date(mixed $value): ?CarbonImmutable

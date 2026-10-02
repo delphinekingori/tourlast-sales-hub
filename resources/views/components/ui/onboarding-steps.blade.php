@@ -11,7 +11,7 @@
     $completed = match ($status) {
         OnboardingStatus::Submitted, OnboardingStatus::UnderReview => 2,
         OnboardingStatus::Approved => 4,
-        OnboardingStatus::Active => 5,
+        OnboardingStatus::Active, OnboardingStatus::Inactive => 5,
         OnboardingStatus::Rejected => 3,
     };
     $steps = [

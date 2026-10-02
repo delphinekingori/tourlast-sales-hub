@@ -51,8 +51,8 @@ enum ApiScope: string
             self::NotificationsRead => 'Read notifications and announcements',
             self::NotificationsWrite => 'Mark notifications read, publish announcements',
             self::ReportsRead => 'Insights and Excel/PDF exports',
-            self::IntegrationRead => 'tourlast.com sync status',
-            self::IntegrationPush => 'Send tourlast.com provider records (for tourlast.com)',
+            self::IntegrationRead => 'Read the tourlast.com sync log',
+            self::IntegrationPush => 'Run a tourlast.com sync now (Hub admin)',
         };
     }
 

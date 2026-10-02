@@ -8,6 +8,7 @@ enum OnboardingStatus: string
     case UnderReview = 'under_review';
     case Approved = 'approved';
     case Active = 'active';
+    case Inactive = 'inactive';
     case Rejected = 'rejected';
 
     public function label(): string
@@ -17,6 +18,7 @@ enum OnboardingStatus: string
             self::UnderReview => 'Under review',
             self::Approved => 'Approved, going live',
             self::Active => 'Live',
+            self::Inactive => 'Inactive',
             self::Rejected => 'Rejected',
         };
     }
@@ -28,13 +30,16 @@ enum OnboardingStatus: string
             self::UnderReview => 'warning',
             self::Approved => 'brand',
             self::Active => 'success',
+            self::Inactive => 'warning',
             self::Rejected => 'danger',
         };
     }
 
     /**
      * Schedule 1: an Account counts from its Activation Date, when it is live
-     * and ready to receive bookings.
+     * and ready to receive bookings. An inactive property went live and later
+     * stopped, so it is history: it is no longer counted as live, but only a
+     * rejection withdraws the credit it earned.
      */
     public function isOnboarded(): bool
     {

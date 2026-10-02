@@ -113,7 +113,10 @@
                             <span class="text-sm font-semibold text-ink">{{ $onboarding->property_name }}</span>
                             <span class="text-xs text-ink-subtle">{{ $onboarding->propertyTypeLabel() }}{{ $onboarding->inventory_count ? ' · '.$onboarding->inventory_count.' per tourlast.com' : '' }}{{ $onboarding->ref_code ? ' · '.$onboarding->ref_code : '' }}</span>
                         </div>
-                        <x-ui.pill :tone="$onboarding->status->tone()">{{ $onboarding->status->label() }}</x-ui.pill>
+                        <div class="flex items-center gap-2">
+                            @if ($onboarding->trashed())<x-ui.pill tone="warning" :dot="false">Deleted</x-ui.pill>@endif
+                            <x-ui.pill :tone="$onboarding->status->tone()">{{ $onboarding->status->label() }}</x-ui.pill>
+                        </div>
                     </div>
                 @endforeach
             </x-ui.card>

@@ -27,6 +27,7 @@ class SyncRunResource extends JsonResource
             'records_seen' => (int) $this->records_seen,
             'records_created' => (int) $this->records_created,
             'records_updated' => (int) $this->records_updated,
+            'records_deleted' => (int) $this->records_deleted,
             'error' => $this->error,
             'started_at' => $this->started_at?->toIso8601String(),
             'finished_at' => $this->finished_at?->toIso8601String(),

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\IssueReferralCode;
 use App\Enums\Role;
 use App\Livewire\Team\Index;
 use App\Models\Invitation;
@@ -70,6 +71,63 @@ class TeamManagementTest extends TestCase
         $this->assertFalse($person->hasRole(Role::Hr->value));
         $this->assertSame('Coast', $person->region);
         $this->assertStringStartsWith('TL-PETER-', $person->referralCode->code);
+    }
+
+    public function test_a_super_admin_can_change_a_referral_code(): void
+    {
+        $super = User::factory()->withRole(Role::SuperAdmin)->create();
+        $person = User::factory()->withRole(Role::Salesperson)->create(['name' => 'Peter Kamau']);
+        app(IssueReferralCode::class)->handle($person);
+        $original = $person->referralCode->code;
+
+        Livewire::actingAs($super)->test(Index::class)
+            ->call('openEdit', $person->id)
+            ->set('edit.role', Role::Salesperson->value)
+            ->set('edit.region', 'Coast')
+            ->set('edit.ref_code', 'tl-peter-9999')
+            ->call('saveEdit')
+            ->assertHasNoErrors();
+
+        $person->refresh();
+        $this->assertSame('TL-PETER-9999', $person->referralCode->code);
+        $this->assertNotSame($original, $person->referralCode->code);
+        $this->assertSame('Coast', $person->region);
+    }
+
+    public function test_a_referral_code_already_used_by_someone_else_is_rejected(): void
+    {
+        $super = User::factory()->withRole(Role::SuperAdmin)->create();
+        $taken = User::factory()->withRole(Role::Salesperson)->create(['name' => 'Mary Wambui']);
+        app(IssueReferralCode::class)->handle($taken);
+        $person = User::factory()->withRole(Role::Salesperson)->create(['name' => 'Peter Kamau']);
+        app(IssueReferralCode::class)->handle($person);
+
+        Livewire::actingAs($super)->test(Index::class)
+            ->call('openEdit', $person->id)
+            ->set('edit.role', Role::Salesperson->value)
+            ->set('edit.ref_code', $taken->referralCode->code)
+            ->call('saveEdit')
+            ->assertHasErrors('edit.ref_code');
+
+        $this->assertSame('TL-PETER-', substr($person->referralCode->fresh()->code, 0, 9));
+    }
+
+    public function test_a_sales_admin_cannot_change_a_referral_code(): void
+    {
+        $admin = User::factory()->withRole(Role::SalesAdmin)->create();
+        $person = User::factory()->withRole(Role::Salesperson)->create(['name' => 'Peter Kamau']);
+        app(IssueReferralCode::class)->handle($person);
+        $original = $person->referralCode->code;
+
+        Livewire::actingAs($admin)->test(Index::class)
+            ->call('openEdit', $person->id)
+            ->set('edit.role', Role::Salesperson->value)
+            ->set('edit.region', 'Coast')
+            ->set('edit.ref_code', 'TL-HACK-1234')
+            ->call('saveEdit')
+            ->assertHasNoErrors();
+
+        $this->assertSame($original, $person->referralCode->fresh()->code);
     }
 
     public function test_a_sales_manager_cannot_edit_accounts(): void

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\ApplyProviderRecord;
 use App\Actions\SyncOnboardings;
 use App\Enums\Permission;
+use App\Http\Resources\V1\ReferralCodeResource;
 use App\Http\Resources\V1\SyncRunResource;
 use App\Integrations\Tourlast\ProviderRecordMapper;
+use App\Models\ReferralCode;
 use App\Models\SyncRun;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,20 +17,23 @@ use InvalidArgumentException;
 use Throwable;
 
 /**
- * tourlast.com integration: push provider records, read the sync log, trigger a sync.
- * The token owner must be allowed to manage the integration (Super Admin);
- * tourlast.com should use a dedicated service account with only integration:push.
+ * tourlast.com integration: push provider records, read ref-codes, read the sync log, trigger a sync.
+ * The feed endpoints (push, ref-codes) authenticate with the one shared sync
+ * token (no user, role or scope); the sync log and a manual sync need an
+ * admin token with integration:read / integration:push plus
+ * Permission::ManageIntegration.
  */
 class IntegrationController extends ApiController
 {
     /**
-     * POST /integrations/tourlast/providers — {"provider": {...}} or {"providers": [...]} (max 100).
+     * POST /integrations/tourlast/providers - {"provider": {...}} or {"providers": [...]} (max 100).
+     * Auth: the shared sync token from php artisan hub:generate-token, no user account.
      * Each record goes through the same credit rules as the scheduled sync.
+     * A record with is_deleted=true archives the property and its linked lead and
+     * registry record (result "deleted"); is_deleted=false restores them.
      */
     public function push(Request $request, ProviderRecordMapper $mapper, ApplyProviderRecord $applyProviderRecord): JsonResponse
     {
-        $this->requirePermission($request, Permission::PushProviderRecords);
-
         $request->validate([
             'provider' => ['required_without:providers', 'array'],
             'providers' => ['required_without:provider', 'array', 'min:1', 'max:100'],
@@ -60,9 +65,21 @@ class IntegrationController extends ApiController
                 'created' => collect($results)->where('result', ApplyProviderRecord::Created)->count(),
                 'updated' => collect($results)->where('result', ApplyProviderRecord::Updated)->count(),
                 'unchanged' => collect($results)->where('result', ApplyProviderRecord::Unchanged)->count(),
+                'deleted' => collect($results)->where('result', ApplyProviderRecord::Deleted)->count(),
                 'failed' => $failed,
             ],
         ], $failed === count($rows) ? 422 : 200);
+    }
+
+    /**
+     * GET /integrations/tourlast/ref-codes — every active referral code, so the source app can validate ?ref= and stamp its rows.
+     * Auth: the shared sync token from php artisan hub:generate-token, no user account.
+     */
+    public function refCodes(): AnonymousResourceCollection
+    {
+        return ReferralCodeResource::collection(
+            ReferralCode::query()->where('is_active', true)->with('user:id,name')->orderBy('code')->get()
+        );
     }
 
     /**

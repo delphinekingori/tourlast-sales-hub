@@ -30,7 +30,7 @@ class SyncOnboardings
             'started_at' => now(),
         ]);
 
-        $counts = ['records_seen' => 0, 'records_created' => 0, 'records_updated' => 0];
+        $counts = ['records_seen' => 0, 'records_created' => 0, 'records_updated' => 0, 'records_deleted' => 0];
 
         try {
             foreach ($this->source->changedSince($since) as $record) {
@@ -39,6 +39,7 @@ class SyncOnboardings
                 match ($this->applyProviderRecord->handle($record, 'sync')) {
                     ApplyProviderRecord::Created => $counts['records_created']++,
                     ApplyProviderRecord::Updated => $counts['records_updated']++,
+                    ApplyProviderRecord::Deleted => $counts['records_deleted']++,
                     default => null,
                 };
             }

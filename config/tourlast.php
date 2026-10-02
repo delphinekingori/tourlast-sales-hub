@@ -69,6 +69,8 @@ return [
             'submitted_at' => env('TOURLAST_COL_SUBMITTED_AT', 'created_at'),
             'approved_at' => env('TOURLAST_COL_APPROVED_AT', 'approved_at'),
             'active_at' => env('TOURLAST_COL_ACTIVE_AT', 'published_at'),
+            // When tourlast.com says the property stopped being live (the Inactive date)
+            'inactive_at' => env('TOURLAST_COL_INACTIVE_AT'),
             'rejected_at' => env('TOURLAST_COL_REJECTED_AT', 'rejected_at'),
             // When the property received its first booking (for the First booking alert)
             'first_booking_at' => env('TOURLAST_COL_FIRST_BOOKING_AT'),
@@ -112,7 +114,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | tourlast.com status and type values (left) mapped to Hub values (right).
-    | Hub statuses: submitted, under_review, approved, active, rejected.
+    | Hub statuses: submitted, under_review, approved, active, inactive, rejected.
     | Hub types: keys of hub.property_types. A status that is not listed here
     | falls back to "submitted". A type that is not listed here is stored as
     | sent, so a type added on the source side needs no change here. Matching
@@ -131,6 +133,8 @@ return [
         'active' => 'active',
         'live' => 'active',
         'published' => 'active',
+        'inactive' => 'inactive',
+        'paused' => 'inactive',
         'rejected' => 'rejected',
         'declined' => 'rejected',
         'suspended' => 'rejected',

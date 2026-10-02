@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @auth
+        <meta name="hub-user-id" content="{{ auth()->id() }}">
+    @endauth
     <title>{{ isset($title) ? $title.' · ' : '' }}Tourlast Sales Hub</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/tourlast-icon.svg') }}">
     @fonts

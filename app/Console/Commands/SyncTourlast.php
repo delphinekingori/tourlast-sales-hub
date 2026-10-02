@@ -22,11 +22,12 @@ class SyncTourlast extends Command
         }
 
         $this->components->info(sprintf(
-            'Synced from %s: %d seen, %d new, %d updated.',
+            'Synced from %s: %d seen, %d new, %d updated%s.',
             $run->source,
             $run->records_seen,
             $run->records_created,
             $run->records_updated,
+            $run->records_deleted > 0 ? ", {$run->records_deleted} deleted" : '',
         ));
 
         return self::SUCCESS;

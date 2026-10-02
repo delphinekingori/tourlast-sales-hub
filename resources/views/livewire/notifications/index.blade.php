@@ -1,4 +1,4 @@
-<div class="grid gap-5">
+<div class="grid gap-5" wire:poll.visible.{{ $pollSeconds }}s>
     <x-ui.page-header
         eyebrow="Inbox"
         title="Notifications"

@@ -73,7 +73,7 @@ class AccountPoints
      */
     public function refresh(PartnerAccount $account): PartnerAccount
     {
-        $account->load('onboardings');
+        $account->load(['onboardings' => fn ($query) => $query->withTrashed()]);
         $live = $account->onboardings->filter(fn (Onboarding $onboarding): bool => $onboarding->credited_at !== null);
         $firstLive = $live->min('credited_at');
 
@@ -180,7 +180,7 @@ class AccountPoints
     public function merge(PartnerAccount $source, PartnerAccount $target, User $admin): PartnerAccount
     {
         return DB::transaction(function () use ($source, $target, $admin): PartnerAccount {
-            $source->onboardings()->update(['partner_account_id' => $target->id]);
+            $source->onboardings()->withTrashed()->update(['partner_account_id' => $target->id]);
             $source->update(['merged_into_id' => $target->id]);
 
             $source->pointEntries()->where('status', '!=', 'cancelled')->update([

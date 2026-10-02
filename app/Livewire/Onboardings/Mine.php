@@ -40,18 +40,23 @@ class Mine extends Component
 
     public function view(int $onboardingId): void
     {
-        $this->viewingId = Onboarding::query()->where('user_id', Auth::id())->findOrFail($onboardingId)->id;
+        $this->viewingId = Onboarding::withTrashed()->where('user_id', Auth::id())->findOrFail($onboardingId)->id;
         $this->showDetail = true;
     }
 
+    /**
+     * Archived properties (the source app deleted them) stay on this list with
+     * a Deleted badge: the salesperson keeps the credit they earned.
+     */
     public function render(): View
     {
-        $base = Onboarding::query()->where('user_id', Auth::id());
+        $base = Onboarding::withTrashed()->where('user_id', Auth::id());
 
         return view('livewire.onboardings.mine', [
             'onboardings' => (clone $base)
                 ->when($this->filter === 'awaiting', fn ($query) => $query->awaitingApproval())
                 ->when($this->filter === 'onboarded', fn ($query) => $query->onboarded())
+                ->when($this->filter === 'inactive', fn ($query) => $query->where('status', OnboardingStatus::Inactive))
                 ->when($this->filter === 'rejected', fn ($query) => $query->where('status', OnboardingStatus::Rejected))
                 ->when($this->search !== '', fn ($query) => $query->where(fn ($query) => $query
                     ->where('property_name', 'like', "%{$this->search}%")
@@ -63,9 +68,10 @@ class Mine extends Component
                 'all' => (clone $base)->count(),
                 'awaiting' => (clone $base)->awaitingApproval()->count(),
                 'onboarded' => (clone $base)->onboarded()->count(),
+                'inactive' => (clone $base)->where('status', OnboardingStatus::Inactive)->count(),
                 'rejected' => (clone $base)->where('status', OnboardingStatus::Rejected)->count(),
             ],
-            'viewing' => $this->viewingId ? Onboarding::with('statusChanges', 'attributionChanges.changedBy')->find($this->viewingId) : null,
+            'viewing' => $this->viewingId ? Onboarding::withTrashed()->with('statusChanges', 'attributionChanges.changedBy')->find($this->viewingId) : null,
         ]);
     }
 }

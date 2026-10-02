@@ -15,6 +15,15 @@ use Illuminate\Support\Collection;
  */
 class Inbox
 {
+    /**
+     * Seconds between background refreshes. Slower when Reverb pushes updates
+     * live, since polling is then only a safety net.
+     */
+    public static function pollSeconds(): int
+    {
+        return config('broadcasting.default') === 'reverb' ? 120 : 30;
+    }
+
     public static function unreadCount(User $user): int
     {
         return $user->unreadNotifications()->count()

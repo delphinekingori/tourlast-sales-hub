@@ -140,11 +140,12 @@ Roles and permissions are defined in `app/Enums/Role.php` and `app/Enums/Permiss
 ### 3.3 Onboardings (tourlast.com signups)
 
 - The Hub reads provider records from tourlast.com (section 7). Each record is an **onboarding** credited to the salesperson whose code it carries.
-- Status comes from tourlast.com and is translated to: `submitted` → `under_review` → `approved` → `active` (live), or `rejected`.
-- **Onboarded = Activation Date.** Under Schedule 1, a provider counts on the day it first becomes **active** (live and bookable). If it is later rejected, the credit is removed.
+- Status comes from tourlast.com and is translated to: `submitted` → `under_review` → `approved` → `active` (live), `inactive` (it went live and stopped since), or `rejected`.
+- **Onboarded = Activation Date.** Under Schedule 1, a provider counts on the day it first becomes **active** (live and bookable). If it is later rejected, the credit is removed; an **inactive** property keeps it and drops out of the live counts.
 - A progress indicator shows **Referral → Application → Verification → Approval → Live** on each onboarding.
 - **Signups without a code** wait under **Unattributed**. A Sales Admin can credit one to a salesperson with a written reason, which is kept on record and survives later syncs.
 - **My Onboardings** (salespeople) lists every provider that signed up through their link.
+- **Deleted** rows: when tourlast.com reports a property as gone, the Hub archives the onboarding (and its lead and registry entry), shows a **Deleted** badge instead of dropping the history, and keeps the credit it earned (statements mark it *(deleted)*). A Sales Admin can **Restore** it, and the next sync restores it automatically if tourlast.com brings it back.
 
 ### 3.4 The salesperson dashboard (My Progress)
 
@@ -265,6 +266,7 @@ Salespeople choose **M-Pesa** (number + registered name) or **bank account** (ba
 | New property referred / New onboarding submitted | A tourlast.com signup arrives |
 | Partner approved / Partner rejected | Its tourlast.com status changes |
 | Property inactive | A live partner is removed on tourlast.com |
+| Property deleted / restored | tourlast.com removes a property, or brings it back |
 | First booking received | tourlast.com reports its first booking (needs `first_booking_at`, section 7) |
 | Deal won / Deal lost | A lead becomes Onboarded / is marked Lost |
 | Contract expiring | An incentive agreement ends within 30 days (daily) |
@@ -318,6 +320,8 @@ A **queue worker** must also run to send emails. Every command can be run by han
 | Connection | Status | Owner |
 |---|---|---|
 | Referral redirect `/r/{code}` → tourlast.com `?ref=` | ✅ Built in the Hub | — |
+| **Ref-code list** the Hub serves (`GET /integrations/tourlast/ref-codes`) and tourlast.com reads to validate `?ref=` | ⏳ To do on tourlast.com (endpoint is live) | tourlast.com dev |
+| Hub side of the sync: shared token, push endpoint, `inactive_at`, `is_deleted`, Deleted badge and restore | ✅ Built in the Hub | — |
 | tourlast.com **stores the `ref` code** on the provider | ⏳ **To do on tourlast.com** | tourlast.com dev |
 | Connection for provider records: Hub reads (DB view or JSON API) **or** tourlast.com pushes to the Hub API | ⏳ **To do on tourlast.com** (push needs no access to tourlast.com) | tourlast.com dev |
 | Partner **Account fields** (`account_id`, `legal_name`, `category`, `inventory_count`) | ⏳ To do on tourlast.com (Hub works without them meanwhile) | tourlast.com dev |
@@ -350,8 +354,11 @@ Full details, code samples and SQL are in **[TOURLAST_INTEGRATION.md](TOURLAST_I
 | `ref_code` | ✓ | e.g. `TL-JOHN-2847`; case-insensitive |
 | `property_name`, `property_type`, `location` | ✓ | Type is mapped to Hub types |
 | `contact_name`, `contact_phone`, `contact_email` | Recommended | Used to link signups to leads and for duplicate checks |
-| `status` | ✓ | Mapped to submitted / under_review / approved / active / rejected |
+| `status` | ✓ | Mapped to submitted / under_review / approved / active / inactive / rejected |
 | `submitted_at`, `approved_at`, `active_at`, `rejected_at` | ✓ (`active_at` critical) | `active_at` is the Activation Date that drives points |
+| `inactive_at` | Optional | When a live property stopped; dates the change to `inactive` (falls back to `updated_at`) |
+| `is_deleted` | Optional | `true` means the property is gone: the Hub archives the onboarding (and its lead and registry entry), keeps the credit and counts it as deleted in the sync log; `false` or a later row restores it |
+| `deleted_at` | Optional | When it was removed; used as the deletion time when `is_deleted` is `true` |
 | `updated_at` | ✓ | Must change on every status or inventory change |
 | `account_id`, `legal_name`, `category`, `inventory_count` | For incentives | See 7.2 step 5 |
 | `first_booking_at` | Optional | Enables the "First booking received" alert |
@@ -363,13 +370,13 @@ Everything in the Hub is also available through a REST API at `https://sales.tou
 - **Tokens:** people sign in with `POST /auth/tokens`; systems get tokens from **Admin → API tokens** (Super Admin, Sales Admin). Everyone can see and revoke their own tokens on their profile.
 - **Scopes plus permissions:** each token is limited to scopes (e.g. `leads:read`, `registry:write`) and can never do more than its owner can in the Hub. Suspending or firing someone stops their tokens immediately.
 - **Same rules as the web app:** duplicate protection (`409`), required lost reasons, append-only history and role permissions all apply.
-- **tourlast.com push:** `php artisan hub:create-integration-account` creates a least-privilege integration account and prints a token that can only push provider records to `POST /integrations/tourlast/providers`; set `TOURLAST_SOURCE=push`.
-- Rate limit: 120 requests per minute per user.
+- **tourlast.com push:** `php artisan hub:generate-token` writes one shared secret into the Hub's `.env` as `TOURLAST_API_TOKEN` and prints it once — put the same value in each source app's `.env` as `TOURLAST_HUB_TOKEN`. It authenticates `POST /integrations/tourlast/providers` and `GET /integrations/tourlast/ref-codes` (no account, role or scope is created); set `TOURLAST_SOURCE=push`.
+ - Rate limit: 120 requests per minute per user (per IP address on the shared-token feed).
 
 ### 7.5 Testing the connection
 
 1. Set the `.env` values (section 8), run `php artisan config:clear`.
-2. Run `php artisan hub:sync-tourlast --full`. It prints how many records were read, created and updated, or the exact error.
+2. Run `php artisan hub:sync-tourlast --full`. It prints how many records were read, created, updated and deleted, or the exact error.
 3. Open **Admin → Integration** to see the sync log and latest status changes.
 4. Visit `https://sales.tourlast.com/r/<real code>`, complete a test signup, approve it and make it live on tourlast.com. Within 10 minutes it appears under that salesperson's **My Onboardings** and counts on **My Progress**.
 
@@ -427,7 +434,7 @@ Everything in the Hub is also available through a REST API at `https://sales.tou
 |---|---|
 | `TOURLAST_SOURCE` | `api` (Hub reads source apps over their API) · `push` (source apps call the Hub API; scheduled sync skipped) · `sandbox` (local simulator) |
 | `TOURLAST_SYNC_EVERY_MINUTES` / `TOURLAST_FULL_SYNC_AT` | Sync frequency (10) and nightly full check (`02:00`) |
-| `TOURLAST_API_URL`, `TOURLAST_API_PATH`, `TOURLAST_API_TOKEN`, `TOURLAST_API_TIMEOUT` | Read-only JSON endpoint (Option A); `TOURLAST_API_URL` accepts a comma-separated list of app bases |
+| `TOURLAST_API_URL`, `TOURLAST_API_PATH`, `TOURLAST_API_TOKEN`, `TOURLAST_API_TIMEOUT` | Read-only JSON endpoint (Option A); `TOURLAST_API_URL` accepts a comma-separated list of app bases. `TOURLAST_API_TOKEN` is also the shared sync token that `POST /integrations/tourlast/providers` accepts — set it with `php artisan hub:generate-token` |
 | `TOURLAST_WEBHOOK_SECRET` | Shared secret for the optional webhook |
 
 After changing `.env` in production, run `php artisan optimize` (or `config:clear`).
@@ -511,7 +518,7 @@ sudo supervisorctl restart sales-hub-worker
 | # | Item | Owner | What is needed |
 |---|---|---|---|
 | 1 | Store `ref` codes on tourlast.com | tourlast.com dev | Section 7.2 steps 1–2 |
-| 2 | Connect tourlast.com | tourlast.com dev | Hub reads (database view or JSON API), or tourlast.com pushes to the Hub API with the integration account token (7.4) |
+| 2 | Connect tourlast.com | tourlast.com dev | Hub reads (database view or JSON API), or tourlast.com pushes to the Hub API with the shared sync token (7.4) |
 | 3 | Confirm status/type values | tourlast.com dev | Update `config/tourlast.php` maps if needed |
 | 4 | Server, database, DNS, HTTPS | DevOps | Section 9 |
 | 5 | Email sending | DevOps | SES (+ `composer require aws/aws-sdk-php`, domain verification) or SMTP |

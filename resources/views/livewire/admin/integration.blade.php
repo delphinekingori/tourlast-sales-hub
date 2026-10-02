@@ -80,7 +80,7 @@
                 <div wire:key="run-{{ $run->id }}" class="flex items-start justify-between gap-4 border-b border-line px-4 py-2.5 last:border-b-0">
                     <div class="grid leading-tight">
                         <span class="text-sm font-semibold text-ink">{{ ucfirst($run->mode) }} · {{ $run->source }}</span>
-                        <span class="text-[13px] text-ink-subtle">{{ $run->started_at->format('j M, H:i:s') }} · {{ $run->records_seen }} seen, {{ $run->records_created }} new, {{ $run->records_updated }} updated</span>
+                        <span class="text-[13px] text-ink-subtle">{{ $run->started_at->format('j M, H:i:s') }} · {{ $run->records_seen }} seen, {{ $run->records_created }} new, {{ $run->records_updated }} updated@if ($run->records_deleted > 0), {{ $run->records_deleted }} deleted@endif</span>
                         @if ($run->error)<span class="mt-1 text-[13px] text-danger">{{ $run->error }}</span>@endif
                     </div>
                     <x-ui.pill :tone="$run->status === 'succeeded' ? 'success' : ($run->status === 'failed' ? 'danger' : 'warning')">{{ ucfirst($run->status) }}</x-ui.pill>
@@ -104,6 +104,23 @@
             @endforelse
         </x-ui.card>
     </div>
+
+    <x-ui.card title="Deleted properties" description="Reported as deleted on tourlast.com. The credit they earned stays with the salesperson who referred them." :padding="false">
+        @forelse ($deleted as $onboarding)
+            <div wire:key="deleted-{{ $onboarding->id }}" class="flex items-center justify-between gap-4 border-b border-line px-4 py-2.5 last:border-b-0">
+                <div class="grid min-w-0 leading-tight">
+                    <span class="truncate text-sm font-semibold text-ink">{{ $onboarding->property_name }}</span>
+                    <span class="text-[13px] text-ink-subtle">{{ $onboarding->user?->name ?? 'Unattributed' }} · {{ $onboarding->deleted_at?->format('j M Y, H:i') }} · credit kept</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <x-ui.pill tone="warning" :dot="false">Deleted</x-ui.pill>
+                    <x-ui.button size="sm" variant="secondary" wire:click="restore({{ $onboarding->id }})" wire:loading.attr="disabled">Restore</x-ui.button>
+                </div>
+            </div>
+        @empty
+            <x-ui.empty-state icon="building" title="Nothing deleted" description="Properties the source app deletes will be listed here, with their credit kept." />
+        @endforelse
+    </x-ui.card>
 
     @if ($isSandbox)
         <x-ui.slide-over wire:model="showSample" title="New sample signup" description="Pretend a provider just completed List Your Property on tourlast.com.">

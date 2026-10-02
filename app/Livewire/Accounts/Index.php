@@ -61,7 +61,7 @@ class Index extends Component
         ];
 
         $accounts = (clone $base)
-            ->with(['user', 'pointEntries', 'checklistItems', 'onboardings:id,partner_account_id,property_name,status'])
+            ->with(['user', 'pointEntries', 'checklistItems', 'onboardings' => fn ($query) => $query->withTrashed()->select('id', 'partner_account_id', 'property_name', 'status')])
             ->when($this->tab === 'verify', fn ($query) => $query->whereNotNull('activation_date')->where('qualification_status', 'pending')->whereNull('review_failed_at'))
             ->when($this->tab === 'review', fn ($query) => $query->whereNotNull('activation_date')->whereNull('review_failed_at')->where('activation_date', '>', now()->subDays($reviewDays)))
             ->when($this->tab === 'expansion', fn ($query) => $query->whereNotNull('activation_date')->whereNull('review_failed_at')->where('activation_date', '>', now()->subDays($expansionDays)))

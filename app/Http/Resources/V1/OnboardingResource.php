@@ -40,6 +40,7 @@ class OnboardingResource extends JsonResource
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'approved_at' => $this->approved_at?->toIso8601String(),
             'active_at' => $this->active_at?->toIso8601String(),
+            'inactive_at' => $this->inactive_at?->toIso8601String(),
             'rejected_at' => $this->rejected_at?->toIso8601String(),
             'credited_at' => $this->credited_at?->toIso8601String(),
             'first_booking_at' => $this->first_booking_at?->toIso8601String(),
@@ -73,7 +74,7 @@ class OnboardingResource extends JsonResource
         $completed = match ($status) {
             OnboardingStatus::Submitted, OnboardingStatus::UnderReview => 2,
             OnboardingStatus::Approved => 4,
-            OnboardingStatus::Active => 5,
+            OnboardingStatus::Active, OnboardingStatus::Inactive => 5,
             OnboardingStatus::Rejected => 3,
         };
 

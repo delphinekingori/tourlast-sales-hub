@@ -8,6 +8,7 @@ use App\Support\Inbox;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -31,6 +32,12 @@ class Index extends Component
     {
         $this->filter = in_array($this->filter, ['all', 'announcements', 'alerts'], true) ? $this->filter : 'all';
     }
+
+    /**
+     * Fired from the browser when Reverb pushes a new alert or announcement.
+     */
+    #[On('inbox-updated')]
+    public function refreshInbox(): void {}
 
     public function open(string $key): void
     {
@@ -98,6 +105,7 @@ class Index extends Component
         $user = Auth::user();
 
         return view('livewire.notifications.index', [
+            'pollSeconds' => Inbox::pollSeconds(),
             'items' => Inbox::feed($user, $this->filter, 60),
             'unread' => Inbox::unreadCount($user),
             'canPublish' => $user->can(Permission::PublishAnnouncements->value),

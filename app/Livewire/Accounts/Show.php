@@ -194,7 +194,7 @@ class Show extends Component
     public function render(): View
     {
         $account = PartnerAccount::with([
-            'user', 'verifier', 'onboardings', 'checklistItems.completer', 'inventorySnapshots.verifier', 'pointEntries',
+            'user', 'verifier', 'onboardings' => fn ($query) => $query->withTrashed(), 'checklistItems.completer', 'inventorySnapshots.verifier', 'pointEntries',
         ])->findOrFail($this->accountId);
 
         $items = $account->checklistItems->keyBy(fn ($row) => $row->item->value);

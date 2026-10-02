@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
 /**
@@ -27,6 +28,8 @@ class SmartAlert extends Notification
         'contract_expiring' => ['label' => 'Contract expiring', 'icon' => 'clock', 'tone' => 'warning'],
         'follow_up_overdue' => ['label' => 'Follow-up overdue', 'icon' => 'alert', 'tone' => 'warning'],
         'property_inactive' => ['label' => 'Property inactive', 'icon' => 'alert', 'tone' => 'danger'],
+        'property_deleted' => ['label' => 'Property deleted', 'icon' => 'x', 'tone' => 'danger'],
+        'property_restored' => ['label' => 'Property restored', 'icon' => 'check-circle', 'tone' => 'success'],
         'first_booking' => ['label' => 'First booking received', 'icon' => 'chart', 'tone' => 'success'],
         'payment_details_changed' => ['label' => 'Payment details changed', 'icon' => 'lock', 'tone' => 'warning'],
         'duplicate_property' => ['label' => 'Possible duplicate property', 'icon' => 'alert', 'tone' => 'warning'],
@@ -47,7 +50,15 @@ class SmartAlert extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'broadcast'];
+    }
+
+    /**
+     * Pushed to the person's private channel so their bell updates at once.
+     */
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toArray($notifiable));
     }
 
     /**

@@ -61,7 +61,7 @@
         $items = $account->checklistItems->keyBy(fn ($row) => $row->item->value);
     @endphp
     <table class="acct">
-        <tr><td class="label">Partner / legal entity</td><td><b>{{ $account->legal_name }}</b> ({{ $account->onboardings->pluck('property_name')->implode(', ') }})</td></tr>
+        <tr><td class="label">Partner / legal entity</td><td><b>{{ $account->legal_name }}</b> ({{ $account->onboardings->map(fn ($onboarding) => $onboarding->property_name.($onboarding->trashed() ? ' (deleted)' : ''))->implode(', ') }})</td></tr>
         <tr><td class="label">Provider category</td><td>{{ $account->categoryLabel() }} · {{ $account->activation_inventory ?? '—' }} {{ strtolower($account->basisLabel()) }}{{ $account->inventory_note ? ' · '.$account->inventory_note : '' }}</td></tr>
         <tr><td class="label">Referral attribution</td><td>{{ $account->onboardings->pluck('ref_code')->filter()->unique()->implode(', ') ?: 'Assigned by admin' }}</td></tr>
         <tr><td class="label">Activation Date</td><td>{{ $account->activation_date?->format('j M Y') ?? '—' }}</td></tr>
