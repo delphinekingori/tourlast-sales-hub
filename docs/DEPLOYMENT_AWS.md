@@ -61,7 +61,7 @@ SES needs `composer require aws/aws-sdk-php`. To use the company SMTP server ins
 ```bash
 php artisan migrate --force
 php artisan db:seed --class=RolesAndPermissionsSeeder --force
-php artisan hub:create-super-admin you@tourlast.com "Your Name"
+php artisan hub:create-super-admin   # prompts for name, email, password
 php artisan storage:link
 php artisan optimize
 ```

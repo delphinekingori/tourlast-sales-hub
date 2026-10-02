@@ -12,8 +12,8 @@
 |             way the Hub talks to another app: there is no direct database
 |             connection to anything but this app's own database.
 |   push      Source apps push provider records into this app over the API.
-|   sandbox   Sample data stored in this app (Admin -> Integration), used
-|             until a source app is connected.
+|   sandbox   Sample data stored in this app (Admin -> Integration). Local
+|             development and tests only: it is refused in any other environment.
 |
 | Signed webhooks from tourlast.com (optional) are processed the same way.
 | See docs/TOURLAST_INTEGRATION.md for the full developer guide.
@@ -22,7 +22,7 @@
 
 return [
 
-    'source' => env('TOURLAST_SOURCE', 'sandbox'),
+    'source' => env('TOURLAST_SOURCE', 'api'),
 
     /*
     | How often the incremental sync runs, in minutes. A full re-check of every

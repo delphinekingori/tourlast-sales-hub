@@ -11,6 +11,7 @@ use App\Models\OnboardingStatusChange;
 use App\Models\ReferralCode;
 use App\Models\SandboxProvider;
 use App\Models\SyncRun;
+use App\Support\SampleData;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -149,17 +150,18 @@ class Integration extends Component
     public function render(): View
     {
         $source = config('tourlast.source');
+        $isSandbox = $source === 'sandbox' && SampleData::allowed();
 
         return view('livewire.admin.integration', [
             'source' => $source,
-            'isSandbox' => $source === 'sandbox',
+            'isSandbox' => $isSandbox,
             'webhookEnabled' => filled(config('tourlast.webhook_secret')),
             'webhookUrl' => route('webhooks.tourlast'),
             'lastSuccess' => SyncRun::query()->where('status', 'succeeded')->latest('started_at')->first(),
             'runs' => SyncRun::query()->latest('started_at')->limit(12)->get(),
             'recentChanges' => OnboardingStatusChange::query()->with('onboarding.user')->latest('id')->limit(10)->get(),
             'deleted' => Onboarding::onlyTrashed()->with('user:id,name')->latest('submitted_at')->limit(20)->get(),
-            'sandboxProviders' => $source === 'sandbox' ? SandboxProvider::query()->latest()->limit(15)->get() : collect(),
+            'sandboxProviders' => $isSandbox ? SandboxProvider::query()->latest()->limit(15)->get() : collect(),
             'referralCodes' => ReferralCode::query()->with('user')->where('is_active', true)->orderBy('code')->get(),
             'statuses' => OnboardingStatus::cases(),
         ]);
@@ -167,6 +169,7 @@ class Integration extends Component
 
     private function ensureSandbox(): void
     {
+        abort_unless(SampleData::allowed(), 403, 'The simulator only works in local development.');
         abort_unless(config('tourlast.source') === 'sandbox', 403, 'The simulator only works while TOURLAST_SOURCE=sandbox.');
         abort_unless(Auth::user()->can(Permission::ManageIntegration->value), 403);
     }

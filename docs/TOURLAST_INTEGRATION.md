@@ -169,7 +169,7 @@ Property types are the keys of `hub.property_types` in `config/hub.php` (hotel, 
 3. Open **Admin → Integration** in the Hub (Super Admin only) to see the sync log and the latest status changes.
 4. Visit `https://sales.tourlast.com/r/<a real code>`. You should land on List Your Property with `?ref=` attached. Complete a test signup, approve it and make it live in the tourlast.com admin, and within 10 minutes it appears under that salesperson's **My Onboardings** and counts on their **My Progress**.
 
-While `TOURLAST_SOURCE=sandbox`, the Integration page has a simulator that creates sample signups and moves them through each status, using the same code path as real data.
+While `TOURLAST_SOURCE=sandbox` (local and test environments only; production refuses it), the Integration page has a simulator that creates sample signups and moves them through each status, using the same code path as real data.
 
 ## Where the code lives
 

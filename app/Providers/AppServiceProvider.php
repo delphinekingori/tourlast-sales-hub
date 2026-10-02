@@ -12,6 +12,7 @@ use App\Models\ExpenseClaim;
 use App\Models\PartnerAccount;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
+use App\Support\SampleData;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -29,7 +30,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(ProviderSource::class, fn ($app): ProviderSource => match (config('tourlast.source')) {
-            'sandbox' => $app->make(SandboxProviderSource::class),
+            'sandbox' => tap($app->make(SandboxProviderSource::class), fn () => SampleData::ensureAllowed('TOURLAST_SOURCE=sandbox')),
             'api' => $app->make(ApiProviderSource::class),
             'push' => $app->make(PushOnlyProviderSource::class),
             default => throw new InvalidArgumentException('TOURLAST_SOURCE must be sandbox, api or push. Reading another app\'s database is not supported: the Hub connects to source apps over the API only.'),

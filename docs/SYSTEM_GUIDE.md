@@ -117,7 +117,7 @@ Roles and permissions are defined in `app/Enums/Role.php` and `app/Enums/Permiss
 ### 3.1 Accounts, sign-in and account status
 
 - People are invited from **Admin → Users & Invites**. The invitee gets a single-use link by email (from `sales@tourlast.com`), valid for 7 days, and sets their own password.
-- The first Super Admin is created on the server: `php artisan hub:create-super-admin you@tourlast.com "Your Name"`.
+- The first Super Admin is created on the server: `php artisan hub:create-super-admin` (interactive; refuses if a Super Admin already exists).
 - **Account status** is one of:
 
 | Status | Effect | Undone by |
@@ -330,7 +330,7 @@ A **queue worker** must also run to send emails. Every command can be run by han
 | Email sending (SES or SMTP) | ⏳ To configure | DevOps |
 | Everything else (registry, leads, schedule, incentives, claims, reports) | ✅ Self-contained in the Hub | — |
 
-Until tourlast.com is connected, the Hub runs in **sandbox** mode (`TOURLAST_SOURCE=sandbox`): **Admin → Integration** has a simulator that creates sample signups and moves them through each status, using exactly the same code path as real data.
+The Hub reads real data only (`TOURLAST_SOURCE=api`, the default). Local development can use **sandbox** mode (`TOURLAST_SOURCE=sandbox`, local and test environments only, refused in production): **Admin → Integration** has a simulator that creates sample signups and moves them through each status, using exactly the same code path as real data.
 
 ### 7.2 What the tourlast.com developer must do
 
@@ -432,7 +432,7 @@ Everything in the Hub is also available through a REST API at `https://sales.tou
 
 | Setting | Meaning |
 |---|---|
-| `TOURLAST_SOURCE` | `api` (Hub reads source apps over their API) · `push` (source apps call the Hub API; scheduled sync skipped) · `sandbox` (local simulator) |
+| `TOURLAST_SOURCE` | `api` (Hub reads source apps over their API) · `push` (source apps call the Hub API; scheduled sync skipped) · `sandbox` (local simulator; refused outside local and test environments) |
 | `TOURLAST_SYNC_EVERY_MINUTES` / `TOURLAST_FULL_SYNC_AT` | Sync frequency (10) and nightly full check (`02:00`) |
 | `TOURLAST_API_URL`, `TOURLAST_API_PATH`, `TOURLAST_API_TOKEN`, `TOURLAST_API_TIMEOUT` | Read-only JSON endpoint (Option A); `TOURLAST_API_URL` accepts a comma-separated list of app bases. `TOURLAST_API_TOKEN` is also the shared sync token that `POST /integrations/tourlast/providers` accepts — set it with `php artisan hub:generate-token` |
 | `TOURLAST_WEBHOOK_SECRET` | Shared secret for the optional webhook |
@@ -472,7 +472,7 @@ npm ci && npm run build
 cp .env.example .env && php artisan key:generate      # then edit .env (section 8)
 php artisan migrate --force
 php artisan db:seed --class=RolesAndPermissionsSeeder --force
-php artisan hub:create-super-admin you@tourlast.com "Your Name"
+php artisan hub:create-super-admin   # prompts for name, email, password
 php artisan storage:link
 php artisan optimize
 ```
@@ -559,7 +559,7 @@ sudo supervisorctl restart sales-hub-worker
 composer install
 npm install && npm run build
 cp .env.example .env && php artisan key:generate      # APP_ENV=local, TOURLAST_SOURCE=api
-php artisan migrate --seed                            # demo data, password "password"
+php artisan migrate --seed                            # roles and policy only; demo data needs APP_ENV=local + TOURLAST_SOURCE=sandbox (password "password")
 php artisan test                                      # 242 tests
 ```
 
@@ -616,4 +616,4 @@ Demo accounts: `admin@` (Super Admin), `grace@` (Sales Admin), `david@` (Sales M
 | **Provisional / approved points** | Points before and after a Sales Admin verifies the Account. |
 | **Re-engage** | Approaching a lost or paused property again on a set date. |
 | **Unattributed** | A signup that arrived without a referral code. |
-| **Sandbox** | Built-in simulator used until tourlast.com is connected. |
+| **Sandbox** | Built-in simulator for local development and tests. Refused in production. |
