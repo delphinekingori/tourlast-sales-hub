@@ -3,6 +3,7 @@
 namespace App\Http\Resources\V1;
 
 use App\Enums\Permission;
+use App\Enums\ReferralTarget;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -38,6 +39,7 @@ class MeResource extends JsonResource
             'sells' => (bool) $this->role()?->earnsReferrals(),
             'referral_code' => $this->referralCode?->code,
             'referral_link' => $this->referralCode?->shareUrl(),
+            'referral_experiences_link' => $this->referralCode?->shareUrl(ReferralTarget::Experiences),
             'permissions' => collect(Permission::cases())->filter(fn (Permission $permission) => $this->resource->can($permission->value))->map(fn (Permission $permission) => $permission->value)->values(),
             'token' => $token && method_exists($token, 'scopes') ? [
                 'name' => $token->name,

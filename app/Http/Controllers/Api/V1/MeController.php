@@ -6,6 +6,7 @@ use App\Actions\IssueReferralCode;
 use App\Actions\SavePaymentDetail;
 use App\Actions\SetTarget;
 use App\Enums\LeadStatus;
+use App\Enums\ReferralTarget;
 use App\Http\Resources\V1\MeResource;
 use App\Http\Resources\V1\ScheduleItemResource;
 use App\Models\Lead;
@@ -91,6 +92,7 @@ class MeController extends ApiController
         return response()->json(['data' => [
             'code' => $code?->code,
             'link' => $code?->shareUrl(),
+            'experiences_link' => $code?->shareUrl(ReferralTarget::Experiences),
             'period' => $period->key,
             'funnel' => [
                 'link_visits' => $m['clicks'],

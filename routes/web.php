@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ReferralTarget;
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\EngagementRegistryExportController;
 use App\Http\Controllers\LogoutController;
@@ -44,10 +45,12 @@ use App\Livewire\Team\Targets;
 use Illuminate\Support\Facades\Route;
 
 /*
-| Public tracked referral link: sales.tourlast.com/r/TL-JOHN-2847
+| Public tracked referral links: sales.tourlast.com/r/TL-JOHN-2847 (Stays)
+| and sales.tourlast.com/r/TL-JOHN-2847/experiences (Experiences).
 */
-Route::get('/r/{code}', ReferralRedirectController::class)
+Route::get('/r/{code}/{target?}', ReferralRedirectController::class)
     ->where('code', '[A-Za-z0-9\-]+')
+    ->whereIn('target', array_column(ReferralTarget::cases(), 'value'))
     ->middleware('throttle:120,1')
     ->name('referral.redirect');
 

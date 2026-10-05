@@ -28,6 +28,8 @@ return [
 
     'list_property_url' => env('HUB_LIST_PROPERTY_URL', 'https://www.tourlast.com/list-your-property'),
 
+    'list_experiences_url' => env('HUB_LIST_EXPERIENCES_URL', 'https://experiences.tourlast.com/provider/register'),
+
     /*
     |--------------------------------------------------------------------------
     | Property types
