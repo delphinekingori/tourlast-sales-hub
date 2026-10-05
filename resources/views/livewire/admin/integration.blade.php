@@ -80,7 +80,7 @@
                 <div wire:key="run-{{ $run->id }}" class="flex items-start justify-between gap-4 border-b border-line px-4 py-2.5 last:border-b-0">
                     <div class="grid leading-tight">
                         <span class="text-sm font-semibold text-ink">{{ ucfirst($run->mode) }} · {{ $run->source }}</span>
-                        <span class="text-[13px] text-ink-subtle">{{ $run->started_at->format('j M, H:i:s') }} · {{ $run->records_seen }} seen, {{ $run->records_created }} new, {{ $run->records_updated }} updated@if ($run->records_deleted > 0), {{ $run->records_deleted }} deleted@endif</span>
+                        <span class="text-[13px] text-ink-subtle">{{ $run->started_at->format('j M, H:i:s') }} · {{ $run->records_seen }} seen, {{ $run->records_created }} new, {{ $run->records_updated }} updated{{ $run->records_deleted > 0 ? ", {$run->records_deleted} deleted" : '' }}</span>
                         @if ($run->error)<span class="mt-1 text-[13px] text-danger">{{ $run->error }}</span>@endif
                     </div>
                     <x-ui.pill :tone="$run->status === 'succeeded' ? 'success' : ($run->status === 'failed' ? 'danger' : 'warning')">{{ ucfirst($run->status) }}</x-ui.pill>
