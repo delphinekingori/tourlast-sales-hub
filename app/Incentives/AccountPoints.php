@@ -200,6 +200,16 @@ class AccountPoints
      */
     public function reconcile(PartnerAccount $account): void
     {
+        // Two syncs touching properties of the same Account must not both write its ledger.
+        DB::transaction(function () use ($account): void {
+            PartnerAccount::query()->whereKey($account->id)->lockForUpdate()->value('id');
+
+            $this->reconcileLocked($account);
+        });
+    }
+
+    private function reconcileLocked(PartnerAccount $account): void
+    {
         $account->refresh()->load(['inventorySnapshots', 'pointEntries']);
         $desired = $this->desiredEntries($account);
         $existing = $account->pointEntries->where('status', '!=', 'cancelled')->where('type', '!=', 'adjustment');

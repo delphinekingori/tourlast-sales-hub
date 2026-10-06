@@ -55,6 +55,12 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     /*
+    | Proxies whose forwarded headers are trusted, comma separated. Use "*" behind a load
+    | balancer so HTTPS and the visitor's IP are read correctly. Empty trusts none.
+    */
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------

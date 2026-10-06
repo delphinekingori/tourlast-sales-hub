@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\TrackPresence;
 use App\Http\Middleware\ValidateSharedToken;
 use Illuminate\Foundation\Application;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'ability' => CheckForAnyAbility::class,
             'shared-token' => ValidateSharedToken::class,
         ]);
+        $middleware->append(SecurityHeaders::class);
         $middleware->api(append: [TrackPresence::class]);
         $middleware->web(append: [TrackPresence::class]);
         $middleware->validateCsrfTokens(except: ['webhooks/*']);

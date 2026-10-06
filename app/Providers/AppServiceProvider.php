@@ -14,9 +14,11 @@ use App\Models\PersonalAccessToken;
 use App\Models\User;
 use App\Support\SampleData;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use InvalidArgumentException;
@@ -42,6 +44,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Behind a load balancer, TRUSTED_PROXIES (for example "*") lets the app see HTTPS and the visitor's real IP.
+        $proxies = array_filter(array_map('trim', explode(',', (string) config('app.trusted_proxies'))));
+
+        if ($proxies !== []) {
+            TrustProxies::at(in_array('*', $proxies, true) ? '*' : $proxies);
+        }
+
+        // Links the Hub builds (referral links, emails) must be HTTPS in production.
+        if ($this->app->isProduction()) {
+            URL::forceScheme('https');
+        }
+
         // API: 120 requests a minute per token owner (or IP), 10 sign-in attempts a minute.
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
         RateLimiter::for('api-login', fn (Request $request) => Limit::perMinute(10)->by(strtolower((string) $request->input('email')).'|'.$request->ip()));
