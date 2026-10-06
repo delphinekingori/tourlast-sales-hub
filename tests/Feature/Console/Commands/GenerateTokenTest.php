@@ -38,7 +38,7 @@ class GenerateTokenTest extends TestCase
         $token = $this->tokenFrom($path);
         $this->assertSame(1, substr_count($output, $token));
         $this->assertStringContainsString("Copy the same value into each source app's .env as TOURLAST_HUB_TOKEN.", $output);
-        $this->assertStringNotContainsString('Replaces the previous token', $output);
+        $this->assertStringNotContainsString('Replaces the previous TOURLAST_API_TOKEN', $output);
     }
 
     public function test_it_appends_the_key_when_the_env_file_does_not_have_it(): void
@@ -55,12 +55,12 @@ class GenerateTokenTest extends TestCase
     {
         $path = $this->envFile('APP_NAME=Tourlast'.PHP_EOL.'TOURLAST_API_TOKEN=ol'.PHP_EOL.'TOURLAST_WEBHOOK_SECRET='.PHP_EOL);
 
-        Artisan::call('hub:generate-token', ['--path' => $path]);
+        Artisan::call('hub:generate-token', ['--token' => true, '--path' => $path]);
         $output = Artisan::output();
 
         $this->assertSame(1, substr_count(File::get($path), 'TOURLAST_API_TOKEN='));
         $this->assertStringNotContainsString('ol'.PHP_EOL, File::get($path));
-        $this->assertStringContainsString('Replaces the previous token', $output);
+        $this->assertStringContainsString('Replaces the previous TOURLAST_API_TOKEN', $output);
         $this->assertSame('TOURLAST_WEBHOOK_SECRET='.PHP_EOL, substr(File::get($path), -strlen('TOURLAST_WEBHOOK_SECRET='.PHP_EOL)));
     }
 
@@ -102,6 +102,78 @@ class GenerateTokenTest extends TestCase
         Artisan::call('hub:generate-token', ['--path' => $path]);
 
         $this->assertSame($before, File::exists($real) ? hash_file('sha256', $real) : null);
+    }
+
+    public function test_webhook_mode_writes_a_64_character_secret_and_leaves_the_sync_token_alone(): void
+    {
+        $path = $this->envFile('TOURLAST_API_TOKEN=keep-me'.PHP_EOL.'TOURLAST_WEBHOOK_SECRET='.PHP_EOL);
+
+        $exit = Artisan::call('hub:generate-token', ['--webhook' => true, '--path' => $path]);
+        $output = Artisan::output();
+
+        $this->assertSame(0, $exit);
+        $this->assertMatchesRegularExpression('/^TOURLAST_WEBHOOK_SECRET=[0-9a-f]{64}?$/m', File::get($path));
+        $this->assertStringContainsString('TOURLAST_API_TOKEN=keep-me', File::get($path));
+        $this->assertStringContainsString('TOURLAST_HUB_WEBHOOK_SECRET', $output);
+    }
+
+    public function test_webhook_mode_can_show_the_current_secret_and_warns_when_replacing_it(): void
+    {
+        $path = $this->envFile('TOURLAST_WEBHOOK_SECRET=abc123'.PHP_EOL);
+
+        Artisan::call('hub:generate-token', ['--webhook' => true, '--show' => true, '--path' => $path]);
+        $this->assertSame('abc123', trim(Artisan::output()));
+
+        Artisan::call('hub:generate-token', ['--webhook' => true, '--path' => $path]);
+        $this->assertStringContainsString('Replaces the previous TOURLAST_WEBHOOK_SECRET', Artisan::output());
+    }
+
+    public function test_without_a_flag_it_generates_both_the_sync_token_and_the_webhook_secret(): void
+    {
+        $path = $this->envFile('APP_NAME=Tourlast'.PHP_EOL);
+
+        $exit = Artisan::call('hub:generate-token', ['--path' => $path]);
+        $output = Artisan::output();
+
+        $this->assertSame(0, $exit);
+        $this->assertMatchesRegularExpression('/^TOURLAST_API_TOKEN=[0-9a-f]{48}?$/m', File::get($path));
+        $this->assertMatchesRegularExpression('/^TOURLAST_WEBHOOK_SECRET=[0-9a-f]{64}?$/m', File::get($path));
+        $this->assertStringContainsString('TOURLAST_HUB_TOKEN', $output);
+        $this->assertStringContainsString('TOURLAST_HUB_WEBHOOK_SECRET', $output);
+    }
+
+    public function test_show_prints_both_values_by_name(): void
+    {
+        $path = $this->envFile('TOURLAST_API_TOKEN=tok'.PHP_EOL.'TOURLAST_WEBHOOK_SECRET=sec'.PHP_EOL);
+
+        $exit = Artisan::call('hub:generate-token', ['--show' => true, '--path' => $path]);
+        $output = Artisan::output();
+
+        $this->assertSame(0, $exit);
+        $this->assertStringContainsString('TOURLAST_API_TOKEN=tok', $output);
+        $this->assertStringContainsString('TOURLAST_WEBHOOK_SECRET=sec', $output);
+    }
+
+    public function test_show_still_prints_the_one_it_has_and_warns_about_the_other(): void
+    {
+        $path = $this->envFile('TOURLAST_API_TOKEN=tok'.PHP_EOL);
+
+        $exit = Artisan::call('hub:generate-token', ['--show' => true, '--path' => $path]);
+        $output = Artisan::output();
+
+        $this->assertSame(0, $exit);
+        $this->assertStringContainsString('TOURLAST_API_TOKEN=tok', $output);
+        $this->assertStringContainsString('TOURLAST_WEBHOOK_SECRET is not set', $output);
+    }
+
+    public function test_token_only_leaves_the_webhook_secret_alone(): void
+    {
+        $path = $this->envFile('TOURLAST_WEBHOOK_SECRET=keep-me'.PHP_EOL);
+
+        Artisan::call('hub:generate-token', ['--token' => true, '--path' => $path]);
+
+        $this->assertMatchesRegularExpression('/^TOURLAST_API_TOKEN=[0-9a-f]{48}?$/m', File::get($path));
+        $this->assertStringContainsString('TOURLAST_WEBHOOK_SECRET=keep-me', File::get($path));
     }
 
     private function envFile(string $contents): string
