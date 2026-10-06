@@ -31,9 +31,9 @@ class TourlastWebhookController extends Controller
             return response()->json(['message' => 'Invalid signature.'], 401);
         }
 
-        $eventId = (string) $request->input('event_id');
+        $eventId = (string) $request->input('event_id') ?: sha1($request->getContent());
 
-        if ($eventId !== '' && ! Cache::add('tourlast-webhook:'.$eventId, true, now()->addDays(7))) {
+        if (! Cache::add('tourlast-webhook:'.$eventId, true, now()->addDays(7))) {
             return response()->json(['result' => 'duplicate']);
         }
 

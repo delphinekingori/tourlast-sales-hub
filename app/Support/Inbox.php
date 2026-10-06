@@ -85,10 +85,14 @@ class Inbox
     public static function markRead(User $user, string $key): ?string
     {
         if (str_starts_with($key, 'a-')) {
-            AnnouncementRead::query()->firstOrCreate(
-                ['announcement_id' => (int) substr($key, 2), 'user_id' => $user->id],
-                ['read_at' => now()],
-            );
+            $announcementId = Announcement::query()->visibleTo($user)->whereKey((int) substr($key, 2))->value('id');
+
+            if ($announcementId) {
+                AnnouncementRead::query()->firstOrCreate(
+                    ['announcement_id' => $announcementId, 'user_id' => $user->id],
+                    ['read_at' => now()],
+                );
+            }
 
             return null;
         }

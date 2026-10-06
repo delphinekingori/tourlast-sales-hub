@@ -3,8 +3,12 @@
 namespace App\Integrations\Tourlast;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use RuntimeException;
+use Throwable;
 
 /**
  * Reads referred providers from one or more read-only JSON endpoints, one
@@ -15,9 +19,17 @@ use RuntimeException;
  * where each provider uses the Hub field names documented in
  * docs/TOURLAST_INTEGRATION.md.
  */
-class ApiProviderSource implements ProviderSource
+class ApiProviderSource implements ProviderSource, ReportsSourceFailures
 {
+    /** @var list<string> */
+    private array $failures = [];
+
     public function __construct(private ProviderRecordMapper $mapper) {}
+
+    public function failures(): array
+    {
+        return $this->failures;
+    }
 
     public function name(): string
     {
@@ -38,9 +50,29 @@ class ApiProviderSource implements ProviderSource
             throw new RuntimeException('TOURLAST_API_URL is not set.');
         }
 
+        $this->failures = [];
+
         foreach ($baseUrls as $baseUrl) {
-            yield from $this->pull($baseUrl, $config, $since);
+            try {
+                yield from $this->pull($baseUrl, $config, $since);
+            } catch (Throwable $exception) {
+                Log::error('tourlast.com feed failed', ['url' => $baseUrl, 'exception' => $exception]);
+
+                $this->failures[] = $this->describe($baseUrl, $exception);
+            }
         }
+    }
+
+    /**
+     * What went wrong with one app's feed, without the response body or any server paths.
+     */
+    private function describe(string $baseUrl, Throwable $exception): string
+    {
+        $host = parse_url($baseUrl, PHP_URL_HOST) ?: $baseUrl;
+
+        return $exception instanceof RequestException
+            ? "{$host} answered HTTP {$exception->response->status()}"
+            : "{$host} could not be read";
     }
 
     /**
@@ -66,7 +98,15 @@ class ApiProviderSource implements ProviderSource
             $response->throw();
 
             foreach ($response->json('data', []) as $row) {
-                yield $this->mapper->fromArray($row);
+                try {
+                    $record = $this->mapper->fromArray($row);
+                } catch (InvalidArgumentException $exception) {
+                    $this->failures[] = (parse_url($baseUrl, PHP_URL_HOST) ?: $baseUrl).': skipped a record ('.$exception->getMessage().')';
+
+                    continue;
+                }
+
+                yield $record;
             }
 
             $page = $response->json('next_page');

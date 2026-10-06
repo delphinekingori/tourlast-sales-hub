@@ -116,6 +116,10 @@ class ProviderRecordMapper
         return filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 
+    /**
+     * Source apps send offsets such as +03:00. Everything is stored in the app's timezone,
+     * so a time compares and displays the same wherever it came from.
+     */
     private function date(mixed $value): ?CarbonImmutable
     {
         if ($value === null || $value === '') {
@@ -123,7 +127,7 @@ class ProviderRecordMapper
         }
 
         try {
-            return CarbonImmutable::parse($value);
+            return CarbonImmutable::parse($value)->setTimezone(config('app.timezone'));
         } catch (Throwable) {
             return null;
         }

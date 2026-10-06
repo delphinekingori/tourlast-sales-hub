@@ -3,13 +3,14 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
 /**
  * An automatic in-app alert about partners, deals, follow-ups or contracts.
  */
-class SmartAlert extends Notification
+class SmartAlert extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -43,7 +44,11 @@ class SmartAlert extends Notification
         public string $title,
         public string $body,
         public ?string $url = null,
-    ) {}
+    ) {
+        // Sent from inside the sync transaction: wait for the commit, and keep a
+        // broadcast outage from rolling back the record that raised the alert.
+        $this->afterCommit();
+    }
 
     /**
      * @return list<string>

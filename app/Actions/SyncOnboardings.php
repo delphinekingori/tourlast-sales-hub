@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Integrations\Tourlast\ProviderSource;
+use App\Integrations\Tourlast\ReportsSourceFailures;
 use App\Models\SyncRun;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
@@ -31,30 +32,43 @@ class SyncOnboardings
         ]);
 
         $counts = ['records_seen' => 0, 'records_created' => 0, 'records_updated' => 0, 'records_deleted' => 0];
+        $failures = [];
 
         try {
             foreach ($this->source->changedSince($since) as $record) {
                 $counts['records_seen']++;
 
-                match ($this->applyProviderRecord->handle($record, 'sync')) {
-                    ApplyProviderRecord::Created => $counts['records_created']++,
-                    ApplyProviderRecord::Updated => $counts['records_updated']++,
-                    ApplyProviderRecord::Deleted => $counts['records_deleted']++,
-                    default => null,
-                };
-            }
+                try {
+                    match ($this->applyProviderRecord->handle($record, 'sync')) {
+                        ApplyProviderRecord::Created => $counts['records_created']++,
+                        ApplyProviderRecord::Updated => $counts['records_updated']++,
+                        ApplyProviderRecord::Deleted => $counts['records_deleted']++,
+                        default => null,
+                    };
+                } catch (Throwable $exception) {
+                    report($exception);
 
-            $run->update([...$counts, 'status' => 'succeeded', 'finished_at' => now()]);
+                    $failures[] = "{$record->propertyId} could not be applied";
+                }
+            }
         } catch (Throwable $exception) {
             Log::error('tourlast.com sync failed', ['exception' => $exception]);
 
-            $run->update([
-                ...$counts,
-                'status' => 'failed',
-                'error' => mb_substr($exception->getMessage(), 0, 2000),
-                'finished_at' => now(),
-            ]);
+            $failures[] = $this->source instanceof ReportsSourceFailures ? 'The source could not be read' : $exception->getMessage();
         }
+
+        if ($this->source instanceof ReportsSourceFailures) {
+            $failures = [...$this->source->failures(), ...$failures];
+        }
+
+        // A run with anything skipped counts as failed, so the next incremental
+        // run starts from the last clean one and picks the skipped records up again.
+        $run->update([
+            ...$counts,
+            'status' => $failures === [] ? 'succeeded' : 'failed',
+            'error' => $failures === [] ? null : mb_substr(implode('; ', array_slice($failures, 0, 10)), 0, 2000),
+            'finished_at' => now(),
+        ]);
 
         return $run;
     }
