@@ -50,7 +50,10 @@ MAIL_FROM_ADDRESS="sales@tourlast.com"
 MAIL_FROM_NAME="Tourlast Sales"
 
 # tourlast.com connection: see docs/TOURLAST_INTEGRATION.md
-TOURLAST_SOURCE=database
+TOURLAST_SOURCE=api
+TOURLAST_API_URL=https://www.tourlast.com
+TOURLAST_API_PATH=/api/sales-hub/referrals
+TOURLAST_API_TOKEN=...   # shared token both ways — write it with: php artisan hub:generate-token
 ```
 
 SES needs `composer require aws/aws-sdk-php`. To use the company SMTP server instead, set `MAIL_MAILER=smtp` and the `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME` and `MAIL_PASSWORD` values.
@@ -58,15 +61,15 @@ SES needs `composer require aws/aws-sdk-php`. To use the company SMTP server ins
 ```bash
 php artisan migrate --force
 php artisan db:seed --class=RolesAndPermissionsSeeder --force
-php artisan hub:create-super-admin you@tourlast.com "Your Name"
+php artisan hub:create-super-admin   # prompts for name, email, password
 php artisan storage:link
 php artisan optimize
 ```
 
-If tourlast.com will push provider records to the API instead of the Hub reading tourlast.com, create its integration account and give the printed token to the tourlast.com developer:
+If tourlast.com will push provider records to the API instead of the Hub reading tourlast.com, generate the one shared token and give the printed value to the tourlast.com developer (they store it as `TOURLAST_HUB_TOKEN`):
 
 ```bash
-php artisan hub:create-integration-account   # set TOURLAST_SOURCE=push in .env
+php artisan hub:generate-token   # also set TOURLAST_SOURCE=push in .env
 ```
 
 Don't run the plain `db:seed` in production. The demo data only seeds when `APP_ENV=local`, but the roles seeder is all production needs.

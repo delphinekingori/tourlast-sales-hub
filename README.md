@@ -10,7 +10,8 @@ A private sales and partner-onboarding tracker for the Tourlast team. Providers 
 composer install
 npm install && npm run build
 cp .env.example .env && php artisan key:generate
-# set APP_ENV=local and TOURLAST_SOURCE=sandbox
+# demo data is opt-in: set APP_ENV=local and TOURLAST_SOURCE=sandbox first.
+# With TOURLAST_SOURCE=api (the default) a fresh database holds only roles and policy rows.
 php artisan migrate --seed
 ```
 
@@ -25,7 +26,7 @@ Demo accounts are created only when `APP_ENV=local`. Every password is `password
 | faith@tourlast.test | HR |
 | samuel@tourlast.test | Accounts |
 
-In production there is no public registration. Create the first admin with `php artisan hub:create-super-admin you@tourlast.com "Your Name"`, then invite everyone else from **Admin → Users & Invites**.
+In production there is no public registration. Create the first admin with `php artisan hub:create-super-admin` (it prompts for name, email and password, and refuses if a Super Admin already exists), then invite everyone else from **Admin → Users & Invites**.
 
 ## Key rules
 
@@ -76,7 +77,8 @@ In production there is no public registration. Create the first admin with `php 
 php artisan hub:sync-tourlast [--full]     # pull referred providers from tourlast.com now
 php artisan hub:send-manager-alerts        # send the managers' daily summary now
 php artisan hub:generate-statements [YYYY-MM]  # create or refresh draft payout statements
-php artisan hub:create-super-admin EMAIL NAME
+php artisan hub:create-super-admin           # interactive; first Super Admin only
+php artisan hub:purge-demo-data [--force]  # list (default) or delete @tourlast.test users and TL-##### sample rows
 php artisan hub:create-integration-account [--rotate]  # least-privilege account + token for tourlast.com push
 php artisan hub:api-spec                    # regenerate docs/api/openapi.json from the routes
 php artisan test                           # full test suite

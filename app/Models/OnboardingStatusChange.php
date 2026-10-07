@@ -23,10 +23,13 @@ class OnboardingStatusChange extends Model
     }
 
     /**
+     * The change is kept after the property is archived, so the history page
+     * can still name it.
+     *
      * @return BelongsTo<Onboarding, $this>
      */
     public function onboarding(): BelongsTo
     {
-        return $this->belongsTo(Onboarding::class);
+        return $this->belongsTo(Onboarding::class)->withTrashed();
     }
 }

@@ -28,14 +28,16 @@ return [
 
     'list_property_url' => env('HUB_LIST_PROPERTY_URL', 'https://www.tourlast.com/list-your-property'),
 
+    'list_experiences_url' => env('HUB_LIST_EXPERIENCES_URL', 'https://experiences.tourlast.com/provider/register'),
+
     /*
     |--------------------------------------------------------------------------
     | Property types
     |--------------------------------------------------------------------------
     |
-    | Keys are stored in the database. The tourlast.com connection maps its
-    | own type values onto these keys (see config/tourlast.php). Unknown types
-    | are stored as "other".
+    | Keys are stored in the database. This list is for manual entry (forms
+    | and API validation) and for labels: anything a source app sends that is
+    | not listed here is still stored as sent and labelled from its name.
     |
     */
 
@@ -47,6 +49,10 @@ return [
         'villa' => 'Villa',
         'guesthouse' => 'Guesthouse',
         'cabin' => 'Cabin',
+        'chalet' => 'Chalet',
+        'farm_stay' => 'Farm stay',
+        'treehouse' => 'Treehouse',
+        'boat' => 'Boat / Houseboat',
         'beachfront' => 'Beachfront stay',
         'cottage' => 'Cottage',
         'camper' => 'Camper van / RV',

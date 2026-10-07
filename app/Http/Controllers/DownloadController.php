@@ -50,7 +50,7 @@ class DownloadController extends Controller
 
         $accounts = PartnerAccount::query()
             ->whereHas('pointEntries', fn ($query) => $query->where('user_id', $statement->user_id)->forMonth($statement->month))
-            ->with(['onboardings', 'checklistItems', 'pointEntries' => fn ($query) => $query->where('user_id', $statement->user_id)])
+            ->with(['onboardings' => fn ($query) => $query->withTrashed(), 'checklistItems', 'pointEntries' => fn ($query) => $query->where('user_id', $statement->user_id)])
             ->get();
 
         $followUps = $accounts->mapWithKeys(fn (PartnerAccount $account): array => [

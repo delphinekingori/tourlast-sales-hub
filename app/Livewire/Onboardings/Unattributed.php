@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -21,6 +22,7 @@ class Unattributed extends Component
 
     public bool $showAssign = false;
 
+    #[Locked]
     public ?int $assigningId = null;
 
     public string $salespersonId = '';

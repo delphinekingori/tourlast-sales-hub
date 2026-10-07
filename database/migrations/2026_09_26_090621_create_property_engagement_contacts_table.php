@@ -25,7 +25,7 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['property_engagement_id', 'is_primary']);
+            $table->index(['property_engagement_id', 'is_primary'], 'pec_primary_idx');
         });
     }
 

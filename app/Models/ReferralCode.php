@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ReferralTarget;
 use Database\Factories\ReferralCodeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -51,17 +52,20 @@ class ReferralCode extends Model
 
     /**
      * The short link the salesperson shares. It is counted, then forwarded to tourlast.com.
+     * The Stays link has no suffix, so links already shared keep working.
      */
-    public function shareUrl(): string
+    public function shareUrl(ReferralTarget $target = ReferralTarget::Stays): string
     {
-        return route('referral.redirect', $this->code);
+        return $target === ReferralTarget::Stays
+            ? route('referral.redirect', $this->code)
+            : route('referral.redirect', [$this->code, $target->value]);
     }
 
     /**
-     * The tourlast.com page the tracked link forwards to.
+     * The tourlast.com registration page the tracked link forwards to.
      */
-    public function destinationUrl(): string
+    public function destinationUrl(ReferralTarget $target = ReferralTarget::Stays): string
     {
-        return config('hub.list_property_url').'?'.http_build_query(['ref' => $this->code]);
+        return $target->registrationUrl().'?'.http_build_query(['ref' => $this->code]);
     }
 }

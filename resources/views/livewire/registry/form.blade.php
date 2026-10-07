@@ -3,8 +3,6 @@
     $duplicates = $this->duplicates;
     $hasRegistryDuplicate = $duplicates->contains('kind', 'registry');
     $textarea = 'w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink placeholder:text-ink-subtle focus:border-brand focus:ring-3 focus:ring-brand-soft focus:outline-none';
-    $knownRegions = \App\Models\PropertyEngagement::query()->distinct()->orderBy('region')->pluck('region');
-    $knownCities = \App\Models\PropertyEngagement::query()->distinct()->orderBy('city')->pluck('city');
 @endphp
 
 <div class="grid gap-5">
@@ -58,8 +56,8 @@
                     <x-ui.input label="Latitude" wire:model="latitude" id="pe-lat" inputmode="decimal" placeholder="-3.9942" />
                     <x-ui.input label="Longitude" wire:model="longitude" id="pe-lng" inputmode="decimal" placeholder="39.7451" />
                 </div>
-                <datalist id="pe-regions">@foreach ($knownRegions as $option)<option value="{{ $option }}"></option>@endforeach</datalist>
-                <datalist id="pe-cities">@foreach ($knownCities as $option)<option value="{{ $option }}"></option>@endforeach</datalist>
+                <datalist id="pe-regions">@foreach ($this->knownRegions as $option)<option value="{{ $option }}"></option>@endforeach</datalist>
+                <datalist id="pe-cities">@foreach ($this->knownCities as $option)<option value="{{ $option }}"></option>@endforeach</datalist>
             </x-ui.card>
 
             @if ($isNew)

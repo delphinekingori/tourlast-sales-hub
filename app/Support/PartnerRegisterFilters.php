@@ -45,6 +45,7 @@ final readonly class PartnerRegisterFilters
     {
         return [
             'onboarded' => 'Onboarded (live)',
+            'inactive' => 'Inactive (was live)',
             'approved' => 'Approved, going live',
             'awaiting' => 'Not live yet (all)',
             'rejected' => 'Rejected',
@@ -61,16 +62,26 @@ final readonly class PartnerRegisterFilters
     }
 
     /**
-     * Onboarded statuses filter dates by the onboarding date; others by signup date.
+     * Each status is dated by the date that defines it: the onboarding date for
+     * live partners, the inactive date for properties that stopped, the signup
+     * date for everything else.
      */
     public function dateColumn(): string
     {
-        return $this->status === 'onboarded' ? 'credited_at' : 'submitted_at';
+        return match ($this->status) {
+            'onboarded' => 'credited_at',
+            'inactive' => 'inactive_at',
+            default => 'submitted_at',
+        };
     }
 
     public function dateLabel(): string
     {
-        return $this->dateColumn() === 'credited_at' ? 'Date onboarded' : 'Signup date';
+        return match ($this->dateColumn()) {
+            'credited_at' => 'Date onboarded',
+            'inactive_at' => 'Date inactive',
+            default => 'Signup date',
+        };
     }
 
     /**
@@ -81,6 +92,7 @@ final readonly class PartnerRegisterFilters
         return Onboarding::query()
             ->with(['user', 'referralCode'])
             ->when($this->status === 'onboarded', fn ($query) => $query->onboarded())
+            ->when($this->status === 'inactive', fn ($query) => $query->where('status', OnboardingStatus::Inactive))
             ->when($this->status === 'approved', fn ($query) => $query->where('status', OnboardingStatus::Approved))
             ->when($this->status === 'awaiting', fn ($query) => $query->awaitingApproval())
             ->when($this->status === 'rejected', fn ($query) => $query->where('status', OnboardingStatus::Rejected))

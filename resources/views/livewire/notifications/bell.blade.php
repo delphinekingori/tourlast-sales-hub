@@ -1,4 +1,4 @@
-<div class="relative" x-data="{ open: false }" x-on:click.outside="open = false" x-on:keydown.escape.window="open = false" wire:poll.60s>
+<div class="relative" x-data="{ open: false }" x-on:click.outside="open = false" x-on:keydown.escape.window="open = false" wire:poll.visible.{{ $pollSeconds }}s>
     <button type="button" x-on:click="open = ! open" class="relative rounded-lg p-2 text-ink-muted hover:bg-surface-muted hover:text-ink" aria-label="Notifications{{ $unread ? ', '.$unread.' unread' : '' }}">
         <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
         @if ($unread)

@@ -49,7 +49,7 @@
         <span class="font-bold text-ink">{{ $total }} {{ \Illuminate\Support\Str::plural('partner', $total) }}</span>
         <span class="text-ink-subtle">· {{ $filters->periodLabel() }}</span>
         @foreach ($byType as $key => $count)
-            <x-ui.pill tone="brand" :dot="false">{{ config('hub.property_types.'.$key, 'Other') }} · {{ $count }}</x-ui.pill>
+            <x-ui.pill tone="brand" :dot="false">{{ config('hub.property_types.'.$key) ?? \Illuminate\Support\Str::headline((string) ($key ?: 'Other')) }} · {{ $count }}</x-ui.pill>
         @endforeach
     </div>
 

@@ -56,6 +56,19 @@ class PropertyEngagementRegistryTest extends TestCase
         }
     }
 
+    public function test_the_form_suggests_regions_and_cities_already_in_the_registry(): void
+    {
+        PropertyEngagement::factory()->create(['region' => 'Kwale', 'city' => 'Diani']);
+        PropertyEngagement::factory()->create(['region' => 'Kwale', 'city' => 'Ukunda']);
+        $manager = User::factory()->withRole(Role::SalesManager)->create();
+
+        $component = Livewire::actingAs($manager)->test(Form::class);
+
+        $this->assertSame(['Kwale'], $component->instance()->knownRegions->all());
+        $this->assertSame(['Diani', 'Ukunda'], $component->instance()->knownCities->all());
+        $component->assertSeeHtml('<option value="Diani"></option>');
+    }
+
     public function test_salespeople_cannot_create_edit_archive_or_export(): void
     {
         $salesperson = User::factory()->withRole(Role::Salesperson)->create();

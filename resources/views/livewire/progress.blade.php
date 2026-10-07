@@ -165,8 +165,6 @@
                 {{-- Referral centre --}}
                 @if ($referralCode)
                     @php
-                        $shareUrl = $referralCode->shareUrl();
-                        $message = "List your property on Tourlast: {$shareUrl}";
                         $funnel = [
                             ['Link visits', $metrics['clicks']],
                             ['Applications', $metrics['submitted']],
@@ -177,26 +175,13 @@
                         $funnelTop = max(1, collect($funnel)->max(fn ($s) => $s[1]));
                     @endphp
                     <x-ui.card :title="$isOwn ? 'My referrals' : 'Referrals'" :description="'Every signup through it is credited automatically · '.$range->label()">
-                        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+                        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]" x-data="{ target: 'stays' }">
                             <div class="grid min-w-0 content-start gap-3">
                                 <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
                                     <span class="font-mono text-xl font-bold tracking-wide text-brand-text">{{ $referralCode->code }}</span>
                                     <x-ui.pill tone="success">Active</x-ui.pill>
                                 </div>
-                                <div class="flex min-w-0 items-center gap-2 rounded-md border border-line bg-surface-muted/60 px-3 py-2">
-                                    <x-ui.icon name="link" class="size-4 text-ink-subtle" />
-                                    <span class="truncate font-mono text-[13px] text-ink-muted" title="{{ $shareUrl }}">{{ $shareUrl }}</span>
-                                </div>
-                                @if ($isOwn)
-                                    <div class="flex flex-wrap gap-2" x-data="copyText(@js($shareUrl))">
-                                        <x-ui.button x-on:click="copy" icon="copy">
-                                            <span x-show="!copied">Copy link</span>
-                                            <span x-show="copied" x-cloak>Copied</span>
-                                        </x-ui.button>
-                                        <x-ui.button variant="secondary" icon="chat" :href="'https://wa.me/?text='.rawurlencode($message)" target="_blank" rel="noopener">WhatsApp</x-ui.button>
-                                        <x-ui.button variant="secondary" icon="mail" :href="'mailto:?subject='.rawurlencode('List your property on Tourlast').'&body='.rawurlencode($message)">Email</x-ui.button>
-                                    </div>
-                                @endif
+                                <x-referral-links :referral-code="$referralCode" :editable="$isOwn" />
                                 <div class="grid grid-cols-3 gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-5">
                                     @foreach ($funnel as [$label, $value])
                                         <div class="grid min-w-0 gap-0.5 bg-surface px-2.5 py-2 last:col-span-2 sm:last:col-span-1">
@@ -216,9 +201,8 @@
                                 </div>
                             </div>
                             @if ($isOwn)
-                                <div class="grid content-start justify-items-center gap-2 border-t border-line pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-4" x-data="qrCode(@js($shareUrl), @js($referralCode->code.'.png'))">
-                                    <div class="rounded-md border border-line bg-white p-1.5"><canvas x-ref="canvas" class="size-[140px]!" aria-label="QR code for {{ $referralCode->code }}"></canvas></div>
-                                    <x-ui.button variant="ghost" size="sm" icon="qr" x-on:click="download">Download QR</x-ui.button>
+                                <div class="grid content-start justify-items-center border-t border-line pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-4">
+                                    <x-referral-qr :referral-code="$referralCode" canvas-class="size-[140px]!" />
                                 </div>
                             @endif
                         </div>
@@ -260,7 +244,7 @@
                     <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ink-subtle">
                         <span class="flex items-center gap-1.5"><span class="inline-block w-4 border-t-2 border-dashed border-ink"></span> Target</span>
                         @foreach ($metrics['byType'] as $type => $count)
-                            <x-ui.pill tone="brand" :dot="false">{{ config('hub.property_types.'.$type, 'Other') }} · {{ $count }}</x-ui.pill>
+                            <x-ui.pill tone="brand" :dot="false">{{ config('hub.property_types.'.$type) ?? \Illuminate\Support\Str::headline((string) ($type ?: 'Other')) }} · {{ $count }}</x-ui.pill>
                         @endforeach
                     </div>
                 </x-ui.card>

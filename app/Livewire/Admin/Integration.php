@@ -2,13 +2,16 @@
 
 namespace App\Livewire\Admin;
 
+use App\Actions\RestoreOnboarding;
 use App\Actions\SyncOnboardings;
 use App\Enums\OnboardingStatus;
 use App\Enums\Permission;
+use App\Models\Onboarding;
 use App\Models\OnboardingStatusChange;
 use App\Models\ReferralCode;
 use App\Models\SandboxProvider;
 use App\Models\SyncRun;
+use App\Support\SampleData;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -40,9 +43,33 @@ class Integration extends Component
     {
         $run = app(SyncOnboardings::class)->handle($full ? 'full' : 'incremental');
 
-        $run->succeeded()
-            ? $this->dispatch('toast', message: "Sync finished: {$run->records_created} new, {$run->records_updated} updated.")
-            : $this->dispatch('toast', message: 'Sync failed. See the log below.', tone: 'danger');
+        if (! $run->succeeded()) {
+            $this->dispatch('toast', message: 'Sync failed. See the log below.', tone: 'danger');
+
+            return;
+        }
+
+        $counts = "{$run->records_created} new, {$run->records_updated} updated";
+
+        if ($run->records_deleted > 0) {
+            $counts .= ", {$run->records_deleted} deleted";
+        }
+
+        $this->dispatch('toast', message: "Sync finished: {$counts}.");
+    }
+
+    /**
+     * Put a property back that the source app lists again, with its lead and
+     * registry record.
+     */
+    public function restore(int $onboardingId): void
+    {
+        abort_unless(Auth::user()->can(Permission::ManageIntegration->value), 403);
+
+        $onboarding = Onboarding::onlyTrashed()->findOrFail($onboardingId);
+        app(RestoreOnboarding::class)->handle($onboarding);
+
+        $this->dispatch('toast', message: "{$onboarding->property_name} is back in the Hub.");
     }
 
     public function openSample(): void
@@ -93,6 +120,7 @@ class Integration extends Component
         $timestamp = match ($status) {
             OnboardingStatus::Approved => 'approved_at',
             OnboardingStatus::Active => 'active_at',
+            OnboardingStatus::Inactive => 'inactive_at',
             OnboardingStatus::Rejected => 'rejected_at',
             default => null,
         };
@@ -122,16 +150,18 @@ class Integration extends Component
     public function render(): View
     {
         $source = config('tourlast.source');
+        $isSandbox = $source === 'sandbox' && SampleData::allowed();
 
         return view('livewire.admin.integration', [
             'source' => $source,
-            'isSandbox' => $source === 'sandbox',
+            'isSandbox' => $isSandbox,
             'webhookEnabled' => filled(config('tourlast.webhook_secret')),
             'webhookUrl' => route('webhooks.tourlast'),
             'lastSuccess' => SyncRun::query()->where('status', 'succeeded')->latest('started_at')->first(),
             'runs' => SyncRun::query()->latest('started_at')->limit(12)->get(),
             'recentChanges' => OnboardingStatusChange::query()->with('onboarding.user')->latest('id')->limit(10)->get(),
-            'sandboxProviders' => $source === 'sandbox' ? SandboxProvider::query()->latest()->limit(15)->get() : collect(),
+            'deleted' => Onboarding::onlyTrashed()->with('user:id,name')->latest('submitted_at')->limit(20)->get(),
+            'sandboxProviders' => $isSandbox ? SandboxProvider::query()->latest()->limit(15)->get() : collect(),
             'referralCodes' => ReferralCode::query()->with('user')->where('is_active', true)->orderBy('code')->get(),
             'statuses' => OnboardingStatus::cases(),
         ]);
@@ -139,6 +169,7 @@ class Integration extends Component
 
     private function ensureSandbox(): void
     {
+        abort_unless(SampleData::allowed(), 403, 'The simulator only works in local development.');
         abort_unless(config('tourlast.source') === 'sandbox', 403, 'The simulator only works while TOURLAST_SOURCE=sandbox.');
         abort_unless(Auth::user()->can(Permission::ManageIntegration->value), 403);
     }

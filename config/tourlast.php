@@ -8,10 +8,12 @@
 | The Hub reads referred providers from tourlast.com. It never writes to
 | tourlast.com. Pick one source with TOURLAST_SOURCE:
 |
-|   sandbox   Sample data stored in this app (default until the real
-|             connection is ready). Manage it under Admin → Integration.
-|   database  Read-only connection to the tourlast.com database.
-|   api       Read-only JSON endpoint on tourlast.com.
+|   api       Read-only JSON endpoints, one per source app. This is the only
+|             way the Hub talks to another app: there is no direct database
+|             connection to anything but this app's own database.
+|   push      Source apps push provider records into this app over the API.
+|   sandbox   Sample data stored in this app (Admin -> Integration). Local
+|             development and tests only: it is refused in any other environment.
 |
 | Signed webhooks from tourlast.com (optional) are processed the same way.
 | See docs/TOURLAST_INTEGRATION.md for the full developer guide.
@@ -20,7 +22,7 @@
 
 return [
 
-    'source' => env('TOURLAST_SOURCE', 'sandbox'),
+    'source' => env('TOURLAST_SOURCE', 'api'),
 
     /*
     | How often the incremental sync runs, in minutes. A full re-check of every
@@ -32,10 +34,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Read-only database source
+    | Database source column map (not wired up)
     |--------------------------------------------------------------------------
     |
-    | "connection" is defined in config/database.php (TOURLAST_DB_* env vars).
+    | NOT WIRED UP. config/database.php no longer defines a "tourlast"
+    | connection and TOURLAST_SOURCE=database is rejected: the Hub reaches
+    | source apps over the API only. The block below is the column map
+    | DatabaseProviderSource expects, kept for that class alone.
     | Map the tourlast.com column names on the right-hand side. Leave a column
     | null when tourlast.com does not have it.
     |
@@ -64,6 +69,8 @@ return [
             'submitted_at' => env('TOURLAST_COL_SUBMITTED_AT', 'created_at'),
             'approved_at' => env('TOURLAST_COL_APPROVED_AT', 'approved_at'),
             'active_at' => env('TOURLAST_COL_ACTIVE_AT', 'published_at'),
+            // When tourlast.com says the property stopped being live (the Inactive date)
+            'inactive_at' => env('TOURLAST_COL_INACTIVE_AT'),
             'rejected_at' => env('TOURLAST_COL_REJECTED_AT', 'rejected_at'),
             // When the property received its first booking (for the First booking alert)
             'first_booking_at' => env('TOURLAST_COL_FIRST_BOOKING_AT'),
@@ -81,6 +88,8 @@ return [
     |
     */
     'api' => [
+        // One or more app bases, comma separated, e.g.
+        // TOURLAST_API_URL=http://tourlast-stays.test,http://experiences-v1.test
         'base_url' => env('TOURLAST_API_URL', 'https://www.tourlast.com'),
         'path' => env('TOURLAST_API_PATH', '/api/sales-hub/referrals'),
         'token' => env('TOURLAST_API_TOKEN'),
@@ -105,9 +114,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | tourlast.com status and type values (left) mapped to Hub values (right).
-    | Hub statuses: submitted, under_review, approved, active, rejected.
-    | Hub types: keys of hub.property_types. Unmapped values fall back to
-    | "submitted" and "other". Matching ignores case.
+    | Hub statuses: submitted, under_review, approved, active, inactive, rejected.
+    | Hub types: keys of hub.property_types. A status that is not listed here
+    | falls back to "submitted". A type that is not listed here is stored as
+    | sent, so a type added on the source side needs no change here. Matching
+    | ignores case.
     |
     */
     'status_map' => [
@@ -122,6 +133,8 @@ return [
         'active' => 'active',
         'live' => 'active',
         'published' => 'active',
+        'inactive' => 'inactive',
+        'paused' => 'inactive',
         'rejected' => 'rejected',
         'declined' => 'rejected',
         'suspended' => 'rejected',
@@ -135,7 +148,13 @@ return [
         'guesthouse' => 'guesthouse',
         'guest_house' => 'guesthouse',
         'resort' => 'resort',
+        'lodge' => 'lodge',
         'cabin' => 'cabin',
+        'chalet' => 'chalet',
+        'farm_stay' => 'farm_stay',
+        'treehouse' => 'treehouse',
+        'boat' => 'boat',
+        'houseboat' => 'boat',
         'beachfront' => 'beachfront',
         'beachfront_stay' => 'beachfront',
         'cottage' => 'cottage',

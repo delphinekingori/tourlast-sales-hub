@@ -145,6 +145,28 @@ class Form extends Component
     }
 
     /**
+     * Regions already used in the registry, offered as suggestions.
+     *
+     * @return Collection<int, string>
+     */
+    #[Computed]
+    public function knownRegions(): Collection
+    {
+        return PropertyEngagement::query()->distinct()->orderBy('region')->pluck('region');
+    }
+
+    /**
+     * Cities already used in the registry, offered as suggestions.
+     *
+     * @return Collection<int, string>
+     */
+    #[Computed]
+    public function knownCities(): Collection
+    {
+        return PropertyEngagement::query()->distinct()->orderBy('city')->pluck('city');
+    }
+
+    /**
      * Records that look like the property being entered: registry records,
      * salesperson leads and tourlast.com signups (the Hub-wide duplicate rule).
      *

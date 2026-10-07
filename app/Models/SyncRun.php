@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 #[Fillable([
     'source', 'mode', 'status', 'changed_since', 'records_seen', 'records_created',
-    'records_updated', 'error', 'started_at', 'finished_at',
+    'records_updated', 'records_deleted', 'error', 'started_at', 'finished_at',
 ])]
 class SyncRun extends Model
 {

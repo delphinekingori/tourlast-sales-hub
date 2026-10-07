@@ -7,7 +7,7 @@
 
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="inline-flex flex-wrap rounded-md border border-line bg-surface p-0.5">
-            @foreach (['all' => 'All', 'awaiting' => 'Not live yet', 'onboarded' => 'Live', 'rejected' => 'Rejected'] as $key => $label)
+            @foreach (['all' => 'All', 'awaiting' => 'Not live yet', 'onboarded' => 'Live', 'inactive' => 'Inactive', 'rejected' => 'Rejected'] as $key => $label)
                 <button type="button" wire:click="$set('filter', '{{ $key }}')" wire:key="filter-{{ $key }}"
                     @class(['flex items-center gap-2 rounded px-2.5 py-1 text-xs font-medium', 'bg-brand-soft text-brand-text' => $filter === $key, 'text-ink-subtle hover:text-ink' => $filter !== $key])>
                     {{ $label }} <span class="tabular text-xs opacity-70">{{ $counts[$key] }}</span>
@@ -44,6 +44,7 @@
                             <div class="flex items-center gap-2">
                                 <x-ui.onboarding-steps :onboarding="$onboarding" compact class="hidden xl:flex" />
                                 <x-ui.pill :tone="$onboarding->status->tone()">{{ $onboarding->status->label() }}</x-ui.pill>
+                                @if ($onboarding->trashed())<x-ui.pill tone="warning" :dot="false">Deleted</x-ui.pill>@endif
                                 @if ($onboarding->isStalled())<x-ui.pill tone="danger" :dot="false">Stalled</x-ui.pill>@endif
                             </div>
                         </td>

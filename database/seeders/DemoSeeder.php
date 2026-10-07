@@ -33,6 +33,7 @@ use App\Models\SandboxProvider;
 use App\Models\Target;
 use App\Models\User;
 use App\Support\Alerts;
+use App\Support\SampleData;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Http\UploadedFile;
@@ -48,6 +49,8 @@ class DemoSeeder extends Seeder
      */
     public function run(IssueReferralCode $issueReferralCode, SyncOnboardings $syncOnboardings): void
     {
+        SampleData::ensureAllowed('DemoSeeder');
+
         fake()->seed(2026);
 
         $people = [

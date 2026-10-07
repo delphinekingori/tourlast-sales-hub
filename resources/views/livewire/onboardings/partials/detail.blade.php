@@ -1,6 +1,9 @@
 <div class="grid gap-5">
     <div class="flex flex-wrap items-center gap-2">
         <x-ui.pill :tone="$onboarding->status->tone()">{{ $onboarding->status->label() }}</x-ui.pill>
+        @if ($onboarding->trashed())
+            <x-ui.pill tone="warning" :dot="false">Deleted on tourlast.com</x-ui.pill>
+        @endif
         @if ($onboarding->credited_at)
             <x-ui.pill tone="success" :dot="false">Counted {{ $onboarding->credited_at->format('F Y') }}</x-ui.pill>
         @endif

@@ -86,6 +86,8 @@ There are two ways to get one:
 
 People can see and revoke tokens issued as them on their Hub profile, or with `GET /auth/tokens` and `DELETE /auth/tokens/{id}`.
 
+**One endpoint is different.** The tourlast.com feed (`POST /integrations/tourlast/providers`) authenticates with a single **shared sync token** instead of a person's token: a Super Admin runs `php artisan hub:generate-token` on the Hub, which writes `TOURLAST_API_TOKEN=` into the Hub's `.env` and prints the value once. The same value is set in each source app's `.env` as `TOURLAST_HUB_TOKEN` and sent back as `Authorization: Bearer <token>`. There is no user, role, scope or permission behind it — possession of the secret is the whole credential, and changing it is the only way to revoke it.
+
 ### POST /auth/tokens
 
 **Scope:** none (public, rate limited)
@@ -118,7 +120,7 @@ Returns `201` with `token`, `scopes`, `expires_at` and `user`. Wrong credentials
 | `team:read` / `team:write` | People, performance, targets / invite, suspend, fire, reinstate, delete, API tokens |
 | `notifications:read` / `notifications:write` | Notifications and announcements / mark read, publish |
 | `reports:read` | Insights and Excel/PDF exports |
-| `integration:read` / `integration:push` | tourlast.com sync status / send provider records (tourlast.com) |
+| `integration:read` / `integration:push` | Read the tourlast.com sync log / run a tourlast.com sync now (Hub admin) |
 
 **Scope plus permission.** A token with `registry:write` held by a salesperson still gets `403` on registry writes, because salespeople cannot change the registry in the Hub. The roles and what each can do are listed in the System Guide (`docs/SYSTEM_GUIDE.md`, section 2).
 
@@ -126,7 +128,8 @@ Returns `201` with `token`, `scopes`, `expires_at` and `user`. Wrong credentials
 
 | Integration | Scopes |
 |---|---|
-| tourlast.com | `integration:push` on the integration account (`php artisan hub:create-integration-account`) |
+| tourlast.com feed (push, ref-codes) | none — the shared sync token (`php artisan hub:generate-token`) |
+| tourlast.com sync log and manual sync | `integration:read` / `integration:push` on a Hub admin |
 | Reporting / BI (read only) | `registry:read`, `onboardings:read`, `incentives:read`, `team:read`, `reports:read` |
 | Salesperson mobile app | `profile`, `leads:*`, `schedule:*`, `registry:read`, `onboardings:read`, `incentives:read`, `claims:*`, `notifications:*` |
 
@@ -158,12 +161,14 @@ Returns `201` with `token`, `scopes`, `expires_at` and `user`. Wrong credentials
 | Status | Meaning | Body |
 |---|---|---|
 | `401` | Missing, invalid or expired token | `{"message": "Unauthenticated."}` |
+| `401` | Feed push sent no token, or not the shared sync token | `{"message": "Missing or invalid shared token."}` |
 | `403` | Token lacks the scope | `{"message": "This token is missing the required scope: leads:write.", "required_scopes": ["leads:write"]}` |
 | `403` | The person may not do this, or their account is suspended/fired | `{"message": "…"}` |
 | `404` | Record does not exist | `{"message": "…"}` |
 | `409` | Possible duplicate property, or a delete blocked by history | `{"message": "…", "matches": […]}` or `{"message": "…", "blockers": […]}` |
 | `422` | Validation failed | `{"message": "…", "errors": {"field": ["…"]}}` |
 | `429` | Rate limit exceeded; retry after the `Retry-After` header | `{"message": "Too Many Attempts."}` |
+| `503` | Feed push before the Hub has a shared token (run `php artisan hub:generate-token`) | `{"message": "This Hub has no shared sync token yet. Run php artisan hub:generate-token."}` |
 
 ## The rules the API keeps
 
@@ -942,7 +947,7 @@ Brings an archived record back. Errors: `422` not archived.
 
 ## Onboardings
 
-An **onboarding** is a provider signup read from tourlast.com and credited to the salesperson whose referral code it carries. Statuses come from tourlast.com: `submitted`, `under_review`, `approved`, `active` (live, counts as onboarded) and `rejected`.
+An **onboarding** is a provider signup read from tourlast.com and credited to the salesperson whose referral code it carries. Statuses come from tourlast.com: `submitted`, `under_review`, `approved`, `active` (live, counts as onboarded), `inactive` (it went live and later stopped: kept as history, with the credit it earned) and `rejected` (withdraws the credit).
 
 **Who sees what:** salespeople see their own onboardings; anyone who can view the Partner Register (Sales Admin, HR, Accounts) or team performance (Sales Manager) sees all of them.
 
@@ -952,7 +957,7 @@ An **onboarding** is a provider signup read from tourlast.com and credited to th
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `status` | string | No | `all` (default), `awaiting` (not live yet), `onboarded` (live), or an exact status such as `rejected` |
+| `status` | string | No | `all` (default), `awaiting` (not live yet), `onboarded` (live), or an exact status such as `inactive` or `rejected` |
 | `user_id` | integer | No | Only this salesperson's signups (people who see all) |
 | `from`, `to` | date | No | Signup date range, `YYYY-MM-DD` |
 | `q` | string | No | Search property name, location or contact |
@@ -979,6 +984,7 @@ An **onboarding** is a provider signup read from tourlast.com and credited to th
       "submitted_at": "2026-09-18T09:41:00+03:00",
       "approved_at": null,
       "active_at": null,
+      "inactive_at": null,
       "credited_at": null,
       "progress": {
         "steps": [
@@ -998,7 +1004,7 @@ An **onboarding** is a provider signup read from tourlast.com and credited to th
 }
 ```
 
-Progress step `state` is one of `done`, `current`, `upcoming` or `rejected` (a rejected signup shows the approval step as `Rejected`).
+Progress step `state` is one of `done`, `current`, `upcoming` or `rejected` (a rejected signup shows the approval step as `Rejected`). An `inactive` signup shows every step done: it reached Live and stopped since.
 
 **Errors:** `403` for roles without onboarding access.
 
@@ -1827,10 +1833,10 @@ The Partner Register: providers onboarded on tourlast.com through a salesperson'
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `status` | string | no | `onboarded` (default, live), `approved`, `awaiting`, `rejected` or `all` |
+| `status` | string | no | `onboarded` (default, live), `inactive` (was live, now stopped), `approved`, `awaiting`, `rejected` or `all` |
 | `salesperson` | integer | no | User ID |
 | `type` | string | no | Property type from `GET /meta` |
-| `from`, `to` | date | no | `YYYY-MM-DD`. Filters by onboarding date for `onboarded`, otherwise by signup date |
+| `from`, `to` | date | no | `YYYY-MM-DD`. Filters by onboarding date for `onboarded`, by inactive date for `inactive`, otherwise by signup date |
 | `q` | string | no | Property name, location or referral code |
 | `per_page` | integer | no | 1–100, default 25 |
 
@@ -1896,8 +1902,8 @@ Base URL `https://sales.tourlast.com/api/v1`.
 
 ### Setting it up (for the tourlast.com developer)
 
-1. **Get the integration token.** On the Sales Hub server, a Tourlast administrator runs `php artisan hub:create-integration-account`. It creates a dedicated **integration account** that has no role, no usable password and only one permission (pushing provider records), and prints a token limited to `integration:push`. Store the token as a secret on the tourlast.com servers. To replace it later, run the command again with `--rotate` (old tokens stop working immediately).
-2. **Keep capturing the referral code.** On `/list-your-property`, read `?ref=` and store it on the provider (see `docs/TOURLAST_INTEGRATION.md`, steps 1–2).
+1. **Get the shared token.** On the Sales Hub server, a Tourlast administrator runs `php artisan hub:generate-token`. It writes a new random `TOURLAST_API_TOKEN=` into the Hub's `.env` and prints the value **once**. Store it as a secret on the tourlast.com servers and put the same value in each source app's `.env` as `TOURLAST_HUB_TOKEN`. There is no user account behind it. To rotate it, run the command again with `--show` first if you need the current value, then run it plainly — every app must be updated with the new value or their calls start failing with `401`.
+2. **Keep capturing the referral code.** Pull the authoritative list from `GET /integrations/tourlast/ref-codes` (same token, cache it hourly), read `?ref=` on `/list-your-property`, and store the code on the provider (see `docs/TOURLAST_INTEGRATION.md`, steps 1–2). A code the Hub does not list is unknown — store nothing rather than guessing.
 3. **Send every change.** Whenever a provider signs up, changes status, or its inventory changes, send the provider record to `POST /integrations/tourlast/providers`. Batching up to 100 records per request is fine (for example from a queue job every minute).
 4. **Retry on failure.** A `5xx` response or network error means nothing was saved for that request; send it again. Re-sending a record is safe: the Hub updates the existing onboarding (matched on `property_id`) and never creates a duplicate.
 5. **Check the result.** Each record in the response has either a `result` or an `error`. Log errors; they are usually a missing `property_id`.
@@ -1905,7 +1911,7 @@ Base URL `https://sales.tourlast.com/api/v1`.
 
 ### POST /integrations/tourlast/providers
 
-**Scope:** `integration:push` · **Who:** the integration account (permission *push provider records*; Super Admins also have it)
+**Auth:** the shared sync token (`php artisan hub:generate-token`) · **Who:** no account, scope or permission is involved
 
 Send one record as `provider`, or up to 100 as `providers`:
 
@@ -1929,6 +1935,7 @@ curl -X POST "https://sales.tourlast.com/api/v1/integrations/tourlast/providers"
         "submitted_at": "2026-09-20T09:41:00+03:00",
         "approved_at": "2026-09-24T10:12:00+03:00",
         "active_at": null,
+        "inactive_at": null,
         "rejected_at": null,
         "updated_at": "2026-09-24T10:12:00+03:00",
         "account_id": "H-2031",
@@ -1951,13 +1958,18 @@ Provider fields:
 | `property_type` | string | yes | Mapped to Hub types with `type_map` in `config/tourlast.php`; unknown values become `other` |
 | `location` | string | no | Free text, e.g. "Diani, Kenya" |
 | `contact_name`, `contact_phone`, `contact_email` | string | recommended | Link the signup to the salesperson's lead and feed duplicate checks |
-| `status` | string | yes | Mapped with `status_map`: submitted, under review, approved, active (live) or rejected |
+| `status` | string | yes | Mapped with `status_map`: submitted, under review, approved, active (live), inactive (was live, stopped) or rejected |
 | `submitted_at`, `approved_at`, `active_at`, `rejected_at` | ISO 8601 | as they happen | `active_at` is the **Activation Date**: it decides the month and bonus week points are credited to |
+| `inactive_at` | ISO 8601 | with `status: inactive` | When the property stopped being live. It dates the status change to `inactive` (falling back to `updated_at` when absent). The property keeps the credit it already earned |
 | `updated_at` | ISO 8601 | recommended | Records older than the last one the Hub saw are ignored, so out-of-order deliveries are safe |
 | `account_id`, `legal_name` | string | for incentives | Every property of one legal business must share `account_id` |
 | `category` | string | for incentives | `stay` or `experience` |
 | `inventory_count` | integer | for incentives | Live rooms/units (stays) or bookable services (experiences) |
 | `first_booking_at` | ISO 8601 | optional | Triggers the "First booking received" alert |
+| `is_deleted` | boolean | no | `true` when tourlast.com no longer lists the property. The Hub archives it — with its linked lead and registry record — instead of updating it, keeps any credit already earned, and answers `deleted`. Defaults to `false`, so a feed that has not adopted the field behaves exactly as before |
+| `deleted_at` | ISO 8601 | with `is_deleted` | When tourlast.com removed the property; the Hub stores it as the archive date. If it is absent, the Hub uses the time it received the row |
+
+A tombstone only needs `property_id`, `is_deleted: true` and (optionally) `deleted_at` — nothing else on the row is applied, so a deletion never moves status or withdraws credit. Send the same `property_id` with `is_deleted: false` to put the property back.
 
 Response `200` (or `422` if every record failed):
 
@@ -1967,13 +1979,29 @@ Response `200` (or `422` if every record failed):
     { "index": 0, "property_id": "TL-00842", "result": "created" },
     { "index": 1, "property_id": null, "error": "A provider record is missing its property_id." }
   ],
-  "meta": { "received": 2, "created": 1, "updated": 0, "unchanged": 0, "failed": 1 }
+  "meta": { "received": 2, "created": 1, "updated": 0, "unchanged": 0, "deleted": 0, "failed": 1 }
 }
 ```
 
-`result` is `created`, `updated` or `unchanged`. Crediting, status history, Smart Alerts, partner accounts and registry stage updates all run exactly as for the scheduled sync.
+`result` is `created`, `updated`, `deleted` or `unchanged`. Crediting, status history, Smart Alerts, partner accounts and registry stage updates all run exactly as for the scheduled sync.
 
-Errors: `403` with `required_scopes` if the token lacks `integration:push`; `403` if the token owner lacks the *push provider records* permission (ordinary staff accounts never have it); `422` if neither `provider` nor `providers` is sent, or more than 100 records.
+Errors: `401` with `{"message": "Missing or invalid shared token."}` if the bearer is missing or is not exactly `TOURLAST_API_TOKEN`; `503` if the Hub has no shared token configured yet; `422` if neither `provider` nor `providers` is sent, or more than 100 records.
+
+### GET /integrations/tourlast/ref-codes
+
+**Auth:** the shared sync token (`php artisan hub:generate-token`) · **Who:** no account, scope or permission is involved
+
+Every active referral code, so the source app can validate `?ref=` on its list-property page and stamp `ref_code` on the rows it sends back. The Hub owns the list: codes are edited in **Admin → Users & Invites → Edit** by a Super Admin (permission *edit referral codes*), and this endpoint always returns the current truth. Cache it (hourly) rather than calling it per request.
+
+```json
+{
+  "data": [
+    { "code": "TL-JOHN-2847", "is_active": true, "user_id": 12, "user_name": "John Doe", "updated_at": "2026-09-20T10:00:00+03:00" }
+  ]
+}
+```
+
+Inactive codes are not returned. A code the Hub does not know must be treated as unattributed, never invented. Errors: `401` with `{"message": "Missing or invalid shared token."}`; `503` if the Hub has no shared token configured yet.
 
 ### GET /integrations/tourlast/sync-runs
 
@@ -1993,6 +2021,7 @@ The sync log (scheduled and manual pulls from tourlast.com), newest first.
       "records_seen": 4,
       "records_created": 1,
       "records_updated": 3,
+      "records_deleted": 0,
       "error": null,
       "started_at": "2026-09-27T09:30:00+03:00",
       "finished_at": "2026-09-27T09:30:02+03:00"

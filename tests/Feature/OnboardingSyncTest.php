@@ -98,6 +98,24 @@ class OnboardingSyncTest extends TestCase
         $this->assertSame(2, Onboarding::unattributed()->count());
     }
 
+    public function test_a_feed_row_without_a_code_never_clears_credit_the_hub_already_has(): void
+    {
+        $provider = SandboxProvider::factory()->create(['ref_code' => $this->john->referralCode->code, 'status' => 'active', 'active_at' => now()]);
+        $this->sync();
+
+        $onboarding = Onboarding::sole();
+        $this->assertTrue($onboarding->user->is($this->john));
+
+        // The source app lost (or never had) the code; the Hub keeps what it knows.
+        $provider->update(['ref_code' => null]);
+        $this->sync();
+
+        $onboarding->refresh();
+        $this->assertSame($this->john->referralCode->code, $onboarding->ref_code);
+        $this->assertTrue($onboarding->user->is($this->john));
+        $this->assertNotNull($onboarding->credited_at);
+    }
+
     public function test_a_manual_assignment_survives_later_syncs(): void
     {
         $admin = User::factory()->withRole(Role::SalesAdmin)->create();

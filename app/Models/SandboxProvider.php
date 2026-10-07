@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 #[Fillable([
     'property_id', 'account_id', 'ref_code', 'property_name', 'legal_name', 'property_type', 'category', 'inventory_count', 'location', 'contact_name',
-    'contact_phone', 'contact_email', 'status', 'submitted_at', 'approved_at', 'active_at', 'rejected_at', 'first_booking_at',
+    'contact_phone', 'contact_email', 'status', 'submitted_at', 'approved_at', 'active_at', 'inactive_at', 'rejected_at', 'first_booking_at',
 ])]
 class SandboxProvider extends Model
 {
@@ -29,6 +29,7 @@ class SandboxProvider extends Model
             'submitted_at' => 'datetime',
             'approved_at' => 'datetime',
             'active_at' => 'datetime',
+            'inactive_at' => 'datetime',
             'rejected_at' => 'datetime',
             'first_booking_at' => 'datetime',
         ];

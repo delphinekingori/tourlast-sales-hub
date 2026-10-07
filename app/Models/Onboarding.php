@@ -13,18 +13,20 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 #[Fillable([
     'tourlast_property_id', 'tourlast_account_id', 'partner_account_id', 'legal_name', 'category', 'inventory_count',
     'ref_code', 'referral_code_id', 'user_id', 'property_engagement_id', 'attribution',
     'property_name', 'property_type', 'location', 'contact_name', 'contact_phone', 'contact_email',
-    'status', 'submitted_at', 'approved_at', 'active_at', 'rejected_at', 'first_booking_at', 'credited_at',
+    'status', 'submitted_at', 'approved_at', 'active_at', 'inactive_at', 'rejected_at', 'first_booking_at', 'credited_at',
     'source_updated_at', 'source_payload',
 ])]
 class Onboarding extends Model
 {
     /** @use HasFactory<OnboardingFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -36,6 +38,7 @@ class Onboarding extends Model
             'submitted_at' => 'datetime',
             'approved_at' => 'datetime',
             'active_at' => 'datetime',
+            'inactive_at' => 'datetime',
             'rejected_at' => 'datetime',
             'first_booking_at' => 'datetime',
             'credited_at' => 'datetime',
@@ -107,9 +110,15 @@ class Onboarding extends Model
         return $this->hasOne(Lead::class);
     }
 
+    /**
+     * The configured label when the type is known, otherwise a readable name
+     * built from the value the source app sent.
+     */
     public function propertyTypeLabel(): string
     {
-        return config('hub.property_types.'.$this->property_type, 'Other');
+        $type = (string) $this->property_type;
+
+        return config('hub.property_types.'.$type) ?? ($type === '' ? 'Other' : Str::headline($type));
     }
 
     public function isStalled(): bool

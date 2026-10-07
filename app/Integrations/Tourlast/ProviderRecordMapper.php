@@ -38,6 +38,7 @@ class ProviderRecordMapper
             submittedAt: $this->date($row['submitted_at'] ?? null),
             approvedAt: $this->date($row['approved_at'] ?? null),
             activeAt: $this->date($row['active_at'] ?? null),
+            inactiveAt: $this->date($row['inactive_at'] ?? null),
             rejectedAt: $this->date($row['rejected_at'] ?? null),
             updatedAt: $this->date($row['updated_at'] ?? null),
             raw: $row,
@@ -46,6 +47,8 @@ class ProviderRecordMapper
             category: $this->category($row['category'] ?? null),
             inventoryCount: is_numeric($row['inventory_count'] ?? null) && (int) $row['inventory_count'] > 0 ? (int) $row['inventory_count'] : null,
             firstBookingAt: $this->date($row['first_booking_at'] ?? null),
+            isDeleted: $this->deleted($row['is_deleted'] ?? null),
+            deletedAt: $this->date($row['deleted_at'] ?? null),
         );
     }
 
@@ -68,12 +71,21 @@ class ProviderRecordMapper
         return OnboardingStatus::tryFrom((string) $mapped) ?? OnboardingStatus::Submitted;
     }
 
+    /**
+     * Anything the source app sends is kept as sent, after normalising it to a
+     * slug. config/tourlast.php only lists aliases that should collapse onto an
+     * existing Hub type ("guest house" -> guesthouse), so a type the Hub has
+     * never seen still arrives intact instead of landing in "other".
+     */
     public function type(mixed $value): string
     {
-        $key = Str::of((string) $value)->lower()->trim()->replace([' ', '-', '/'], '_')->toString();
-        $mapped = config('tourlast.type_map.'.$key, $key);
+        $key = Str::of((string) $value)->lower()->trim()->replace([' ', '-', '/', '.'], '_')->toString();
 
-        return array_key_exists($mapped, config('hub.property_types')) ? $mapped : 'other';
+        if ($key === '') {
+            return 'other';
+        }
+
+        return (string) config('tourlast.type_map.'.$key, $key);
     }
 
     private function refCode(mixed $value): ?string
@@ -90,6 +102,24 @@ class ProviderRecordMapper
         return $text === '' ? null : $text;
     }
 
+    /**
+     * The deletion flag, accepting the usual spellings a source app might send.
+     * Anything unrecognised counts as a live property, so a feed that has not
+     * adopted the field keeps behaving exactly as it does today.
+     */
+    private function deleted(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * Source apps send offsets such as +03:00. Everything is stored in the app's timezone,
+     * so a time compares and displays the same wherever it came from.
+     */
     private function date(mixed $value): ?CarbonImmutable
     {
         if ($value === null || $value === '') {
@@ -97,7 +127,7 @@ class ProviderRecordMapper
         }
 
         try {
-            return CarbonImmutable::parse($value);
+            return CarbonImmutable::parse($value)->setTimezone(config('app.timezone'));
         } catch (Throwable) {
             return null;
         }

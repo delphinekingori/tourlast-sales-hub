@@ -3,12 +3,14 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
 /**
  * An automatic in-app alert about partners, deals, follow-ups or contracts.
  */
-class SmartAlert extends Notification
+class SmartAlert extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -27,6 +29,8 @@ class SmartAlert extends Notification
         'contract_expiring' => ['label' => 'Contract expiring', 'icon' => 'clock', 'tone' => 'warning'],
         'follow_up_overdue' => ['label' => 'Follow-up overdue', 'icon' => 'alert', 'tone' => 'warning'],
         'property_inactive' => ['label' => 'Property inactive', 'icon' => 'alert', 'tone' => 'danger'],
+        'property_deleted' => ['label' => 'Property deleted', 'icon' => 'x', 'tone' => 'danger'],
+        'property_restored' => ['label' => 'Property restored', 'icon' => 'check-circle', 'tone' => 'success'],
         'first_booking' => ['label' => 'First booking received', 'icon' => 'chart', 'tone' => 'success'],
         'payment_details_changed' => ['label' => 'Payment details changed', 'icon' => 'lock', 'tone' => 'warning'],
         'duplicate_property' => ['label' => 'Possible duplicate property', 'icon' => 'alert', 'tone' => 'warning'],
@@ -40,14 +44,26 @@ class SmartAlert extends Notification
         public string $title,
         public string $body,
         public ?string $url = null,
-    ) {}
+    ) {
+        // Sent from inside the sync transaction: wait for the commit, and keep a
+        // broadcast outage from rolling back the record that raised the alert.
+        $this->afterCommit();
+    }
 
     /**
      * @return list<string>
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'broadcast'];
+    }
+
+    /**
+     * Pushed to the person's private channel so their bell updates at once.
+     */
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toArray($notifiable));
     }
 
     /**

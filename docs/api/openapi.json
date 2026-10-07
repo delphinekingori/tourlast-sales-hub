@@ -3,11 +3,11 @@
     "info": {
         "title": "Tourlast Sales Hub API",
         "version": "v1",
-        "description": "REST API for the Tourlast Sales Hub. A request needs the token scope listed on the operation AND the token owner's permission in the Hub. Full guide: docs/API.md."
+        "description": "REST API for the Tourlast Sales Hub. A request needs the token scope listed on the operation AND the token owner's permission in the Hub. The tourlast.com feed endpoints instead authenticate with the one shared sync token (php artisan hub:generate-token) — each operation says which it wants. Full guide: docs/API.md."
     },
     "servers": [
         {
-            "url": "http://tourlast-sales-crm.test/api/v1"
+            "url": "http://tourlast-sales-hub.test/api/v1"
         }
     ],
     "security": [
@@ -725,8 +725,8 @@
                     "tourlast.com integration"
                 ],
                 "operationId": "integrationsTourlastProviders",
-                "summary": "{\"provider\": {...}} or {\"providers\": [...]} (max 100)",
-                "description": "Each record goes through the same credit rules as the scheduled sync.\n\n**Scope:** `integration:push`",
+                "summary": "POST /integrations/tourlast/providers - {\"provider\": {...}} or {\"providers\": [...]} (max 100)",
+                "description": "Auth: the shared sync token from php artisan hub:generate-token, no user account. Each record goes through the same credit rules as the scheduled sync. A record with is_deleted=true archives the property and its linked lead and registry record (result \"deleted\"); is_deleted=false restores them.\n\n**Shared token:** the one sync secret from `php artisan hub:generate-token` (no user, role or scope).",
                 "parameters": [],
                 "responses": {
                     "200": {
@@ -744,10 +744,35 @@
                     "422": {
                         "$ref": "#/components/responses/ValidationError"
                     }
-                },
-                "x-scopes": [
-                    "integration:push"
-                ]
+                }
+            }
+        },
+        "/integrations/tourlast/ref-codes": {
+            "get": {
+                "tags": [
+                    "tourlast.com integration"
+                ],
+                "operationId": "integrationsTourlastRefCodes",
+                "summary": "every active referral code, so the source app can validate ?ref= and stamp its rows",
+                "description": "Auth: the shared sync token from php artisan hub:generate-token, no user account.\n\n**Shared token:** the one sync secret from `php artisan hub:generate-token` (no user, role or scope).",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                }
             }
         },
         "/integrations/tourlast/sync": {
@@ -3419,7 +3444,7 @@
             "bearerAuth": {
                 "type": "http",
                 "scheme": "bearer",
-                "description": "Sanctum token from POST /auth/tokens or Admin → API tokens. Scopes: profile, leads:read, leads:write, schedule:read, schedule:write, registry:read, registry:write, onboardings:read, onboardings:write, incentives:read, incentives:write, claims:read, claims:write, team:read, team:write, notifications:read, notifications:write, reports:read, integration:read, integration:push."
+                "description": "Sanctum token from POST /auth/tokens or Admin → API tokens. Scopes: profile, leads:read, leads:write, schedule:read, schedule:write, registry:read, registry:write, onboardings:read, onboardings:write, incentives:read, incentives:write, claims:read, claims:write, team:read, team:write, notifications:read, notifications:write, reports:read, integration:read, integration:push. The tourlast.com feed endpoints take the shared sync token instead (php artisan hub:generate-token)."
             }
         },
         "responses": {

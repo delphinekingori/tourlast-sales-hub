@@ -6,6 +6,7 @@ use App\Actions\ChangeAccountStatus;
 use App\Actions\DeleteUser;
 use App\Actions\IssueReferralCode;
 use App\Actions\SendInvitation;
+use App\Actions\UpdateReferralCode;
 use App\Enums\AccountStatus;
 use App\Enums\Permission;
 use App\Enums\Role;
@@ -43,10 +44,11 @@ class Index extends Component
 
     public bool $showEdit = false;
 
+    #[Locked]
     public ?int $editingUserId = null;
 
-    /** @var array{role: string, region: string} */
-    public array $edit = ['role' => '', 'region' => ''];
+    /** @var array{role: string, region: string, ref_code: string} */
+    public array $edit = ['role' => '', 'region' => '', 'ref_code' => ''];
 
     #[Url]
     public string $status = '';
@@ -155,18 +157,32 @@ class Index extends Component
         $this->edit = [
             'role' => $user->role()?->value ?? '',
             'region' => (string) $user->region,
+            'ref_code' => (string) ($user->referralCode?->code ?? ''),
         ];
         $this->showEdit = true;
     }
 
-    public function saveEdit(IssueReferralCode $issueReferralCode): void
+    public function saveEdit(IssueReferralCode $issueReferralCode, UpdateReferralCode $updateReferralCode): void
     {
         $user = $this->editableUser((int) $this->editingUserId);
+        $mayEditCodes = $this->actor()->can(Permission::ManageRefCodes->value)
+            && Role::tryFrom($this->edit['role'])?->earnsReferrals() === true;
 
-        $this->validate([
+        $rules = [
             'edit.role' => ['required', Rule::in($this->assignableRoleValues())],
             'edit.region' => ['nullable', 'string', 'max:100'],
-        ], [], ['edit.role' => 'role']);
+        ];
+
+        if ($mayEditCodes) {
+            $rules['edit.ref_code'] = ['nullable', 'string', 'max:40'];
+
+            if (filled($this->edit['ref_code'])) {
+                $rules['edit.ref_code'][] = 'regex:/^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/';
+                $rules['edit.ref_code'][] = Rule::unique('referral_codes', 'code')->ignore($user->referralCode?->id);
+            }
+        }
+
+        $this->validate($rules, [], ['edit.role' => 'role']);
 
         $user->update([
             'region' => $this->edit['region'] ?: null,
@@ -175,6 +191,11 @@ class Index extends Component
         if ($user->role()?->value !== $this->edit['role']) {
             $user->syncRoles([$this->edit['role']]);
             $issueReferralCode->handle($user->refresh());
+        }
+
+        // Empty keeps whatever the user already has (or the one just generated).
+        if ($mayEditCodes && filled($this->edit['ref_code'])) {
+            $updateReferralCode->handle($user->refresh(), $this->edit['ref_code']);
         }
 
         $this->showEdit = false;

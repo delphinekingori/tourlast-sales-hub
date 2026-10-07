@@ -17,6 +17,8 @@ class SyncOnboardingToRegistry
      * property ID), link them and move the record's stage to match.
      *
      * Records are never created here: the registry is curated by managers.
+     * A rejected or inactive onboarding says nothing about the stage, and an
+     * inactive one never overwrites the record's own status either.
      */
     public function handle(Onboarding $onboarding): ?PropertyEngagement
     {
@@ -45,6 +47,7 @@ class SyncOnboardingToRegistry
         $status = match (true) {
             $onboarding->status === OnboardingStatus::Active => EngagementStatus::Won,
             $onboarding->status === OnboardingStatus::Rejected => EngagementStatus::Rejected,
+            $onboarding->status === OnboardingStatus::Inactive => null,
             in_array($engagement->status, [EngagementStatus::Stalled, EngagementStatus::ReEngage], true) => null,
             default => EngagementStatus::Active,
         };

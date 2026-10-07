@@ -15,6 +15,15 @@ use Illuminate\Support\Collection;
  */
 class Inbox
 {
+    /**
+     * Seconds between background refreshes. Slower when Reverb pushes updates
+     * live, since polling is then only a safety net.
+     */
+    public static function pollSeconds(): int
+    {
+        return config('broadcasting.default') === 'reverb' ? 120 : 30;
+    }
+
     public static function unreadCount(User $user): int
     {
         return $user->unreadNotifications()->count()
@@ -76,10 +85,14 @@ class Inbox
     public static function markRead(User $user, string $key): ?string
     {
         if (str_starts_with($key, 'a-')) {
-            AnnouncementRead::query()->firstOrCreate(
-                ['announcement_id' => (int) substr($key, 2), 'user_id' => $user->id],
-                ['read_at' => now()],
-            );
+            $announcementId = Announcement::query()->visibleTo($user)->whereKey((int) substr($key, 2))->value('id');
+
+            if ($announcementId) {
+                AnnouncementRead::query()->firstOrCreate(
+                    ['announcement_id' => $announcementId, 'user_id' => $user->id],
+                    ['read_at' => now()],
+                );
+            }
 
             return null;
         }

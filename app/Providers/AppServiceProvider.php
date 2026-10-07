@@ -5,7 +5,6 @@ namespace App\Providers;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Integrations\Tourlast\ApiProviderSource;
-use App\Integrations\Tourlast\DatabaseProviderSource;
 use App\Integrations\Tourlast\ProviderSource;
 use App\Integrations\Tourlast\PushOnlyProviderSource;
 use App\Integrations\Tourlast\SandboxProviderSource;
@@ -13,10 +12,13 @@ use App\Models\ExpenseClaim;
 use App\Models\PartnerAccount;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
+use App\Support\SampleData;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use InvalidArgumentException;
@@ -30,11 +32,10 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(ProviderSource::class, fn ($app): ProviderSource => match (config('tourlast.source')) {
-            'sandbox' => $app->make(SandboxProviderSource::class),
-            'database' => $app->make(DatabaseProviderSource::class),
+            'sandbox' => tap($app->make(SandboxProviderSource::class), fn () => SampleData::ensureAllowed('TOURLAST_SOURCE=sandbox')),
             'api' => $app->make(ApiProviderSource::class),
             'push' => $app->make(PushOnlyProviderSource::class),
-            default => throw new InvalidArgumentException('TOURLAST_SOURCE must be sandbox, database, api or push.'),
+            default => throw new InvalidArgumentException('TOURLAST_SOURCE must be sandbox, api or push. Reading another app\'s database is not supported: the Hub connects to source apps over the API only.'),
         });
     }
 
@@ -43,6 +44,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Behind a load balancer, TRUSTED_PROXIES (for example "*") lets the app see HTTPS and the visitor's real IP.
+        $proxies = array_filter(array_map('trim', explode(',', (string) config('app.trusted_proxies'))));
+
+        if ($proxies !== []) {
+            TrustProxies::at(in_array('*', $proxies, true) ? '*' : $proxies);
+        }
+
+        // Links the Hub builds (referral links, emails) must be HTTPS in production.
+        if ($this->app->isProduction()) {
+            URL::forceScheme('https');
+        }
+
         // API: 120 requests a minute per token owner (or IP), 10 sign-in attempts a minute.
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
         RateLimiter::for('api-login', fn (Request $request) => Limit::perMinute(10)->by(strtolower((string) $request->input('email')).'|'.$request->ip()));

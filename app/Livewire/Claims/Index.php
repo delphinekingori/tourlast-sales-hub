@@ -10,6 +10,7 @@ use App\Models\PartnerAccount;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -36,6 +37,7 @@ class Index extends Component
     /** @var array<int, mixed> */
     public array $rideDetails = [];
 
+    #[Locked]
     public ?int $viewingId = null;
 
     public bool $showDetail = false;
@@ -126,7 +128,7 @@ class Index extends Component
 
         return view('livewire.claims.index', [
             'claims' => ExpenseClaim::query()->where('user_id', $user->id)->with('attachments')->latest()->paginate(15),
-            'viewing' => $this->viewingId ? ExpenseClaim::with(['attachments', 'approvals.user', 'partnerAccount', 'lead'])->find($this->viewingId) : null,
+            'viewing' => $this->viewingId ? ExpenseClaim::with(['attachments', 'approvals.user', 'partnerAccount', 'lead'])->where('user_id', Auth::id())->find($this->viewingId) : null,
             'airtimeCap' => IncentivePolicy::for($month)->policy()->airtimeCap(),
             'airtimeUsed' => $airtimeUsed,
             'accounts' => PartnerAccount::query()->current()->where('user_id', $user->id)->orderBy('legal_name')->get(['id', 'legal_name']),

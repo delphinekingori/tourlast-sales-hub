@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\ReferralTarget;
 use Database\Factories\ReferralClickFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['referral_code_id', 'lead_id', 'ip_hash', 'user_agent', 'clicked_at'])]
+#[Fillable(['referral_code_id', 'lead_id', 'target', 'ip_hash', 'user_agent', 'clicked_at'])]
 class ReferralClick extends Model
 {
     /** @use HasFactory<ReferralClickFactory> */
@@ -22,6 +23,7 @@ class ReferralClick extends Model
     protected function casts(): array
     {
         return [
+            'target' => ReferralTarget::class,
             'clicked_at' => 'datetime',
         ];
     }

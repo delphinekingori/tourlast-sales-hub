@@ -64,29 +64,6 @@ return [
             ]) : [],
         ],
 
-        /*
-        | Read-only connection to the tourlast.com database, used when
-        | TOURLAST_SOURCE=database. Give this user SELECT rights only.
-        */
-        'tourlast' => [
-            'driver' => env('TOURLAST_DB_DRIVER', 'mysql'),
-            'url' => env('TOURLAST_DB_URL'),
-            'host' => env('TOURLAST_DB_HOST', '127.0.0.1'),
-            'port' => env('TOURLAST_DB_PORT', '3306'),
-            'database' => env('TOURLAST_DB_DATABASE', 'tourlast'),
-            'username' => env('TOURLAST_DB_USERNAME', 'sales_hub_readonly'),
-            'password' => env('TOURLAST_DB_PASSWORD', ''),
-            'charset' => env('TOURLAST_DB_CHARSET', 'utf8mb4'),
-            'collation' => env('TOURLAST_DB_COLLATION', 'utf8mb4_unicode_ci'),
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'strict' => true,
-            'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('TOURLAST_DB_SSL_CA'),
-            ]) : [],
-        ],
-
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

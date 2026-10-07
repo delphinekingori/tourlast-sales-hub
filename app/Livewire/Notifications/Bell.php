@@ -5,6 +5,7 @@ namespace App\Livewire\Notifications;
 use App\Support\Inbox;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -12,6 +13,12 @@ use Livewire\Component;
  */
 class Bell extends Component
 {
+    /**
+     * Fired from the browser when Reverb pushes a new alert or announcement.
+     */
+    #[On('inbox-updated')]
+    public function refreshInbox(): void {}
+
     public function open(string $key): void
     {
         $url = Inbox::markRead(Auth::user(), $key);
@@ -29,6 +36,7 @@ class Bell extends Component
         $user = Auth::user();
 
         return view('livewire.notifications.bell', [
+            'pollSeconds' => Inbox::pollSeconds(),
             'unread' => Inbox::unreadCount($user),
             'items' => Inbox::feed($user, 'all', 8),
         ]);

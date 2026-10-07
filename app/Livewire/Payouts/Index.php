@@ -8,6 +8,7 @@ use App\Models\PayoutStatement;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -22,6 +23,7 @@ class Index extends Component
     #[Url]
     public string $month = '';
 
+    #[Locked]
     public ?int $viewingId = null;
 
     public bool $showDetail = false;

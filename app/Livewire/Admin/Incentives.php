@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -22,6 +23,7 @@ class Incentives extends Component
 {
     public bool $showAgreement = false;
 
+    #[Locked]
     public ?int $editingId = null;
 
     /** @var array{user_id: string, starts_on: string, ends_on: string, notes: string} */

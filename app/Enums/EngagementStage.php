@@ -76,7 +76,7 @@ enum EngagementStage: string
 
     /**
      * The registry stage that matches a tourlast.com onboarding status, or
-     * null when the status says nothing about the stage (rejected).
+     * null when the status says nothing about the stage (rejected, inactive).
      */
     public static function fromOnboarding(OnboardingStatus $status): ?self
     {
@@ -86,6 +86,7 @@ enum EngagementStage: string
             OnboardingStatus::Approved => self::Approved,
             OnboardingStatus::Active => self::Live,
             OnboardingStatus::Rejected => null,
+            OnboardingStatus::Inactive => null,
         };
     }
 }

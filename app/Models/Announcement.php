@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Role;
+use App\Events\AnnouncementPublished;
 use Database\Factories\AnnouncementFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -33,6 +34,11 @@ class Announcement extends Model
         'hr' => ['label' => 'HR', 'roles' => [Role::Hr]],
         'finance' => ['label' => 'Finance', 'roles' => [Role::Accounts]],
     ];
+
+    protected static function booted(): void
+    {
+        static::created(fn (Announcement $announcement) => AnnouncementPublished::dispatch($announcement));
+    }
 
     /**
      * @return array<string, string>

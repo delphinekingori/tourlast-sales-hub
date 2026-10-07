@@ -43,6 +43,7 @@ class SandboxProviderSource implements ProviderSource
                 'submitted_at' => $provider->submitted_at,
                 'approved_at' => $provider->approved_at,
                 'active_at' => $provider->active_at,
+                'inactive_at' => $provider->inactive_at,
                 'rejected_at' => $provider->rejected_at,
                 'first_booking_at' => $provider->first_booking_at,
                 'updated_at' => $provider->updated_at,
