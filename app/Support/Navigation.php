@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\Permission;
 use App\Models\User;
+use Illuminate\Support\Facades\Route;
 
 class Navigation
 {
@@ -30,7 +31,9 @@ class Navigation
                 self::item('Claims', 'clipboard', 'claims.index'),
                 self::item('Notifications', 'mail', 'notifications.index'),
             ]];
-        } else {
+        } elseif (! $user->isTravelSalesperson()) {
+            // Travel salespeople get no Overview: Home is the Travel dashboard,
+            // and Notifications is the last item of their Travel Sales menu.
             $sections[] = ['label' => 'Overview', 'items' => [
                 self::item('Home', 'home', 'dashboard'),
                 self::item('Notifications', 'mail', 'notifications.index'),
@@ -49,6 +52,16 @@ class Navigation
 
         if ($acquisition !== []) {
             $sections[] = ['label' => 'Property acquisition', 'items' => $acquisition];
+        }
+
+        $travel = self::travelItems($user);
+
+        if ($user->isTravelSalesperson()) {
+            $travel[] = self::item('Notifications', 'mail', 'notifications.index');
+        }
+
+        if ($travel !== []) {
+            $sections[] = ['label' => 'Travel Sales', 'items' => $travel];
         }
 
         $management = [];
@@ -127,11 +140,61 @@ class Navigation
             $admin[] = self::item('API tokens', 'lock', 'admin.api-tokens');
         }
 
+        if ($user->can(Permission::ViewAuditLog->value) && Route::has('admin.audit-log')) {
+            $admin[] = self::item('Audit log', 'shield', 'admin.audit-log');
+        }
+
         if ($admin !== []) {
             $sections[] = ['label' => 'Admin', 'items' => $admin];
         }
 
         return $sections;
+    }
+
+    /**
+     * The Travel Sales workspace. Accounts see only payments, refunds and
+     * reports; Sales Managers and HR see nothing. Each item appears once its
+     * module's routes exist.
+     *
+     * @return list<array{label: string, icon: string, route: string, params: array<string, string>, active: bool}>
+     */
+    private static function travelItems(User $user): array
+    {
+        $works = $user->can(Permission::AccessTravelSales->value);
+        $approves = $user->can(Permission::ApprovePackagesFirst->value) || $user->can(Permission::ApprovePackagesFinal->value);
+        $handlesMoney = $user->can(Permission::ManageTravelPayments->value);
+        $seesMoney = $user->can(Permission::ViewTravelFinancials->value);
+
+        $candidates = [
+            [$works, 'Travel dashboard', 'home', 'travel.dashboard', ['travel.dashboard']],
+            [$user->isTravelSalesperson(), 'Calendar', 'calendar', 'calendar.index', ['calendar.index']],
+            [$works, 'Flights', 'plane', 'travel.flights.*', null],
+            [$works, 'Providers', 'building', 'travel.providers.*', ['travel.providers.*', 'travel.incidents.*']],
+            [$works, 'Contracts', 'document', 'travel.contracts.*', null],
+            [$works, 'Packages', 'map', 'travel.packages.*', null],
+            [$approves, 'Approvals', 'shield', 'travel.approvals.*', null],
+            [$works, 'Inventory', 'cube', 'travel.departures.*', null],
+            [$works || $handlesMoney, 'Bookings', 'ticket', 'travel.bookings.*', ['travel.bookings.*', 'travel.clients.*']],
+            [$works || $handlesMoney, 'Cancellations & refunds', 'refresh', 'travel.cancellations.*', null],
+            [$works || $handlesMoney, 'Payments', 'wallet', 'travel.payments.*', null],
+            [$works, 'Media Gallery', 'photo', 'travel.media.*', null],
+            [$works, 'Drivers & guides', 'truck', 'travel.resources.*', null],
+            [$works, 'Influencers', 'megaphone', 'travel.influencers.*', null],
+            [$works || $seesMoney, 'Travel reports', 'chart', 'travel.reports.*', null],
+            [$user->can(Permission::ManageTravelTargets->value), 'Travel targets', 'target', 'travel.targets.*', null],
+        ];
+
+        $items = [];
+
+        foreach ($candidates as [$allowed, $label, $icon, $route, $activeOn]) {
+            $target = str_ends_with($route, '.*') ? str_replace('.*', '.index', $route) : $route;
+
+            if ($allowed && Route::has($target)) {
+                $items[] = self::item($label, $icon, $route, activeOn: $activeOn);
+            }
+        }
+
+        return $items;
     }
 
     /**

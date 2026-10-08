@@ -1,10 +1,5 @@
 @php
     $textarea = 'w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink placeholder:text-ink-subtle focus:border-brand focus:ring-3 focus:ring-brand-soft focus:outline-none';
-    $types = [
-        \App\Enums\ActivityType::Meeting, \App\Enums\ActivityType::SiteVisit, \App\Enums\ActivityType::Call, \App\Enums\ActivityType::FollowUp,
-        \App\Enums\ActivityType::WhatsApp, \App\Enums\ActivityType::Email, \App\Enums\ActivityType::Demo, \App\Enums\ActivityType::ProposalSent,
-        \App\Enums\ActivityType::ContractDiscussion,
-    ];
     $title = match (true) {
         $mode === 'complete' => 'Mark as done',
         $itemId !== null => 'Edit schedule',
@@ -13,11 +8,11 @@
 @endphp
 
 <div>
-    <x-ui.slide-over wire:model="show" :title="$title" :description="$mode === 'complete' ? 'Record what happened. It is added to the lead\'s history and the property\'s engagement history.' : 'A call, meeting or visit with a property. Leave the time empty for an anytime reminder.'">
+    <x-ui.slide-over wire:model="show" :title="$title" :description="match (true) { $mode === 'complete' && $travel => 'Record what happened. The outcome stays on this calendar item.', $mode === 'complete' => 'Record what happened. It is added to the lead\'s history and the property\'s engagement history.', $travel => 'A follow-up, meeting or check-in about a provider, package, booking, client or flight. Leave the time empty for an anytime reminder.', default => 'A call, meeting or visit with a property. Leave the time empty for an anytime reminder.' }">
         @if ($mode === 'complete' && $item)
             <div class="mb-4 grid gap-1 rounded-lg border border-line bg-surface-muted/60 px-3 py-2.5">
                 <span class="flex items-center gap-2 text-[13px] font-semibold text-ink"><x-ui.icon :name="$item->type->icon()" class="size-4 text-brand-text" /> {{ $item->type->label() }} · {{ $item->task }}</span>
-                <span class="text-xs text-ink-muted">{{ $item->lead->business_name }} · {{ $item->due_at->format('D j M') }} · {{ $item->timeLabel() }}{{ $item->contact_name ? ' · '.$item->contact_name : '' }}</span>
+                <span class="text-xs text-ink-muted">{{ $item->lead?->business_name ?? \App\Support\Travel\TravelSubjects::label($item->subject) }} · {{ $item->due_at->format('D j M') }} · {{ $item->timeLabel() }}{{ $item->contact_name ? ' · '.$item->contact_name : '' }}</span>
             </div>
             <form id="schedule-done-form" wire:submit="complete" class="grid gap-4">
                 <div class="grid gap-1">
@@ -40,12 +35,25 @@
             </form>
         @else
             <form id="schedule-form" wire:submit="save" class="grid gap-4">
-                <x-ui.select label="Property / lead" wire:model.live="form.lead_id" id="sch-lead" hint="Search the Property Engagement Registry first; schedule against your lead for the property.">
-                    <option value="">Choose…</option>
-                    @foreach ($leads as $lead)
-                        <option value="{{ $lead->id }}">{{ $lead->business_name }}{{ $lead->location ? ' · '.$lead->location : '' }}</option>
-                    @endforeach
-                </x-ui.select>
+                @if ($travel)
+                    <x-ui.select label="About" wire:model="form.subject" id="sch-subject" hint="The provider, package, booking, client or flight this is about.">
+                        <option value="">Choose…</option>
+                        @foreach ($subjects as $group => $options)
+                            <optgroup label="{{ $group }}">
+                                @foreach ($options as $key => $label)
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
+                    </x-ui.select>
+                @else
+                    <x-ui.select label="Property / lead" wire:model.live="form.lead_id" id="sch-lead" hint="Search the Property Engagement Registry first; schedule against your lead for the property.">
+                        <option value="">Choose…</option>
+                        @foreach ($leads as $lead)
+                            <option value="{{ $lead->id }}">{{ $lead->business_name }}{{ $lead->location ? ' · '.$lead->location : '' }}</option>
+                        @endforeach
+                    </x-ui.select>
+                @endif
                 <div class="grid grid-cols-2 gap-3">
                     <x-ui.select label="Type" wire:model="form.type" id="sch-type">
                         @foreach ($types as $type)

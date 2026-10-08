@@ -42,6 +42,10 @@
     --tl-danger: #b91c1c;
     --tl-danger-soft: #fbe1e1;
 
+    /* Chart series, validated as a pair for colour-blind separation: 1 = Flights, 2 = Tours. */
+    --tl-series-1: #0c5295;
+    --tl-series-2: #eb6834;
+
     color-scheme: light;
 }
 
@@ -73,6 +77,9 @@
         --tl-warning-soft: #3a2a0e;
         --tl-danger: #f87171;
         --tl-danger-soft: #3b1515;
+
+        --tl-series-1: #3987e5;
+        --tl-series-2: #d95926;
 
         color-scheme: dark;
     }
@@ -125,6 +132,9 @@
     --color-warning-soft: var(--tl-warning-soft);
     --color-danger: var(--tl-danger);
     --color-danger-soft: var(--tl-danger-soft);
+
+    --color-series-1: var(--tl-series-1);
+    --color-series-2: var(--tl-series-2);
 
     --shadow-card: 0 1px 2px rgb(15 27 45 / 0.04);
     --shadow-overlay: 0 10px 32px rgb(8 59 107 / 0.16);

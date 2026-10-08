@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "http://tourlast-sales-hub.test/api/v1"
+            "url": "http://tourlast-sales-crm.test/api/v1"
         }
     ],
     "security": [
@@ -716,6 +716,37 @@
                 },
                 "x-scopes": [
                     "reports:read"
+                ]
+            }
+        },
+        "/integrations/flights/bookings": {
+            "post": {
+                "tags": [
+                    "tourlast.com integration"
+                ],
+                "operationId": "integrationsFlightsPush",
+                "summary": "Send flight bookings from Flights Super Admin: {\"booking\": {...}} or {\"bookings\": [...]} (max 500)",
+                "description": "Each booking uses the shape documented on App\\Integrations\\Flights\\FlightRecord; external_id, booked_at and booking_status are required. Sending a booking again updates it (older updated_at values are ignored).\n\n**Scope:** `flights:push`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "flights:push"
                 ]
             }
         },
@@ -3171,6 +3202,914 @@
                 ]
             }
         },
+        "/travel/bookings": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelBookingsIndex",
+                "summary": "Package bookings you may see (?q, status, payment_status, package_id)",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelBookingsStore",
+                "summary": "Book a client on a departure (slots are held while pending; overbooking is refused)",
+                "description": "**Scope:** `travel:write`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:write"
+                ]
+            }
+        },
+        "/travel/bookings/{booking}": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelBookingsShow",
+                "summary": "One booking with its payments",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [
+                    {
+                        "name": "booking",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            }
+        },
+        "/travel/bookings/{booking}/confirm": {
+            "post": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelBookingsConfirm",
+                "summary": "Confirm a pending booking",
+                "description": "**Scope:** `travel:write`",
+                "parameters": [
+                    {
+                        "name": "booking",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:write"
+                ]
+            }
+        },
+        "/travel/bookings/{booking}/mpesa": {
+            "post": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelBookingsMpesa",
+                "summary": "Send an M-Pesa payment request (STK push) to the client's phone (phone, amount)",
+                "description": "**Scope:** `travel:write`",
+                "parameters": [
+                    {
+                        "name": "booking",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:write"
+                ]
+            }
+        },
+        "/travel/contracts": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelContractsIndex",
+                "summary": "Provider contracts (?status incl. expiring_soon / expired, provider_id)",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            }
+        },
+        "/travel/contracts/{contract}": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelContractsShow",
+                "summary": "One contract (documents are listed, never downloaded through the API)",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [
+                    {
+                        "name": "contract",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            }
+        },
+        "/travel/dashboard": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelDashboard",
+                "summary": "Flights and tours figures, sales actions and alerts (?scope=team for Travel managers)",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            }
+        },
+        "/travel/departures": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelDeparturesIndex",
+                "summary": "Departures with sold, reserved and available slots (?package_id, from, to)",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            }
+        },
+        "/travel/flights": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelFlightsIndex",
+                "summary": "Flight bookings (?view=bookings|upcoming|cancellations|refunds, q, status, airline, from, to, mine)",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            }
+        },
+        "/travel/flights/{booking}": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelFlightsShow",
+                "summary": "One flight booking with segments and passengers",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [
+                    {
+                        "name": "booking",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            }
+        },
+        "/travel/influencer-codes": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelInfluencerCodesIndex",
+                "summary": "Influencer codes with commission terms and results (?q, status, applies_to)",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            }
+        },
+        "/travel/packages": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelPackagesIndex",
+                "summary": "Packages (?q, status, provider_id, mine)",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelPackagesStore",
+                "summary": "Create a draft package (v1.0). Send accept_duplicate=true to continue past a possible duplicate (managers)",
+                "description": "**Scope:** `travel:write`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:write"
+                ]
+            }
+        },
+        "/travel/packages/{package}": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelPackagesShow",
+                "summary": "One package with live and working versions, itinerary, media and approval history",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [
+                    {
+                        "name": "package",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelPackagesUpdate",
+                "summary": "Change a package. Changes to an approved package create the next version; material changes need approval",
+                "description": "**Scope:** `travel:write`",
+                "parameters": [
+                    {
+                        "name": "package",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:write"
+                ]
+            }
+        },
+        "/travel/packages/{package}/publish": {
+            "post": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelPackagesPublish",
+                "summary": "Mark an approved package as published (channel, url; override_reason for Super Admin only)",
+                "description": "**Scope:** `travel:write`",
+                "parameters": [
+                    {
+                        "name": "package",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:write"
+                ]
+            }
+        },
+        "/travel/packages/{package}/review": {
+            "post": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelPackagesReview",
+                "summary": "Approve, reject or request changes (decision, reason). Sales Admin first, then Super Admin",
+                "description": "**Scope:** `travel:write`",
+                "parameters": [
+                    {
+                        "name": "package",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:write"
+                ]
+            }
+        },
+        "/travel/packages/{package}/submit": {
+            "post": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelPackagesSubmit",
+                "summary": "Submit the draft for approval (only when the readiness checklist passes)",
+                "description": "**Scope:** `travel:write`",
+                "parameters": [
+                    {
+                        "name": "package",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:write"
+                ]
+            }
+        },
+        "/travel/packages/{package}/unpublish": {
+            "post": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelPackagesUnpublish",
+                "summary": "Take a published package off sale (reason optional)",
+                "description": "**Scope:** `travel:write`",
+                "parameters": [
+                    {
+                        "name": "package",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:write"
+                ]
+            }
+        },
+        "/travel/payments": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelPaymentsIndex",
+                "summary": "Package payments (?status, method, unmatched=1 for Accounts)",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            }
+        },
+        "/travel/providers": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelProvidersIndex",
+                "summary": "Providers (?q, status, type, mine)",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            }
+        },
+        "/travel/providers/{provider}": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelProvidersShow",
+                "summary": "One provider with its contracts",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [
+                    {
+                        "name": "provider",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            }
+        },
+        "/travel/reports": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelReports",
+                "summary": "Travel report sections for a period (?period=month|last-month|quarter|year|custom&from&to&salesperson)",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            }
+        },
+        "/travel/schedule": {
+            "post": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelScheduleStore",
+                "summary": "Schedule a follow-up, meeting or check-in about a travel record (subject \"package:12\", \"booking:5\"…)",
+                "description": "**Scope:** `travel:write`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:write"
+                ]
+            }
+        },
+        "/travel/targets": {
+            "get": {
+                "tags": [
+                    "Travel"
+                ],
+                "operationId": "travelTargets",
+                "summary": "Travel targets and progress for a month (?month=YYYY-MM). Own targets; Sales Admin sees everyone",
+                "description": "**Scope:** `travel:read`",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success (201 for creates). Body: {\"data\": …}; lists are paginated with links and meta."
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthenticated"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationError"
+                    }
+                },
+                "x-scopes": [
+                    "travel:read"
+                ]
+            }
+        },
         "/users": {
             "get": {
                 "tags": [
@@ -3444,7 +4383,7 @@
             "bearerAuth": {
                 "type": "http",
                 "scheme": "bearer",
-                "description": "Sanctum token from POST /auth/tokens or Admin → API tokens. Scopes: profile, leads:read, leads:write, schedule:read, schedule:write, registry:read, registry:write, onboardings:read, onboardings:write, incentives:read, incentives:write, claims:read, claims:write, team:read, team:write, notifications:read, notifications:write, reports:read, integration:read, integration:push. The tourlast.com feed endpoints take the shared sync token instead (php artisan hub:generate-token)."
+                "description": "Sanctum token from POST /auth/tokens or Admin → API tokens. Scopes: profile, leads:read, leads:write, schedule:read, schedule:write, registry:read, registry:write, onboardings:read, onboardings:write, incentives:read, incentives:write, claims:read, claims:write, team:read, team:write, notifications:read, notifications:write, reports:read, integration:read, integration:push, travel:read, travel:write, flights:push. The tourlast.com feed endpoints take the shared sync token instead (php artisan hub:generate-token)."
             }
         },
         "responses": {

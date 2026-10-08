@@ -51,6 +51,7 @@ class ScheduleController extends ApiController
         };
 
         $items = FollowUp::query()
+            ->forLeads()
             ->with(['lead:id,business_name,location,property_engagement_id', 'user:id,name,avatar_path'])
             ->whereBetween('due_at', [$from, $to])
             ->when($userId, fn ($query) => $query->where('user_id', $userId))
@@ -117,7 +118,7 @@ class ScheduleController extends ApiController
         $data = $request->validate([
             'outcome' => ['nullable', 'string', 'max:5000'],
             'next_action' => ['nullable', 'string', 'max:190'],
-            'next_type' => ['nullable', Rule::enum(ActivityType::class)],
+            'next_type' => ['nullable', Rule::enum(ActivityType::class)->only(ActivityType::forProperty())],
             'next_date' => ['nullable', 'date', 'after_or_equal:today'],
             'next_time' => ['nullable', 'date_format:H:i'],
         ], [], ['next_date' => 'follow-up date', 'next_time' => 'follow-up time']);
@@ -160,7 +161,7 @@ class ScheduleController extends ApiController
 
         return [
             'lead_id' => [$required, Rule::exists('leads', 'id')->where('user_id', $user->id)],
-            'type' => [$required, Rule::enum(ActivityType::class)],
+            'type' => [$required, Rule::enum(ActivityType::class)->only(ActivityType::forProperty())],
             'title' => [$required, 'string', 'max:190'],
             'date' => $creating ? ['required', 'date', 'after_or_equal:today'] : ['sometimes', 'date'],
             'time' => ['nullable', 'date_format:H:i'],

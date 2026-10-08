@@ -45,3 +45,31 @@ Schedule::command('hub:send-manager-alerts')
     ->at('07:30')
     ->timezone(config('app.timezone'))
     ->onOneServer();
+
+/*
+| Travel Sales
+*/
+Schedule::command('travel:sync-flights')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->skip(fn (): bool => config('travel.flights.source') === 'push');
+
+Schedule::command('travel:mpesa-reconcile')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('travel:expire-holds')
+    ->hourly()
+    ->onOneServer();
+
+Schedule::command('travel:contract-alerts')
+    ->dailyAt('07:10')
+    ->timezone(config('app.timezone'))
+    ->onOneServer();
+
+Schedule::command('travel:pretrip-reminders')
+    ->dailyAt('08:00')
+    ->timezone(config('app.timezone'))
+    ->onOneServer();

@@ -40,3 +40,14 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
     require __DIR__.'/api/v1/70-integration.php';
 });
+
+/*
+| Safaricom Daraja callbacks (no token: Safaricom cannot send one). Each
+| callback URL carries DARAJA_CALLBACK_SECRET and is checked by the handler.
+*/
+$public = glob(__DIR__.'/api/public/*.php') ?: [];
+sort($public);
+
+foreach ($public as $file) {
+    require $file;
+}

@@ -30,6 +30,7 @@ class UserController extends ApiController
 
         $users = User::query()
             ->with(['roles', 'referralCode'])
+            ->visibleTo($this->user($request))
             ->when($role, fn ($query) => $query->role($role->value))
             ->when(in_array($status, ['active', 'suspended', 'terminated'], true), fn ($query) => $query->where('account_status', $status))
             ->when($request->boolean('online'), fn ($query) => $query->where('last_seen_at', '>', now()->subMinutes(5)))
@@ -53,6 +54,7 @@ class UserController extends ApiController
         $viewer = $this->user($request);
         $canSeeTeam = $viewer->can(Permission::ViewPresence->value) || $viewer->can(Permission::InviteSalespeople->value);
         abort_unless($canSeeTeam || $user->is($viewer), 403, 'Your account is not allowed to do this.');
+        abort_unless($user->isVisibleTo($viewer), 404);
 
         $user->load(['roles', 'referralCode']);
 

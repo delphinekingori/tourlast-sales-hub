@@ -42,6 +42,46 @@ class Alerts
     }
 
     /**
+     * Travel Sales alerts: Travel managers (Sales Admin, Super Admin) plus the
+     * travel salesperson concerned. Sales Managers and HR never receive them.
+     */
+    public static function sendTravel(string $type, string $title, string $body, ?string $url = null, ?User $salesperson = null): void
+    {
+        $recipients = User::query()->active()->permission(Permission::ManageTravelSales->value)->get();
+
+        if ($salesperson && $salesperson->is_active) {
+            $recipients->push($salesperson);
+        }
+
+        self::notify($recipients, $type, $title, $body, $url);
+    }
+
+    /**
+     * Travel alerts for whoever holds a specific permission (package
+     * approvers at one level, or Accounts for payments and refunds).
+     */
+    public static function sendToTravelPermission(Permission $permission, string $type, string $title, string $body, ?string $url = null, ?User $except = null): void
+    {
+        $recipients = User::query()->active()->permission($permission->value)
+            ->when($except, fn ($query) => $query->whereKeyNot($except->id))
+            ->get();
+
+        self::notify($recipients, $type, $title, $body, $url);
+    }
+
+    /**
+     * @param  Collection<int, User>  $recipients
+     */
+    private static function notify(Collection $recipients, string $type, string $title, string $body, ?string $url): void
+    {
+        $recipients = $recipients->unique('id')->values();
+
+        if ($recipients->isNotEmpty()) {
+            Notification::send($recipients, new SmartAlert($type, $title, $body, $url));
+        }
+    }
+
+    /**
      * @return Collection<int, User>
      */
     public static function management(): Collection

@@ -18,13 +18,13 @@ class TodayOverview
      */
     public static function counts(User $user): array
     {
-        $today = FollowUp::query()->open()->where('user_id', $user->id)->whereBetween('due_at', [now()->startOfDay(), now()->endOfDay()]);
+        $today = FollowUp::query()->forLeads()->open()->where('user_id', $user->id)->whereBetween('due_at', [now()->startOfDay(), now()->endOfDay()]);
         $meetingTypes = array_map(fn ($type) => $type->value, FollowUp::meetingTypes());
 
         return [
             'follow_ups' => (clone $today)->whereNotIn('type', $meetingTypes)->count(),
             'meetings' => (clone $today)->whereIn('type', $meetingTypes)->count(),
-            'overdue' => FollowUp::query()->open()->where('user_id', $user->id)->where('due_at', '<', now()->startOfDay())->count(),
+            'overdue' => FollowUp::query()->forLeads()->open()->where('user_id', $user->id)->where('due_at', '<', now()->startOfDay())->count(),
             'onboardings' => Onboarding::query()->where('user_id', $user->id)->awaitingApproval()->count(),
         ];
     }
@@ -37,6 +37,7 @@ class TodayOverview
     public static function schedule(User $user, int $limit = 12): Collection
     {
         return FollowUp::query()
+            ->forLeads()
             ->where('user_id', $user->id)
             ->where(fn ($query) => $query
                 ->whereBetween('due_at', [now()->startOfDay(), now()->endOfDay()])

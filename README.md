@@ -2,6 +2,8 @@
 
 A private sales and partner-onboarding tracker for the Tourlast team. Providers sign up on **tourlast.com** through a salesperson's referral link. The Hub credits each signup to that salesperson, shows everyone their progress against the monthly target they set themselves, and gives HR and Accounts a register of onboarded partners with Excel and PDF exports.
 
+A separate **Travel Sales** workspace lets travel salespeople sell flights, tours and experiences: providers and contracts, packages with Sales Admin + Super Admin approval and version control, departures and bookings, M-Pesa (Daraja) payments, influencer referral codes with commission, and a read-only copy of flight bookings from Tourlast Flights Super Admin. See section 4 of [docs/SYSTEM_GUIDE.md](docs/SYSTEM_GUIDE.md).
+
 **Stack:** Laravel 13, Livewire 4, Tailwind CSS 4, MySQL in production (SQLite locally), spatie/laravel-permission, Laravel Sanctum (API tokens), maatwebsite/excel, barryvdh/laravel-dompdf.
 
 ## Local setup
@@ -23,6 +25,7 @@ Demo accounts are created only when `APP_ENV=local`. Every password is `password
 | grace@tourlast.test | Sales Admin |
 | david@tourlast.test | Sales Manager |
 | john@tourlast.test, mary@tourlast.test, peter@tourlast.test, james@tourlast.test | Salesperson |
+| aisha@tourlast.test, kevin@tourlast.test | Travel Salesperson |
 | faith@tourlast.test | HR |
 | samuel@tourlast.test | Accounts |
 
@@ -61,6 +64,7 @@ In production there is no public registration. Create the first admin with `php 
 | Sales Admin | Manage users and invites, see all sales data, assign unattributed signups, verify Accounts and run reviews, confirm retainer conditions, approve claims as manager, manage agreements, Partner Register and exports |
 | Sales Manager | Team Performance and Targets (points, not pay), view all leads and Accounts, invite salespeople, first approval of transport claims |
 | Salesperson | Own progress, earnings, Accounts, onboardings, leads, activities and claims only |
+| Travel Salesperson | Travel Sales only: own providers, contracts, packages (submit for approval, never approve), bookings, payments requests, influencer codes; reads all flights. Invisible to Sales Managers |
 | HR | Partner Register, everyone's earnings, incentive agreements, second approval of transport claims |
 | Accounts (Finance) | Partner Register, everyone's earnings, final approval of claims, transport disbursement, approve and pay statements |
 
@@ -81,5 +85,13 @@ php artisan hub:create-super-admin           # interactive; first Super Admin on
 php artisan hub:purge-demo-data [--force]  # list (default) or delete @tourlast.test users and TL-##### sample rows
 php artisan hub:create-integration-account [--rotate]  # least-privilege account + token for tourlast.com push
 php artisan hub:api-spec                    # regenerate docs/api/openapi.json from the routes
+php artisan travel:sync-flights [--full]     # pull flight bookings from Flights Super Admin (FLIGHTS_SOURCE=api or sandbox)
+php artisan travel:create-flights-account [--rotate]  # push-only account + token for Flights Super Admin
+php artisan travel:mpesa-register-urls      # print and register the Daraja paybill callback URLs
+php artisan travel:mpesa-reconcile          # check unanswered M-Pesa payment requests (scheduled every 5 min)
+php artisan travel:mpesa-simulate TB-2026-0001 5000  # test mode: simulate a paybill payment
+php artisan travel:expire-holds             # cancel unpaid package bookings whose hold ran out
+php artisan travel:contract-alerts          # provider contract expiry alerts
+php artisan travel:pretrip-reminders        # missing driver/guide and pre-trip alerts
 php artisan test                           # full test suite
 ```

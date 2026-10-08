@@ -32,7 +32,7 @@ class Index extends Component
 
     public function render(): View
     {
-        $open = FollowUp::query()->open()->where('user_id', Auth::id())->with('lead')->chronological()->get();
+        $open = FollowUp::query()->forLeads()->open()->where('user_id', Auth::id())->with('lead')->chronological()->get();
 
         return view('livewire.activities.index', [
             'overdue' => $open->filter(fn (FollowUp $item): bool => $item->due_at->lt(now()->startOfDay())),

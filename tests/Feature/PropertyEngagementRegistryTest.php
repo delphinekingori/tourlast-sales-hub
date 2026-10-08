@@ -25,11 +25,22 @@ class PropertyEngagementRegistryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_every_role_can_open_the_registry(): void
+    public function test_travel_salespeople_cannot_see_the_registry(): void
+    {
+        $engagement = PropertyEngagement::factory()->create();
+        $travel = User::factory()->withRole(Role::TravelSalesperson)->create();
+
+        $this->actingAs($travel)->get(route('registry.index'))->assertForbidden();
+        $this->actingAs($travel)->get(route('registry.show', $engagement))->assertForbidden();
+        $this->actingAs($travel)->get(route('registry.export'))->assertForbidden();
+        $this->actingAs($travel)->get(route('travel.dashboard'))->assertOk()->assertDontSee('Property Engagement Registry');
+    }
+
+    public function test_every_property_and_back_office_role_can_open_the_registry(): void
     {
         $engagement = PropertyEngagement::factory()->create();
 
-        foreach (Role::cases() as $role) {
+        foreach (array_filter(Role::cases(), fn (Role $role): bool => $role !== Role::TravelSalesperson) as $role) {
             $user = User::factory()->withRole($role)->create();
             $this->actingAs($user)->get(route('registry.index'))->assertOk();
             $this->actingAs($user)->get(route('registry.show', $engagement))->assertOk()->assertSee($engagement->name);

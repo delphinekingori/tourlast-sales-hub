@@ -223,6 +223,34 @@ class User extends Authenticatable
     }
 
     /**
+     * People the viewer may see in lists and profiles. Sales Managers do not
+     * see travel salespeople or anything linked to them.
+     *
+     * @param  Builder<User>  $query
+     */
+    #[Scope]
+    protected function visibleTo(Builder $query, User $viewer): void
+    {
+        $query->when(
+            $viewer->hasRole(Role::SalesManager->value),
+            fn (Builder $query) => $query->withoutRole(Role::TravelSalesperson->value),
+        );
+    }
+
+    /**
+     * Whether the viewer may see this person at all (see visibleTo).
+     */
+    public function isVisibleTo(User $viewer): bool
+    {
+        return ! ($viewer->hasRole(Role::SalesManager->value) && $this->hasRole(Role::TravelSalesperson->value));
+    }
+
+    public function isTravelSalesperson(): bool
+    {
+        return $this->hasRole(Role::TravelSalesperson->value);
+    }
+
+    /**
      * People in roles that sell and earn referral credit.
      *
      * @param  Builder<User>  $query
