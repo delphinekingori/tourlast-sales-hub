@@ -27,7 +27,7 @@ class SavePropertyEngagement
      * @param  array{name: string, title: ?string, phone: ?string, whatsapp: ?string, email: ?string}  $contact
      * @param  list<int>  $overriddenDuplicates  Registry ids the user confirmed are different properties.
      */
-    public function create(array $details, array $contact, User $by, array $overriddenDuplicates = []): PropertyEngagement
+    public function create(array $details, array $contact, ?User $by, array $overriddenDuplicates = []): PropertyEngagement
     {
         return DB::transaction(function () use ($details, $contact, $by, $overriddenDuplicates): PropertyEngagement {
             $outcome = $details['outcome'] ?? null;
@@ -45,24 +45,24 @@ class SavePropertyEngagement
                 ]);
             }
             $engagement->last_engaged_on ??= $engagement->first_engaged_on;
-            $engagement->created_by = $by->id;
-            $engagement->updated_by = $by->id;
+            $engagement->created_by = $by?->id;
+            $engagement->updated_by = $by?->id;
             $engagement->save();
 
             if ($engagement->sales_rep_id) {
                 $engagement->reps()->create([
                     'user_id' => $engagement->sales_rep_id,
                     'started_on' => $engagement->first_engaged_on->toDateString(),
-                    'assigned_by' => $by->id,
+                    'assigned_by' => $by?->id,
                 ]);
             }
 
-            $engagement->contacts()->create($contact + ['is_primary' => true, 'is_decision_maker' => false, 'created_by' => $by->id]);
+            $engagement->contacts()->create($contact + ['is_primary' => true, 'is_decision_maker' => false, 'created_by' => $by?->id]);
 
             $engagement->events()->create([
                 'type' => EngagementEventType::Created,
                 'sales_rep_id' => $engagement->sales_rep_id,
-                'recorded_by' => $by->id,
+                'recorded_by' => $by?->id,
                 'to_value' => $engagement->stage->value,
                 'summary' => $engagement->stage->label().' · '.$engagement->status->label(),
                 'notes' => $engagement->summary,

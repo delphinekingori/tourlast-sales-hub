@@ -8,9 +8,12 @@ use Illuminate\Support\Facades\DB;
 
 class AssignOnboarding
 {
+    public function __construct(private SyncOnboardingToRegistry $syncRegistry) {}
+
     /**
      * Credit an onboarding to a salesperson by hand, with a reason on record.
-     * Later syncs keep this assignment.
+     * Later syncs keep this assignment, and the property joins the registry
+     * under that salesperson.
      */
     public function handle(Onboarding $onboarding, User $salesperson, User $admin, string $reason): Onboarding
     {
@@ -27,6 +30,8 @@ class AssignOnboarding
                 'referral_code_id' => $salesperson->referralCode?->id,
                 'attribution' => 'manual',
             ]);
+
+            $this->syncRegistry->handle($onboarding->refresh());
 
             return $onboarding;
         });

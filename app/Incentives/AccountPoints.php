@@ -2,6 +2,8 @@
 
 namespace App\Incentives;
 
+use App\Actions\TransitionEngagement;
+use App\Enums\EngagementStatus;
 use App\Enums\OnboardingStatus;
 use App\Models\IncentiveAgreement;
 use App\Models\IncentivePolicy;
@@ -9,6 +11,7 @@ use App\Models\InventorySnapshot;
 use App\Models\Onboarding;
 use App\Models\PartnerAccount;
 use App\Models\PointEntry;
+use App\Models\PropertyEngagement;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -172,6 +175,29 @@ class AccountPoints
         ]);
 
         $this->reconcile($account);
+        $this->closeRegistryRecords($account, $admin, $reason);
+    }
+
+    /**
+     * A failed review means the partner did not stay, so the registry records for
+     * its properties are marked Lost with the reason, unless already closed.
+     */
+    private function closeRegistryRecords(PartnerAccount $account, User $admin, string $reason): void
+    {
+        $transition = app(TransitionEngagement::class);
+
+        PropertyEngagement::query()
+            ->whereIn('id', $account->onboardings()->whereNotNull('property_engagement_id')->select('property_engagement_id'))
+            ->whereNotIn('status', [EngagementStatus::Lost, EngagementStatus::Rejected, EngagementStatus::Closed])
+            ->get()
+            ->each(fn (PropertyEngagement $engagement) => $transition->handle(
+                $engagement,
+                null,
+                EngagementStatus::Lost,
+                $admin,
+                summary: '14-day review failed',
+                outcome: ['notes' => '14-day review failed: '.$reason],
+            ));
     }
 
     /**

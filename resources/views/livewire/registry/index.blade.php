@@ -55,6 +55,26 @@
         @endforeach
     </dl>
 
+    {{-- Needs attention --}}
+    @if (array_sum($attentionCounts) > 0 || $unassignedSignups)
+        <div class="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2.5 shadow-card">
+            <span class="mr-1 text-[13px] font-semibold text-ink">Needs attention</span>
+            @foreach (\App\Support\EngagementRegistryFilters::Attention as $group => $label)
+                @if ($attentionCounts[$group] > 0 || $attention === $group)
+                    <button type="button" wire:click="$set('attention', '{{ $attention === $group ? '' : $group }}')" aria-pressed="{{ $attention === $group ? 'true' : 'false' }}"
+                        class="inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium {{ $attention === $group ? 'border-brand bg-brand-soft text-brand-text' : 'border-line-strong text-ink hover:bg-surface-muted' }}">
+                        {{ $label }} <span class="tabular font-bold {{ $attention === $group ? '' : 'text-warning' }}">{{ number_format($attentionCounts[$group]) }}</span>
+                    </button>
+                @endif
+            @endforeach
+            @if ($unassignedSignups)
+                <a href="{{ route('onboardings.unattributed') }}" wire:navigate class="ml-auto text-[13px] font-semibold text-brand-text hover:underline">
+                    {{ number_format($unassignedSignups) }} {{ \Illuminate\Support\Str::plural('signup', $unassignedSignups) }} waiting for a salesperson →
+                </a>
+            @endif
+        </div>
+    @endif
+
     {{-- Search and filters --}}
     <div class="grid gap-3 rounded-xl border border-line bg-surface p-3 shadow-card">
         <div class="flex flex-wrap items-center gap-2">

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Leads;
 
+use App\Actions\CreateRegistryRecord;
 use App\Actions\LogActivity;
 use App\Actions\MarkLeadLost;
 use App\Actions\TransferLead;
@@ -12,6 +13,7 @@ use App\Models\Lead;
 use App\Models\LeadTransfer;
 use App\Models\ReferralClick;
 use App\Models\User;
+use App\Support\DuplicateEngagementFinder;
 use App\Support\OutcomeRules;
 use App\Support\PropertyDuplicateCheck;
 use Carbon\CarbonImmutable;
@@ -48,6 +50,9 @@ class Show extends Component
 
     /** @var array{to: string, reason: string, notes: string, with_registry: bool} */
     public array $transfer = ['to' => '', 'reason' => '', 'notes' => '', 'with_registry' => true];
+
+    /** @var list<array{id: int, name: string, location: string, owner: ?string}> */
+    public array $registryMatches = [];
 
     public function mount(Lead $lead): void
     {
@@ -118,6 +123,47 @@ class Show extends Component
         ], Auth::user(), exceptLeadId: $lead->id, exceptEngagementId: $lead->property_engagement_id)
             ->reject(fn (array $match) => $lead->property_engagement_id && $match['engagementId'] === $lead->property_engagement_id)
             ->values();
+    }
+
+    /**
+     * Put the lead in the Property Engagement Registry. When records that look like the
+     * same property exist, they are shown first and the owner confirms it is a different one.
+     */
+    public function addToRegistry(bool $confirmed = false): void
+    {
+        $lead = $this->ownedLead();
+
+        if ($lead->property_engagement_id) {
+            return;
+        }
+
+        if (! $confirmed) {
+            $matches = app(DuplicateEngagementFinder::class)->find([
+                'name' => $lead->business_name,
+                'trading_name' => $lead->trading_name,
+                'city' => $lead->location,
+                'phones' => [$lead->contact_phone],
+                'emails' => [$lead->contact_email],
+                'website' => $lead->website,
+                'registration_number' => $lead->registration_number,
+                'kra_pin' => $lead->kra_pin,
+            ]);
+
+            if ($matches->isNotEmpty()) {
+                $this->registryMatches = $matches->map(fn (array $match): array => [
+                    'id' => $match['engagement']->id,
+                    'name' => $match['engagement']->name,
+                    'location' => $match['engagement']->locationLabel(),
+                    'owner' => $match['engagement']->salesRep?->name,
+                ])->all();
+
+                return;
+            }
+        }
+
+        $this->registryMatches = [];
+        app(CreateRegistryRecord::class)->fromLead($lead, Auth::user());
+        $this->dispatch('toast', message: 'Added to the Property Engagement Registry.');
     }
 
     public function setStatus(string $status): void

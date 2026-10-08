@@ -4,6 +4,8 @@ namespace App\Livewire\Registry;
 
 use App\Enums\EngagementStage;
 use App\Enums\EngagementStatus;
+use App\Enums\Permission;
+use App\Models\Onboarding;
 use App\Models\PropertyEngagement;
 use App\Models\User;
 use App\Support\EngagementRegistryFilters;
@@ -66,6 +68,9 @@ class Index extends Component
     public string $onboarded = '';
 
     #[Url]
+    public string $attention = '';
+
+    #[Url]
     public bool $archived = false;
 
     #[Url]
@@ -110,7 +115,7 @@ class Index extends Component
 
     public function clearFilters(): void
     {
-        $this->reset(['search', 'type', 'country', 'region', 'city', 'rep', 'stage', 'status', 'source', 'firstFrom', 'firstTo', 'lastFrom', 'lastTo', 'activity', 'onboarded', 'archived']);
+        $this->reset(['search', 'type', 'country', 'region', 'city', 'rep', 'stage', 'status', 'source', 'firstFrom', 'firstTo', 'lastFrom', 'lastTo', 'activity', 'onboarded', 'attention', 'archived']);
         $this->resetPage();
     }
 
@@ -123,6 +128,8 @@ class Index extends Component
             'filters' => $filters,
             'engagements' => $filters->query()->paginate(25),
             'summary' => $this->summary(),
+            'attentionCounts' => $this->attentionCounts(),
+            'unassignedSignups' => $user->can(Permission::ManageUsers->value) ? Onboarding::query()->unattributed()->count() : null,
             'salespeople' => User::query()->whereIn('id', PropertyEngagement::query()->withTrashed()->select('sales_rep_id'))->orderBy('name')->get(['id', 'name']),
             'countries' => PropertyEngagement::query()->distinct()->orderBy('country')->pluck('country'),
             'regions' => PropertyEngagement::query()->when($this->country, fn ($query) => $query->where('country', $this->country))->distinct()->orderBy('region')->pluck('region'),
@@ -151,6 +158,18 @@ class Index extends Component
         ];
     }
 
+    /**
+     * How many open properties are in each attention group (not affected by filters).
+     *
+     * @return array<string, int>
+     */
+    private function attentionCounts(): array
+    {
+        return collect(array_keys(EngagementRegistryFilters::Attention))
+            ->mapWithKeys(fn (string $group): array => [$group => EngagementRegistryFilters::needingAttention(PropertyEngagement::query(), $group)->count()])
+            ->all();
+    }
+
     private function filters(): EngagementRegistryFilters
     {
         return EngagementRegistryFilters::fromArray([
@@ -169,6 +188,7 @@ class Index extends Component
             'last_to' => $this->lastTo,
             'activity' => $this->activity,
             'onboarded' => $this->onboarded,
+            'attention' => $this->attention,
             'archived' => $this->archived && Auth::user()->can('create', PropertyEngagement::class),
             'sort' => $this->sort,
             'dir' => $this->dir,

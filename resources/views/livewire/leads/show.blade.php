@@ -106,6 +106,23 @@
                 </x-ui.card>
             @endif
 
+            @if (! $lead->propertyEngagement && $isOwner)
+                <x-ui.card title="Property Engagement Registry" description="Not in the registry yet. Add it so managers and the team can see who is engaging this property.">
+                    @if ($registryMatches)
+                        <div class="mb-3 grid gap-2 rounded-lg border border-warning/40 bg-warning-soft p-3 text-[13px] text-ink">
+                            <p class="font-semibold">The registry already has something that looks like this property:</p>
+                            @foreach ($registryMatches as $match)
+                                <a href="{{ route('registry.show', $match['id']) }}" wire:navigate class="hover:text-brand-text">{{ $match['name'] }}{{ $match['location'] ? ' · '.$match['location'] : '' }}{{ $match['owner'] ? ' · '.$match['owner'] : '' }}</a>
+                            @endforeach
+                            <p class="text-ink-muted">If it is the same business, ask a manager to link this lead to it. If it is a different one, add it anyway.</p>
+                        </div>
+                        <x-ui.button size="sm" icon="plus" wire:click="addToRegistry(true)" wire:loading.attr="disabled">Add anyway</x-ui.button>
+                    @else
+                        <x-ui.button size="sm" icon="plus" wire:click="addToRegistry" wire:loading.attr="disabled">Add to registry</x-ui.button>
+                    @endif
+                </x-ui.card>
+            @endif
+
             @if ($lead->onboarding)
                 <x-ui.card title="tourlast.com signup">
                     <div class="grid gap-2">

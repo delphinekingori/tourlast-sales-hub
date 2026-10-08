@@ -21,6 +21,16 @@ final readonly class EngagementRegistryFilters
      */
     public const Sorts = ['name', 'type', 'location', 'stage', 'status', 'rep', 'first', 'last'];
 
+    /**
+     * Work that needs a manager's eye. Each applies to properties still being worked.
+     */
+    public const Attention = [
+        'overdue' => 'Next action overdue',
+        'idle' => 'No contact for a while',
+        'no_action' => 'No next action planned',
+        'unassigned' => 'No salesperson',
+    ];
+
     public function __construct(
         public string $search = '',
         public ?string $type = null,
@@ -37,6 +47,7 @@ final readonly class EngagementRegistryFilters
         public ?CarbonImmutable $lastTo = null,
         public ?string $activity = null,
         public ?string $onboarded = null,
+        public ?string $attention = null,
         public bool $archived = false,
         public string $sort = 'last',
         public string $direction = 'desc',
@@ -66,6 +77,7 @@ final readonly class EngagementRegistryFilters
             lastTo: $date($input['last_to'] ?? null)?->endOfDay(),
             activity: in_array($input['activity'] ?? null, ['active', 'inactive'], true) ? $input['activity'] : null,
             onboarded: in_array($input['onboarded'] ?? null, ['yes', 'no'], true) ? $input['onboarded'] : null,
+            attention: array_key_exists($input['attention'] ?? '', self::Attention) ? $input['attention'] : null,
             archived: filter_var($input['archived'] ?? false, FILTER_VALIDATE_BOOL),
             sort: in_array($input['sort'] ?? null, self::Sorts, true) ? $input['sort'] : 'last',
             direction: ($input['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc',
@@ -96,7 +108,8 @@ final readonly class EngagementRegistryFilters
             ->when($this->activity === 'active', fn (Builder $query) => $query->whereIn('status', self::openStatuses()))
             ->when($this->activity === 'inactive', fn (Builder $query) => $query->whereNotIn('status', self::openStatuses()))
             ->when($this->onboarded === 'yes', fn (Builder $query) => $query->where('stage', EngagementStage::Live))
-            ->when($this->onboarded === 'no', fn (Builder $query) => $query->where('stage', '!=', EngagementStage::Live));
+            ->when($this->onboarded === 'no', fn (Builder $query) => $query->where('stage', '!=', EngagementStage::Live))
+            ->when($this->attention, fn (Builder $query) => self::needingAttention($query, $this->attention));
 
         return $this->applySort($query);
     }
@@ -108,7 +121,7 @@ final readonly class EngagementRegistryFilters
     {
         return $this->type || $this->country || $this->region || $this->city || $this->salespersonId || $this->stage
             || $this->status || $this->source || $this->firstFrom || $this->firstTo || $this->lastFrom || $this->lastTo
-            || $this->activity || $this->onboarded || $this->archived;
+            || $this->activity || $this->onboarded || $this->attention || $this->archived;
     }
 
     /**
@@ -132,10 +145,30 @@ final readonly class EngagementRegistryFilters
             'last_to' => $this->lastTo?->toDateString(),
             'activity' => $this->activity,
             'onboarded' => $this->onboarded,
+            'attention' => $this->attention,
             'archived' => $this->archived ? 1 : null,
             'sort' => $this->sort,
             'dir' => $this->direction,
         ], fn ($value) => $value !== null && $value !== '');
+    }
+
+    /**
+     * Narrow a query to the properties in one attention group.
+     *
+     * @param  Builder<PropertyEngagement>  $query
+     * @return Builder<PropertyEngagement>
+     */
+    public static function needingAttention(Builder $query, string $group): Builder
+    {
+        $query->whereIn('status', self::openStatuses());
+
+        return match ($group) {
+            'overdue' => $query->whereDate('next_action_on', '<', today()),
+            'idle' => $query->whereDate('last_engaged_on', '<=', today()->subDays(config('hub.stalled_after_days'))),
+            'no_action' => $query->whereNull('next_action_on'),
+            'unassigned' => $query->whereNull('sales_rep_id'),
+            default => $query,
+        };
     }
 
     /**
