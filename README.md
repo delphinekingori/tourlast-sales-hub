@@ -69,7 +69,7 @@ In production there is no public registration. Create the first admin with `php 
 - **[docs/SYSTEM_GUIDE.md](docs/SYSTEM_GUIDE.md):** the complete guide: how every module works, roles, integration status, configuration, deployment, and pending work and open decisions. Start here.
 - **[docs/API.md](docs/API.md):** the Sales Hub REST API (v1): tokens and scopes, every endpoint with examples, errors, and the tourlast.com push integration. OpenAPI 3.1 file: `docs/api/openapi.json`.
 - **[docs/TOURLAST_INTEGRATION.md](docs/TOURLAST_INTEGRATION.md):** what tourlast.com must add (ref capture, read-only access, optional webhook), with the exact settings.
-- **[docs/DEPLOYMENT_AWS.md](docs/DEPLOYMENT_AWS.md):** server, database, email, scheduler and queue setup for `sales.tourlast.com`.
+- **[docs/DEPLOYMENT_AWS.md](docs/DEPLOYMENT_AWS.md):** server, database, email, scheduler and queue setup for `sales-hub.tourlast.com`.
 
 ## Useful commands
 

@@ -8,7 +8,7 @@ The Sales Hub is already built and tested against sample data. Your work is limi
 
 ```
 Salesperson shares            Sales Hub logs the click       tourlast.com
-sales.tourlast.com/r/CODE ──▶ and redirects to ────────────▶ /list-your-property?ref=CODE
+sales-hub.tourlast.com/r/CODE ──▶ and redirects to ────────────▶ /list-your-property?ref=CODE
                                                                    │
                                                   provider signs up│ (ref code stored)
                                                                    ▼
@@ -100,7 +100,7 @@ TOURLAST_API_TOKEN=<token>
 tourlast.com sends each provider record to the Hub whenever it changes:
 
 ```
-POST https://sales.tourlast.com/api/v1/integrations/tourlast/providers
+POST https://sales-hub.tourlast.com/api/v1/integrations/tourlast/providers
 Authorization: Bearer <shared sync token>
 Content-Type: application/json
 
@@ -118,7 +118,7 @@ Full reference, examples and errors: [API.md → tourlast.com integration](API.m
 
 ### 4. Optional: instant updates (webhook)
 
-The Hub can also receive updates the moment they happen. POST to `https://sales.tourlast.com/webhooks/tourlast` with:
+The Hub can also receive updates the moment they happen. POST to `https://sales-hub.tourlast.com/webhooks/tourlast` with:
 
 - Header `X-Tourlast-Signature: sha256=<hex HMAC-SHA256 of the raw request body, keyed with the shared secret>`
 - Body `{"event_id": "<unique id>", "provider": { ...same fields as the API item above... }}`
@@ -127,7 +127,7 @@ The Hub can also receive updates the moment they happen. POST to `https://sales.
 $body = json_encode(['event_id' => (string) Str::uuid(), 'provider' => $payload]);
 Http::withBody($body, 'application/json')
     ->withHeaders(['X-Tourlast-Signature' => 'sha256='.hash_hmac('sha256', $body, config('services.sales_hub.secret'))])
-    ->post('https://sales.tourlast.com/webhooks/tourlast');
+    ->post('https://sales-hub.tourlast.com/webhooks/tourlast');
 ```
 
 Send one on signup and on every status change. Duplicate `event_id`s are ignored. Set the same secret as `TOURLAST_WEBHOOK_SECRET` in the Hub. The scheduled sync keeps running as a safety net.
@@ -167,7 +167,7 @@ Property types are the keys of `hub.property_types` in `config/hub.php` (hotel, 
 1. Set the `.env` values, then run `php artisan config:clear`.
 2. Run `php artisan hub:sync-tourlast --full`. It prints how many providers it read, created and updated, or the exact error.
 3. Open **Admin → Integration** in the Hub (Super Admin only) to see the sync log and the latest status changes.
-4. Visit `https://sales.tourlast.com/r/<a real code>`. You should land on List Your Property with `?ref=` attached. Complete a test signup, approve it and make it live in the tourlast.com admin, and within 10 minutes it appears under that salesperson's **My Onboardings** and counts on their **My Progress**.
+4. Visit `https://sales-hub.tourlast.com/r/<a real code>`. You should land on List Your Property with `?ref=` attached. Complete a test signup, approve it and make it live in the tourlast.com admin, and within 10 minutes it appears under that salesperson's **My Onboardings** and counts on their **My Progress**.
 
 While `TOURLAST_SOURCE=sandbox` (local and test environments only; production refuses it), the Integration page has a simulator that creates sample signups and moves them through each status, using the same code path as real data.
 

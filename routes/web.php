@@ -45,8 +45,8 @@ use App\Livewire\Team\Targets;
 use Illuminate\Support\Facades\Route;
 
 /*
-| Public tracked referral links: sales.tourlast.com/r/TL-JOHN-2847 (Stays)
-| and sales.tourlast.com/r/TL-JOHN-2847/experiences (Experiences).
+| Public tracked referral links: sales-hub.tourlast.com/r/TL-JOHN-2847 (Stays)
+| and sales-hub.tourlast.com/r/TL-JOHN-2847/experiences (Experiences).
 */
 Route::get('/r/{code}/{target?}', ReferralRedirectController::class)
     ->where('code', '[A-Za-z0-9\-]+')

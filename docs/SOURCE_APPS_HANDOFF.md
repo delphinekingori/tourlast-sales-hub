@@ -52,7 +52,7 @@ reuse one environment's token in another.
 3. Verify against the Hub:
 
    ```bash
-   curl "https://sales.tourlast.com/api/v1/integrations/tourlast/ref-codes" \
+   curl "https://sales-hub.tourlast.com/api/v1/integrations/tourlast/ref-codes" \
      -H "Authorization: Bearer $TOURLAST_HUB_TOKEN" \
      -H "Accept: application/json"
    ```
@@ -137,7 +137,7 @@ Same fields for the pull feed, the push endpoint and the webhook body.
 that changed.
 
 ```bash
-curl -X POST "https://sales.tourlast.com/api/v1/integrations/tourlast/providers" \
+curl -X POST "https://sales-hub.tourlast.com/api/v1/integrations/tourlast/providers" \
   -H "Authorization: Bearer $TOURLAST_HUB_TOKEN" \
   -H "Accept: application/json" \
   -H "Content-Type: application/json" \
@@ -224,7 +224,7 @@ runs exactly as for the scheduled sync. Full reference:
 (team page edit slide-over), and this endpoint always returns the current truth.
 
 ```bash
-curl "https://sales.tourlast.com/api/v1/integrations/tourlast/ref-codes" \
+curl "https://sales-hub.tourlast.com/api/v1/integrations/tourlast/ref-codes" \
   -H "Authorization: Bearer $TOURLAST_HUB_TOKEN" \
   -H "Accept: application/json"
 ```

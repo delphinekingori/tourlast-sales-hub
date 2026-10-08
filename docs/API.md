@@ -31,7 +31,7 @@ The Sales Hub API gives apps and other systems the same capabilities as the Sale
 
 | | |
 |---|---|
-| **Base URL** | `https://sales.tourlast.com/api/v1` |
+| **Base URL** | `https://sales-hub.tourlast.com/api/v1` |
 | **Format** | JSON over HTTPS (`Content-Type: application/json`, `Accept: application/json`); multipart for file uploads |
 | **Authentication** | Bearer tokens (`Authorization: Bearer <token>`) |
 | **Authorisation** | Token scopes **and** the token owner's permissions in the Hub |
@@ -44,7 +44,7 @@ The Sales Hub API gives apps and other systems the same capabilities as the Sale
 **1. Get a token** (or ask a Sales Admin to issue one under **Admin → API tokens**):
 
 ```bash
-curl -X POST https://sales.tourlast.com/api/v1/auth/tokens \
+curl -X POST https://sales-hub.tourlast.com/api/v1/auth/tokens \
   -H "Accept: application/json" -H "Content-Type: application/json" \
   -d '{"email":"john@tourlast.com","password":"••••••••","device_name":"John phone","scopes":["profile","leads:read","leads:write"]}'
 ```
@@ -62,7 +62,7 @@ curl -X POST https://sales.tourlast.com/api/v1/auth/tokens \
 **2. Call the API with it:**
 
 ```bash
-curl https://sales.tourlast.com/api/v1/me/dashboard \
+curl https://sales-hub.tourlast.com/api/v1/me/dashboard \
   -H "Accept: application/json" -H "Authorization: Bearer 12|Kx8Hc0tR4mZq9w…"
 ```
 
@@ -286,7 +286,7 @@ Mark one item (by `key` from the list, e.g. `a-12` or `n-<uuid>`) or everything 
 
 A **lead** is a salesperson's active opportunity with a property. Salespeople see and change only their own leads. Sales Admins, Sales Managers and Super Admins (the *team performance* permission) can read everyone's leads and transfer them, but only the owner can edit a lead, change its status, mark it lost or log activity on it.
 
-Base URL: `https://sales.tourlast.com/api/v1`
+Base URL: `https://sales-hub.tourlast.com/api/v1`
 
 ### GET /leads
 
@@ -673,7 +673,7 @@ Errors: `403` without `leads:read` or `registry:read`; `422` validation.
 
 ## Property Engagement Registry
 
-The registry is Tourlast's permanent record of every property or business it has engaged, whatever the outcome. Base URL: `https://sales.tourlast.com/api/v1`.
+The registry is Tourlast's permanent record of every property or business it has engaged, whatever the outcome. Base URL: `https://sales-hub.tourlast.com/api/v1`.
 
 - **Everyone** with a registry token (all six roles) can search and read it.
 - **Only managers** (Super Admin, Sales Admin, Sales Manager) can add, edit, log engagement, assign, link, archive or restore. Salespeople, HR and Accounts get `403` on every write, even with a `registry:write` token.
@@ -1324,7 +1324,7 @@ Status is `pending` (waiting for `current_step`: `manager`, `hr` or `finance`), 
       "current_step": "manager",
       "steps": ["manager", "hr", "finance"],
       "attachments": [
-        { "id": 88, "kind": "ride_details", "kind_label": "Ride details (Bolt/Uber)", "name": "bolt-trip.png", "mime": "image/png", "size": 184220, "download_url": "https://sales.tourlast.com/api/v1/claims/212/attachments/88" }
+        { "id": 88, "kind": "ride_details", "kind_label": "Ride details (Bolt/Uber)", "name": "bolt-trip.png", "mime": "image/png", "size": 184220, "download_url": "https://sales-hub.tourlast.com/api/v1/claims/212/attachments/88" }
       ],
       "created_at": "2026-09-19T18:02:00+03:00"
     }
@@ -1450,7 +1450,7 @@ Releases the money for an approved transport request.
 
 ## Team and accounts
 
-The team directory, invitations, suspending/firing/reinstating/deleting accounts, team performance and targets. Base URL `https://sales.tourlast.com/api/v1`.
+The team directory, invitations, suspending/firing/reinstating/deleting accounts, team performance and targets. Base URL `https://sales-hub.tourlast.com/api/v1`.
 
 Account actions follow the same rules as **Admin → Users & Invites**:
 
@@ -1753,7 +1753,7 @@ The plain-text `token` is shown **once**; store it securely. A token never grant
 
 ## Insights and reports
 
-Why properties say no, the Partner Register, and the same Excel and PDF files the Hub produces. Base URL `https://sales.tourlast.com/api/v1`. All endpoints need the `reports:read` scope.
+Why properties say no, the Partner Register, and the same Excel and PDF files the Hub produces. Base URL `https://sales-hub.tourlast.com/api/v1`. All endpoints need the `reports:read` scope.
 
 ### GET /insights/objections
 
@@ -1791,7 +1791,7 @@ The team view of **Lost & objections**: lost leads plus lost or rejected registr
         "objection_label": "Already has a PMS",
         "reengage_on": "2026-10-17",
         "lost_on": "2026-06-30",
-        "web_url": "https://sales.tourlast.com/registry/12"
+        "web_url": "https://sales-hub.tourlast.com/registry/12"
       }
     ],
     "losses": [
@@ -1806,7 +1806,7 @@ The team view of **Lost & objections**: lost leads plus lost or rejected registr
         "competitor": null,
         "notes": "Commission too high compared with direct bookings.",
         "lost_on": "2026-09-14",
-        "web_url": "https://sales.tourlast.com/leads/88"
+        "web_url": "https://sales-hub.tourlast.com/leads/88"
       }
     ]
   }
@@ -1881,7 +1881,7 @@ Accept the same filters as `GET /partners` and return the same Excel workbook / 
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" -o register.xlsx \
-  "https://sales.tourlast.com/api/v1/reports/partner-register.xlsx?status=onboarded&from=2026-09-01&to=2026-09-30"
+  "https://sales-hub.tourlast.com/api/v1/reports/partner-register.xlsx?status=onboarded&from=2026-09-01&to=2026-09-30"
 ```
 
 ### GET /reports/registry.xlsx · GET /reports/registry.pdf
@@ -1898,7 +1898,7 @@ Errors for all reports: `403` if the token owner may not see or export the data,
 
 tourlast.com can **push** provider signups and status changes to the Hub through the API. This is an alternative to giving the Hub a read-only database user or building the JSON endpoint described in `docs/TOURLAST_INTEGRATION.md`: with push, the Hub needs no access to tourlast.com at all. The scheduled sync and the signed webhook keep working and can be used alongside it.
 
-Base URL `https://sales.tourlast.com/api/v1`.
+Base URL `https://sales-hub.tourlast.com/api/v1`.
 
 ### Setting it up (for the tourlast.com developer)
 
@@ -1916,7 +1916,7 @@ Base URL `https://sales.tourlast.com/api/v1`.
 Send one record as `provider`, or up to 100 as `providers`:
 
 ```bash
-curl -X POST "https://sales.tourlast.com/api/v1/integrations/tourlast/providers" \
+curl -X POST "https://sales-hub.tourlast.com/api/v1/integrations/tourlast/providers" \
   -H "Authorization: Bearer $SALES_HUB_TOKEN" \
   -H "Accept: application/json" \
   -H "Content-Type: application/json" \

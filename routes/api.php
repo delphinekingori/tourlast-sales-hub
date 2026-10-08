@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Sales Hub API, version 1 — https://sales.tourlast.com/api/v1
+| Sales Hub API, version 1 — https://sales-hub.tourlast.com/api/v1
 |--------------------------------------------------------------------------
 |
 | Every route needs a Sanctum token (Authorization: Bearer <token>) except

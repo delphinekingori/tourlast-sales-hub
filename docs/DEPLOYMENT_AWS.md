@@ -1,6 +1,6 @@
 # Deploying Tourlast Sales Hub on AWS
 
-Target address: `https://sales.tourlast.com`.
+Target address: `https://sales-hub.tourlast.com`.
 
 ## What it needs
 
@@ -10,7 +10,7 @@ Target address: `https://sales.tourlast.com`.
 | MySQL 8 database | RDS for MySQL (enable automated backups) |
 | Email from sales@tourlast.com | Amazon SES (verify the tourlast.com domain) or the company SMTP server |
 | HTTPS certificate | Let's Encrypt on the server, or ACM on a load balancer |
-| DNS | Route 53 (or your DNS provider): `sales.tourlast.com` → server |
+| DNS | Route 53 (or your DNS provider): `sales-hub.tourlast.com` → server |
 
 Required PHP extensions: `pdo_mysql`, `mbstring`, `xml`, `curl`, `zip`, `gd`, `intl`, `bcmath`.
 
@@ -28,7 +28,7 @@ Edit `.env`:
 ```dotenv
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://sales.tourlast.com
+APP_URL=https://sales-hub.tourlast.com
 
 DB_CONNECTION=mysql
 DB_HOST=<rds-endpoint>
@@ -109,7 +109,7 @@ sudo supervisorctl restart sales-hub-worker
 
 ## Checklist before go-live
 
-- [ ] `https://sales.tourlast.com/up` returns 200
+- [ ] `https://sales-hub.tourlast.com/up` returns 200
 - [ ] You can sign in as the Super Admin, invite a test salesperson, and the email arrives from sales@tourlast.com
 - [ ] `php artisan hub:sync-tourlast --full` succeeds against tourlast.com
 - [ ] The test salesperson's link `/r/<code>` lands on tourlast.com with `?ref=` attached
