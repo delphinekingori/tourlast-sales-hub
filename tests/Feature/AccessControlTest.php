@@ -51,7 +51,10 @@ class AccessControlTest extends TestCase
     {
         $user = User::factory()->withRole($role)->create();
 
-        $this->actingAs($user)->get('/')->assertOk();
+        // Travel salespeople land on the Travel dashboard instead.
+        $home = $role === Role::TravelSalesperson ? route('travel.dashboard') : '/';
+
+        $this->actingAs($user)->get($home)->assertOk();
         $this->actingAs($user)->get(route('profile'))->assertOk();
     }
 

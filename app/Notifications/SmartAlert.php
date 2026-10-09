@@ -37,6 +37,26 @@ class SmartAlert extends Notification implements ShouldQueue
         'ownership_transferred' => ['label' => 'Ownership transferred', 'icon' => 'user', 'tone' => 'brand'],
         'reengage_due' => ['label' => 'Re-engagement due', 'icon' => 'clock', 'tone' => 'brand'],
         'account_status' => ['label' => 'Account suspended or fired', 'icon' => 'lock', 'tone' => 'danger'],
+
+        // Travel Sales
+        'package_submitted' => ['label' => 'Package submitted for approval', 'icon' => 'shield', 'tone' => 'brand'],
+        'package_approved' => ['label' => 'Package approved', 'icon' => 'check-circle', 'tone' => 'success'],
+        'package_rejected' => ['label' => 'Package rejected', 'icon' => 'ban', 'tone' => 'danger'],
+        'package_changes_requested' => ['label' => 'Package changes requested', 'icon' => 'alert', 'tone' => 'warning'],
+        'package_published' => ['label' => 'Package published', 'icon' => 'map', 'tone' => 'success'],
+        'departure_nearly_full' => ['label' => 'Departure nearly full', 'icon' => 'cube', 'tone' => 'warning'],
+        'departure_full' => ['label' => 'Departure fully booked', 'icon' => 'cube', 'tone' => 'danger'],
+        'travel_booking_new' => ['label' => 'New package booking', 'icon' => 'ticket', 'tone' => 'brand'],
+        'travel_booking_cancelled' => ['label' => 'Booking cancellation', 'icon' => 'ticket', 'tone' => 'danger'],
+        'travel_refund' => ['label' => 'Refund', 'icon' => 'refresh', 'tone' => 'warning'],
+        'travel_payment_received' => ['label' => 'Payment received', 'icon' => 'wallet', 'tone' => 'success'],
+        'payment_unmatched' => ['label' => 'Unmatched M-Pesa payment', 'icon' => 'wallet', 'tone' => 'warning'],
+        'trip_upcoming' => ['label' => 'Upcoming trip', 'icon' => 'calendar', 'tone' => 'brand'],
+        'trip_missing_driver' => ['label' => 'Trip has no driver', 'icon' => 'truck', 'tone' => 'warning'],
+        'trip_missing_guide' => ['label' => 'Trip has no guide', 'icon' => 'truck', 'tone' => 'warning'],
+        'pretrip_action' => ['label' => 'Pre-trip action required', 'icon' => 'clipboard', 'tone' => 'warning'],
+        'flight_sync_failed' => ['label' => 'Flight data delayed', 'icon' => 'plane', 'tone' => 'danger'],
+        'influencer_commission' => ['label' => 'Influencer commission', 'icon' => 'megaphone', 'tone' => 'brand'],
     ];
 
     public function __construct(

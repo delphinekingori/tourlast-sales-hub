@@ -6,16 +6,27 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\TargetFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * A salesperson's own monthly points target. Travel targets share the table
+ * under other metrics and are read through TravelTarget; this model only
+ * ever sees points rows.
+ */
 #[Fillable(['user_id', 'month', 'target'])]
 class Target extends Model
 {
     /** @use HasFactory<TargetFactory> */
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope('points', fn (Builder $query) => $query->where($query->qualifyColumn('metric'), 'points'));
+    }
 
     /**
      * @return array<string, string>

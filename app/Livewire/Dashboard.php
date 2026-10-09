@@ -53,6 +53,10 @@ class Dashboard extends Component
             abort_unless(Auth::user()->can(Permission::ViewTeamPerformance->value) || $user->is(Auth::user()), 403);
             abort_unless($user->role()?->earnsReferrals(), 404);
             $this->subjectId = $user->id;
+        } elseif (Auth::user()->isTravelSalesperson()) {
+            $this->redirectRoute('travel.dashboard', navigate: true);
+
+            return;
         }
 
         $this->period = array_key_exists($this->period, Period::options()) ? $this->period : 'month';

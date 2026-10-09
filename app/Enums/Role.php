@@ -10,6 +10,7 @@ enum Role: string
     case SalesAdmin = 'sales-admin';
     case SalesManager = 'sales-manager';
     case Salesperson = 'salesperson';
+    case TravelSalesperson = 'travel-salesperson';
     case Hr = 'hr';
     case Accounts = 'accounts';
 
@@ -20,6 +21,7 @@ enum Role: string
             self::SalesAdmin => 'Sales Admin',
             self::SalesManager => 'Sales Manager',
             self::Salesperson => 'Salesperson',
+            self::TravelSalesperson => 'Travel Salesperson',
             self::Hr => 'HR',
             self::Accounts => 'Accounts',
         };
@@ -32,6 +34,7 @@ enum Role: string
             self::SalesAdmin => 'Manages users and sees all sales data.',
             self::SalesManager => 'Sees the whole team and can invite salespeople.',
             self::Salesperson => 'Sees only their own progress, onboardings and leads.',
+            self::TravelSalesperson => 'Travel Sales: flights, tour and experience packages, bookings and influencer codes.',
             self::Hr => 'Partner Register, incentive agreements and HR approval of transport claims.',
             self::Accounts => 'Partner Register, payout statements and Finance approval of claims.',
         };
@@ -93,6 +96,13 @@ enum Role: string
                 Permission::TerminateUsers,
                 Permission::DeleteUsers,
                 Permission::ManageApiTokens,
+                Permission::AccessTravelSales,
+                Permission::ManageTravelSales,
+                Permission::ApprovePackagesFirst,
+                Permission::ViewTravelFinancials,
+                Permission::ApproveTravelRefunds,
+                Permission::ManageTravelTargets,
+                Permission::ViewAuditLog,
             ],
             self::SalesManager => [
                 Permission::InviteSalespeople,
@@ -112,6 +122,9 @@ enum Role: string
             self::Salesperson => [
                 Permission::ViewEngagementRegistry,
             ],
+            self::TravelSalesperson => [
+                Permission::AccessTravelSales,
+            ],
             self::Hr => [
                 Permission::ViewPartnerRegister,
                 Permission::ExportPartnerRegister,
@@ -130,6 +143,8 @@ enum Role: string
                 Permission::ManagePayouts,
                 Permission::ApproveClaimsFinance,
                 Permission::ViewPaymentDetails,
+                Permission::ViewTravelFinancials,
+                Permission::ManageTravelPayments,
                 Permission::PublishAnnouncements,
                 Permission::ViewPresence,
                 Permission::ViewEngagementRegistry,

@@ -29,6 +29,9 @@ enum ApiScope: string
     case ReportsRead = 'reports:read';
     case IntegrationRead = 'integration:read';
     case IntegrationPush = 'integration:push';
+    case TravelRead = 'travel:read';
+    case TravelWrite = 'travel:write';
+    case FlightsPush = 'flights:push';
 
     public function label(): string
     {
@@ -53,6 +56,9 @@ enum ApiScope: string
             self::ReportsRead => 'Insights and Excel/PDF exports',
             self::IntegrationRead => 'Read the tourlast.com sync log',
             self::IntegrationPush => 'Run a tourlast.com sync now (Hub admin)',
+            self::TravelRead => 'Read Travel Sales: flights, providers, packages, bookings, payments',
+            self::TravelWrite => 'Change Travel Sales records the token owner may change',
+            self::FlightsPush => 'Send flight bookings from Tourlast Flights Super Admin',
         };
     }
 

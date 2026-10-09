@@ -3,10 +3,12 @@
 namespace App\Livewire\Schedule;
 
 use App\Actions\CompleteScheduleItem;
+use App\Actions\Travel\CompleteTravelScheduleItem;
 use App\Enums\ActivityType;
 use App\Enums\LeadStatus;
 use App\Models\FollowUp;
 use App\Models\Lead;
+use App\Support\Travel\TravelSubjects;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -19,6 +21,9 @@ use Livewire\Component;
 /**
  * The one place to schedule, edit and complete calls, meetings and visits.
  * Pages open it with: $dispatch('open-schedule', { leadId, itemId, date, complete }).
+ *
+ * Travel salespeople schedule against a travel record instead of a lead:
+ * $dispatch('open-schedule', { subject: 'package:12' }) (see TravelSubjects).
  */
 class Editor extends Component
 {
@@ -37,9 +42,9 @@ class Editor extends Component
     public array $done = [];
 
     #[On('open-schedule')]
-    public function open(?int $leadId = null, ?int $itemId = null, ?string $date = null, bool $complete = false): void
+    public function open(?int $leadId = null, ?int $itemId = null, ?string $date = null, bool $complete = false, ?string $subject = null): void
     {
-        abort_unless(Auth::user()->role()?->earnsReferrals(), 403);
+        abort_unless($this->sells() || $this->travels(), 403);
         $this->resetValidation();
         $this->itemId = null;
         $this->mode = 'edit';
@@ -49,6 +54,7 @@ class Editor extends Component
             $this->itemId = $item->id;
             $this->form = [
                 'lead_id' => (string) $item->lead_id,
+                'subject' => $item->subject ? TravelSubjects::key($item->subject) : '',
                 'type' => $item->type->value,
                 'task' => $item->task,
                 'date' => $item->due_at->toDateString(),
@@ -61,10 +67,11 @@ class Editor extends Component
             ];
             $this->mode = $complete && ! $item->isDone() ? 'complete' : 'edit';
         } else {
-            $lead = $leadId ? Lead::query()->where('user_id', Auth::id())->find($leadId) : null;
+            $lead = $leadId && $this->sells() ? Lead::query()->where('user_id', Auth::id())->find($leadId) : null;
             $this->form = [
                 'lead_id' => (string) $lead?->id,
-                'type' => ActivityType::Meeting->value,
+                'subject' => $this->travels() && TravelSubjects::find($subject, Auth::user()) ? (string) $subject : '',
+                'type' => $this->travels() ? ActivityType::CustomerFollowUp->value : ActivityType::Meeting->value,
                 'task' => '',
                 'date' => $date && strtotime($date) ? CarbonImmutable::parse($date)->toDateString() : now()->toDateString(),
                 'time' => '',
@@ -76,7 +83,8 @@ class Editor extends Component
             ];
         }
 
-        $this->done = ['outcome' => '', 'next_action' => '', 'next_type' => ActivityType::FollowUp->value, 'next_date' => '', 'next_time' => ''];
+        $nextType = $this->travels() ? ActivityType::CustomerFollowUp : ActivityType::FollowUp;
+        $this->done = ['outcome' => '', 'next_action' => '', 'next_type' => $nextType->value, 'next_date' => '', 'next_time' => ''];
         $this->show = true;
     }
 
@@ -96,11 +104,14 @@ class Editor extends Component
 
     public function save(): void
     {
+        abort_unless($this->sells() || $this->travels(), 403);
         $item = $this->itemId ? $this->ownedItem($this->itemId) : null;
+        $travel = $this->travels();
 
         $data = $this->validate([
-            'form.lead_id' => ['required', Rule::exists('leads', 'id')->where('user_id', Auth::id())],
-            'form.type' => ['required', Rule::enum(ActivityType::class)],
+            'form.lead_id' => $travel ? ['nullable'] : ['required', Rule::exists('leads', 'id')->where('user_id', Auth::id())],
+            'form.subject' => $travel ? ['required', 'string'] : ['nullable'],
+            'form.type' => ['required', Rule::enum(ActivityType::class)->only($travel ? ActivityType::forTravel() : ActivityType::forProperty())],
             'form.task' => ['required', 'string', 'max:190'],
             'form.date' => $item ? ['required', 'date'] : ['required', 'date', 'after_or_equal:today'],
             'form.time' => ['nullable', 'date_format:H:i'],
@@ -110,12 +121,22 @@ class Editor extends Component
             'form.location' => ['nullable', 'string', 'max:190'],
             'form.notes' => ['nullable', 'string', 'max:5000'],
         ], [], [
-            'form.lead_id' => 'property / lead', 'form.task' => 'title', 'form.date' => 'date', 'form.time' => 'time', 'form.duration' => 'duration',
+            'form.lead_id' => 'property / lead', 'form.subject' => 'travel record', 'form.task' => 'title', 'form.date' => 'date', 'form.time' => 'time', 'form.duration' => 'duration',
         ])['form'];
+
+        $subject = $travel ? TravelSubjects::find($data['subject'], Auth::user()) : null;
+
+        if ($travel && ! $subject) {
+            $this->addError('form.subject', 'Choose a provider, package, booking, client or flight you can see.');
+
+            return;
+        }
 
         $hasTime = filled($data['time']);
         $attributes = [
-            'lead_id' => (int) $data['lead_id'],
+            'lead_id' => $travel ? null : (int) $data['lead_id'],
+            'subject_type' => $subject?->getMorphClass(),
+            'subject_id' => $subject?->getKey(),
             'type' => ActivityType::from($data['type']),
             'task' => trim($data['task']),
             'due_at' => $hasTime ? CarbonImmutable::parse($data['date'].' '.$data['time']) : CarbonImmutable::parse($data['date'])->startOfDay(),
@@ -144,14 +165,15 @@ class Editor extends Component
         $this->mode = 'complete';
     }
 
-    public function complete(CompleteScheduleItem $completeScheduleItem): void
+    public function complete(CompleteScheduleItem $completeScheduleItem, CompleteTravelScheduleItem $completeTravelItem): void
     {
         $item = $this->ownedItem((int) $this->itemId);
+        $types = $item->lead_id === null ? ActivityType::forTravel() : ActivityType::forProperty();
 
         $data = $this->validate([
             'done.outcome' => ['nullable', 'string', 'max:5000'],
             'done.next_action' => ['nullable', 'string', 'max:190'],
-            'done.next_type' => ['required', Rule::enum(ActivityType::class)],
+            'done.next_type' => ['required', Rule::enum(ActivityType::class)->only($types)],
             'done.next_date' => ['nullable', 'date', 'after_or_equal:today'],
             'done.next_time' => ['nullable', 'date_format:H:i'],
         ], [], ['done.next_date' => 'follow-up date', 'done.next_time' => 'follow-up time'])['done'];
@@ -160,7 +182,9 @@ class Editor extends Component
             ? CarbonImmutable::parse($data['next_date'].(filled($data['next_time']) ? ' '.$data['next_time'] : ''))
             : null;
 
-        $completeScheduleItem->handle(
+        $handler = $item->lead_id === null ? $completeTravelItem : $completeScheduleItem;
+
+        $handler->handle(
             $item,
             Auth::user(),
             $data['outcome'] ?: null,
@@ -188,9 +212,17 @@ class Editor extends Component
 
     public function render(): View
     {
+        $travel = $this->travels();
+
         return view('livewire.schedule.editor', [
-            'leads' => $this->show ? $this->leadOptions() : new Collection,
-            'item' => $this->itemId ? FollowUp::with('lead')->find($this->itemId) : null,
+            'travel' => $travel,
+            'leads' => $this->show && ! $travel ? $this->leadOptions() : new Collection,
+            'subjects' => $this->show && $travel ? TravelSubjects::options(Auth::user(), $this->form['subject'] ?? null) : [],
+            'types' => $travel ? ActivityType::forTravel() : [
+                ActivityType::Meeting, ActivityType::SiteVisit, ActivityType::Call, ActivityType::FollowUp, ActivityType::WhatsApp,
+                ActivityType::Email, ActivityType::Demo, ActivityType::ProposalSent, ActivityType::ContractDiscussion,
+            ],
+            'item' => $this->itemId ? FollowUp::with(['lead', 'subject'])->find($this->itemId) : null,
         ]);
     }
 
@@ -209,5 +241,18 @@ class Editor extends Component
     private function ownedItem(int $itemId): FollowUp
     {
         return FollowUp::query()->where('user_id', Auth::id())->findOrFail($itemId);
+    }
+
+    private function sells(): bool
+    {
+        return (bool) Auth::user()->role()?->earnsReferrals();
+    }
+
+    /**
+     * Travel salespeople schedule against travel records instead of leads.
+     */
+    private function travels(): bool
+    {
+        return Auth::user()->isTravelSalesperson();
     }
 }

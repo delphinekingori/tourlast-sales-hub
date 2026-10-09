@@ -35,6 +35,7 @@ class Index extends Component
     {
         $people = User::query()
             ->active()
+            ->visibleTo(Auth::user())
             ->with('roles')
             ->when($this->role !== '', fn ($query) => $query->role($this->role))
             ->when($this->onlineOnly, fn ($query) => $query->where('last_seen_at', '>', now()->subMinutes(5)))
@@ -48,7 +49,7 @@ class Index extends Component
 
         return view('livewire.people.index', [
             'people' => $people,
-            'onlineCount' => User::query()->active()->where('last_seen_at', '>', now()->subMinutes(5))->count(),
+            'onlineCount' => User::query()->active()->visibleTo(Auth::user())->where('last_seen_at', '>', now()->subMinutes(5))->count(),
             'roles' => Role::cases(),
         ]);
     }

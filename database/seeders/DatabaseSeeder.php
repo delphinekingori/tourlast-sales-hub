@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
         $this->call([RolesAndPermissionsSeeder::class, IncentivePolicySeeder::class]);
 
         if (app()->isLocal() && config('tourlast.source') === 'sandbox') {
-            $this->call(DemoSeeder::class);
+            $this->call([DemoSeeder::class, TravelDemoSeeder::class]);
         }
     }
 }

@@ -20,6 +20,7 @@ class Show extends Component
     public function mount(User $user): void
     {
         abort_unless(Auth::user()->can(Permission::ViewPresence->value) || $user->is(Auth::user()), 403);
+        abort_unless($user->isVisibleTo(Auth::user()), 404);
         $this->userId = $user->id;
     }
 

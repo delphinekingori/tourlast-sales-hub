@@ -30,6 +30,7 @@ class Announcement extends Model
     public const Audiences = [
         'everyone' => ['label' => 'Everyone', 'roles' => []],
         'sales' => ['label' => 'Salespeople', 'roles' => [Role::Salesperson]],
+        'travel' => ['label' => 'Travel salespeople', 'roles' => [Role::TravelSalesperson]],
         'management' => ['label' => 'Managers & admins', 'roles' => [Role::SuperAdmin, Role::SalesAdmin, Role::SalesManager]],
         'hr' => ['label' => 'HR', 'roles' => [Role::Hr]],
         'finance' => ['label' => 'Finance', 'roles' => [Role::Accounts]],

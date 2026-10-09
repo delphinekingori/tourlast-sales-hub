@@ -13,8 +13,22 @@ use App\Enums\LeadStatus;
 use App\Enums\Objection;
 use App\Enums\OnboardingStatus;
 use App\Enums\Role;
+use App\Enums\Travel\ApprovalDecision;
+use App\Enums\Travel\BookingPaymentStatus;
+use App\Enums\Travel\ContractStatus;
+use App\Enums\Travel\DepartureStatus;
+use App\Enums\Travel\PackageStatus;
+use App\Enums\Travel\PackageVersionStatus;
+use App\Enums\Travel\PaymentMethod;
+use App\Enums\Travel\PaymentStatus;
+use App\Enums\Travel\TravelBookingStatus;
+use App\Enums\Travel\TravelProviderStatus;
+use App\Enums\Travel\TravelProviderType;
+use App\Enums\Travel\TravelTargetMetric;
+use App\Enums\Travel\TripStatus;
 use App\Models\Announcement;
 use App\Models\LeadTransfer;
+use App\Models\Package;
 use App\Support\Period;
 use Illuminate\Http\JsonResponse;
 
@@ -55,6 +69,23 @@ class MetaController extends ApiController
             'transfer_reasons' => $pairs(LeadTransfer::Reasons),
             'account_statuses' => $options(AccountStatus::cases()),
             'suspension_reasons' => $pairs(AccountStatus::suspensionReasons()),
+            'travel' => [
+                'provider_types' => $options(TravelProviderType::cases()),
+                'provider_statuses' => $options(TravelProviderStatus::cases()),
+                'contract_statuses' => $options(ContractStatus::cases()),
+                'package_types' => $pairs(Package::Types),
+                'package_statuses' => $options(PackageStatus::cases()),
+                'package_version_statuses' => $options(PackageVersionStatus::cases()),
+                'approval_decisions' => $options(ApprovalDecision::cases()),
+                'departure_statuses' => $options(DepartureStatus::cases()),
+                'trip_statuses' => $options(TripStatus::cases()),
+                'booking_statuses' => $options(TravelBookingStatus::cases()),
+                'booking_payment_statuses' => $options(BookingPaymentStatus::cases()),
+                'payment_methods' => $options(PaymentMethod::cases()),
+                'payment_statuses' => $options(PaymentStatus::cases()),
+                'activity_types' => $options(ActivityType::forTravel()),
+                'target_metrics' => $options(TravelTargetMetric::cases()),
+            ],
             'termination_reasons' => $pairs(AccountStatus::terminationReasons()),
             'announcement_audiences' => collect(Announcement::Audiences)->map(fn (array $group, string $key) => ['value' => $key, 'label' => $group['label']])->values(),
         ]]);

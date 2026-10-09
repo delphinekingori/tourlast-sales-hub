@@ -26,8 +26,10 @@
 - [Admin: API tokens](#admin-api-tokens)
 - [Insights and reports](#insights-and-reports)
 - [tourlast.com integration](#tourlastcom-integration)
+- [Travel Sales](#travel-sales)
+- [Connecting Flights Super Admin and M-Pesa](#connecting-flights-super-admin-and-m-pesa)
 
-The Sales Hub API gives apps and other systems the same capabilities as the Sales Hub web app: leads and scheduling, the Property Engagement Registry, tourlast.com onboardings, incentives and claims, team management, notifications, reports, and the tourlast.com integration.
+The Sales Hub API gives apps and other systems the same capabilities as the Sales Hub web app: leads and scheduling, the Property Engagement Registry, tourlast.com onboardings, incentives and claims, team management, notifications, reports, the tourlast.com integration, and Travel Sales (flights, tour and experience packages, bookings and payments).
 
 | | |
 |---|---|
@@ -121,6 +123,8 @@ Returns `201` with `token`, `scopes`, `expires_at` and `user`. Wrong credentials
 | `notifications:read` / `notifications:write` | Notifications and announcements / mark read, publish |
 | `reports:read` | Insights and Excel/PDF exports |
 | `integration:read` / `integration:push` | Read the tourlast.com sync log / run a tourlast.com sync now (Hub admin) |
+| `travel:read` / `travel:write` | Read Travel Sales (flights, providers, contracts, packages, departures, bookings, payments, influencer codes, reports, targets) / change packages, bookings, payment requests and travel follow-ups |
+| `flights:push` | Send flight bookings from Tourlast Flights Super Admin (integration account only) |
 
 **Scope plus permission.** A token with `registry:write` held by a salesperson still gets `403` on registry writes, because salespeople cannot change the registry in the Hub. The roles and what each can do are listed in the System Guide (`docs/SYSTEM_GUIDE.md`, section 2).
 
@@ -130,7 +134,9 @@ Returns `201` with `token`, `scopes`, `expires_at` and `user`. Wrong credentials
 |---|---|
 | tourlast.com feed (push, ref-codes) | none — the shared sync token (`php artisan hub:generate-token`) |
 | tourlast.com sync log and manual sync | `integration:read` / `integration:push` on a Hub admin |
-| Reporting / BI (read only) | `registry:read`, `onboardings:read`, `incentives:read`, `team:read`, `reports:read` |
+| Reporting / BI (read only) | `registry:read`, `onboardings:read`, `incentives:read`, `team:read`, `reports:read`, `travel:read` |
+| Flights Super Admin (push) | `flights:push` only, on the account from `php artisan travel:create-flights-account` |
+| Travel sales app | `profile`, `travel:read`, `travel:write`, `notifications:*` |
 | Salesperson mobile app | `profile`, `leads:*`, `schedule:*`, `registry:read`, `onboardings:read`, `incentives:read`, `claims:*`, `notifications:*` |
 
 ## Requests and responses
@@ -2043,3 +2049,308 @@ Runs a pull from tourlast.com now, using the configured source (`TOURLAST_SOURCE
 | `mode` | string | no | `incremental` (default, changes since the last run) or `full` |
 
 Returns the sync run (as above) with `200`, or `502` if the sync failed (see `error`).
+
+## Travel Sales
+
+The Travel Sales workspace: flights (read-only, from Tourlast Flights Super Admin), tour and experience providers and contracts, packages with two-level approval, departures and slots, package bookings, M-Pesa payments, influencer codes, reports and targets.
+
+**Who can use it.** Travel salespeople, Sales Admin and Super Admin. Accounts can read bookings, payments and reports only. Sales Managers, HR and property salespeople get `403` on every Travel endpoint, whatever scopes their token has.
+
+**What each person sees.** Travel salespeople see the shared catalogue (providers, contracts, packages, flights) but only their own bookings, bookings on their own packages, departures of their own packages and payments on those bookings. Sales Admin and Super Admin see everything. Money fields follow the web app:
+- Contract commission is visible only to people with travel financials (Sales Admin, Super Admin, Accounts) and to the salesperson who owns the provider.
+- Package cost, net price, commission and margin are visible only to people with travel financials and to the package owner.
+- Flight markup is visible only to people with travel financials.
+- Client and flight-customer phone numbers and emails are masked unless you sold the booking, own the package, or are a Travel manager or Accounts.
+
+Every write goes through the same rules as the web app: a package needs Sales Admin **and** Super Admin approval from two different people, neither of whom created it; only an approved package can be published; overbooking is refused; flight bookings can never be changed from the Hub.
+
+### GET /travel/dashboard
+
+**Scope:** `travel:read` · **Who:** travel salespeople, Sales Admin, Super Admin
+
+Flights and tours figures for this month, sales actions, low availability and expiring contracts. `?scope=team` gives Travel managers the whole team, with approvals and a per-salesperson table.
+
+```json
+{
+  "data": {
+    "scope": "mine",
+    "flights": { "today": 0, "month": 9, "upcoming": 11, "cancelled": 3, "refunds_pending": 2, "refunds_completed": 0, "revenue": 30280, "markup": null },
+    "tours": { "providers": 2, "published": 1, "active": 2, "pending_approval": 1, "bookings": 4, "revenue": 128000, "slots_sold": 9, "upcoming_tours": 2, "pending_cancellations": 1, "pending_refunds": 1, "pending_bookings": 2 },
+    "targets": [ { "label": "Flight bookings", "money": false, "actual": 9, "target": 50 } ],
+    "sales_actions": [ { "when": "Today", "due": "2026-10-07 00:00", "label": "Submit package for approval", "detail": "Hell's Gate Cycling Experience · Draft", "url": "https://sales-hub.tourlast.com/travel/packages/7" } ],
+    "low_availability": [], "expiring_contracts": [], "approvals": null, "salespeople": null
+  }
+}
+```
+
+### GET /travel/flights
+
+**Scope:** `travel:read` · **Who:** travel salespeople, Sales Admin, Super Admin
+
+Flight bookings, read-only. Filters: `view` (`bookings` default, `upcoming`, `cancellations`, `refunds`), `q` (reference, PNR, customer or passenger), `status` (booking status, or refund status when `view=refunds`), `airline` (IATA code), `from`/`to` (booking date), `mine=1`, `salesperson` (managers). `meta` says where the data comes from and whether it is stale.
+
+```json
+{
+  "data": [{
+    "id": 12, "external_id": "FL-104233", "booking_reference": "TLF10423", "pnr": "X7K2QP",
+    "customer_name": "Jane Doe", "customer_email": "j***@example.com", "customer_phone": "0712 *** 678",
+    "airline_code": "KQ", "airline_name": "Kenya Airways", "route": "NBO → MBA",
+    "departure_at": "2026-10-20T07:15:00+03:00", "total_amount": "11200.00", "currency": "KES",
+    "booking_status": "confirmed", "booking_status_label": "Confirmed",
+    "refund_status": null, "salesperson": { "id": 9, "name": "Aisha Njeri" },
+    "admin_url": "https://admin.flights.tourlast.com/bookings/FL-104233"
+  }],
+  "meta": { "view": "bookings", "source": "api", "last_synced_at": "2026-10-07T10:05:00+03:00", "stale": false, "…": "…" }
+}
+```
+
+Statuses are exactly as Flights Super Admin sends them. To change a booking, open `admin_url`.
+
+### GET /travel/flights/{id}
+
+**Scope:** `travel:read` · One flight booking with `segments` and `passengers` (name, type, ticket number). There are no write endpoints for flights.
+
+### GET /travel/providers · GET /travel/providers/{id}
+
+**Scope:** `travel:read` · Providers, with filters `q`, `status`, `type`, `mine=1`, `archived=1`. The single provider includes its contracts.
+
+```json
+{ "data": { "id": 4, "name": "Savannah Trails", "provider_type": "safari_operator", "provider_type_label": "Safari operator", "status": "active", "status_label": "Active", "city": "Narok", "owner": { "id": 9, "name": "Aisha Njeri" }, "packages_count": 3, "contracts": [ "…" ] } }
+```
+
+### GET /travel/contracts · GET /travel/contracts/{id}
+
+**Scope:** `travel:read` · Provider contracts. `status` is the effective status: an active contract shows as `expiring_soon` in its last 30 days and `expired` after its end date. Filter by `status` (any contract status, including `expiring_soon` and `expired`) or `provider_id`. Commission fields and the list of documents appear only for people allowed to see them; document files are never served through the API.
+
+```json
+{ "data": { "id": 2, "contract_number": "TL-2026-002", "provider_name": "Amboseli Trails Ltd", "starts_on": "2026-01-01", "ends_on": "2026-10-17", "days_until_expiry": 10, "status": "expiring_soon", "status_label": "Expiring soon", "commission_model": "percentage", "commission_rate": "12.50", "cancellation_terms": "Free cancellation up to 14 days before travel." } }
+```
+
+### GET /travel/packages · GET /travel/packages/{id}
+
+**Scope:** `travel:read` · Packages, with filters `q`, `status` (`draft`, `pending_approval`, `approved`, `published`, `unpublished`, `archived`), `provider_id`, `mine=1`, `archived=1`. Each package has its `live_version` (the approved content customers see) and, when a change is in progress, its `working_version`. `approval_required` is `true` while a published package has a change waiting for approval. The single package adds the itinerary, media (with URLs) and approval history.
+
+```json
+{
+  "data": {
+    "id": 1, "reference": "PKG-2026-0001", "name": "Masai Mara 3-Day Safari",
+    "status": "published", "status_label": "Published",
+    "approval_status": "approved", "approval_required": false,
+    "provider": { "id": 4, "name": "Savannah Trails" },
+    "created_by": { "id": 9, "name": "Aisha Njeri" },
+    "live_version": {
+      "version": "v1.0", "status": "approved", "days": 3, "nights": 2, "currency": "KES",
+      "adult_price": "45000.00", "child_price": "30000.00",
+      "inclusions": ["Park fees", "Full board accommodation"],
+      "cancellation_policy": "Full refund up to 14 days before departure…",
+      "itinerary": [ { "day_number": 1, "title": "Nairobi to the Mara", "meals": ["lunch", "dinner"] } ]
+    },
+    "working_version": null,
+    "media": [ { "id": 31, "title": "Sunrise game drive", "url": "https://sales-hub.tourlast.com/storage/media/…", "is_primary": true } ],
+    "approvals": [ { "level": "sales_admin", "decision": "approved", "by": "Grace Njeri", "decided_at": "…" } ]
+  }
+}
+```
+
+### POST /travel/packages
+
+**Scope:** `travel:write` · **Who:** travel salespeople, Sales Admin, Super Admin
+
+Creates a draft package (v1.0) owned by you. Send the same fields as the web form: `name`, `short_description`, `description`, `package_type`, `travel_provider_id`, `provider_contract_id`, `destination`, `country`, `days`, `nights`, `default_capacity`, `max_travelers`, `adult_price`, `child_price`, `inclusions` (list), `exclusions` (list), `cancellation_policy`, `refund_policy`, and so on, plus `itinerary` (list of days with `title`, `description`, `activities`, `meals`, `accommodation`, `transport`, `notes`). A possible duplicate returns `422`; managers may resend with `accept_duplicate: true`. Returns `201` with the package.
+
+### PATCH /travel/packages/{id}
+
+**Scope:** `travel:write` · **Who:** the package owner, Sales Admin, Super Admin
+
+Send only the fields that change; the rest are kept. On an approved package this creates the next version: price, provider, contract, capacity, cancellation and refund policy, inclusions, exclusions, length and itinerary changes need approval again (the live version keeps selling meanwhile); other changes apply at once. A version awaiting review cannot be changed (`422`).
+
+### POST /travel/packages/{id}/submit
+
+**Scope:** `travel:write` · **Who:** the package owner, Sales Admin, Super Admin
+
+Sends the draft for approval. Refused with `422` and the missing items until the readiness checklist passes (descriptions, provider, active contract, destination, adult price, itinerary, inclusions, exclusions, cancellation and refund policy, media, capacity).
+
+### POST /travel/packages/{id}/review
+
+**Scope:** `travel:write` · **Who:** Sales Admin (first review), then Super Admin (final review)
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `decision` | string | yes | `approved`, `rejected` or `changes_requested` |
+| `reason` | string | for rejected and changes_requested | Shown to the package owner |
+
+The creator, the owner and whoever submitted the version can never review it, and the final approval must come from a different person than the first. Those cases return `403`; a package that is not waiting for review returns `422`.
+
+### POST /travel/packages/{id}/publish · POST /travel/packages/{id}/unpublish
+
+**Scope:** `travel:write` · **Who:** the package owner, Sales Admin, Super Admin
+
+Publishing records where the package now sells: `channel` (required, e.g. `tourlast.com`, `Instagram`), `url` (optional). Only an approved package can be published. If the provider is not active, the contract is not in force or required terms are missing, it returns `422` with what is missing; a Super Admin can publish anyway by sending `override_reason`. Unpublish takes an optional `reason`.
+
+### GET /travel/departures
+
+**Scope:** `travel:read` · Departures (package inventory) with `capacity`, `sold`, `reserved` (pending bookings still on hold), `available`, `waitlist`, availability `status` (`open`, `nearly_full`, `full`, `closed`, `cancelled`) and `trip_status`. Filters `package_id`, `from`, `to` (start date). Travel salespeople see departures of their own packages.
+
+### GET /travel/bookings · GET /travel/bookings/{id}
+
+**Scope:** `travel:read` · **Who:** travel salespeople (own), Sales Admin, Super Admin, Accounts
+
+Package bookings with filters `q`, `status` (`pending`, `confirmed`, `completed`, `cancelled`, `no_show`), `payment_status` (`unpaid`, `partially_paid`, `paid`, `partially_refunded`, `refunded`), `package_id`. The single booking adds its `payments`.
+
+```json
+{
+  "data": {
+    "id": 3, "reference": "TB-2026-0003", "package": { "id": 3, "name": "Diani Beach Dhow Sunset Cruise" },
+    "departure": { "id": 5, "starts_on": "2026-10-19", "capacity": 12, "sold": 5, "reserved": 4, "available": 3 },
+    "client": { "id": 8, "name": "Njeri Githinji", "email": "njeri@example.com", "phone": "0722123456" },
+    "adults": 3, "children": 1, "infants": 0, "travelers": 4,
+    "amount_total": "24050.00", "amount_paid": "10000.00", "balance": 14050,
+    "status": "pending", "status_label": "Pending",
+    "payment_status": "partially_paid", "payment_status_label": "Partially paid",
+    "hold_expires_at": "2026-10-09T10:00:00+03:00"
+  },
+  "payments": [ { "method": "mpesa", "channel": "paybill", "status": "completed", "amount": "10000.00", "mpesa_receipt": "SJK3H2L9QX" } ]
+}
+```
+
+### POST /travel/bookings
+
+**Scope:** `travel:write` · **Who:** travel salespeople, Sales Admin, Super Admin
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `package_id` | integer | yes | A package with an approved version |
+| `package_departure_id` | integer | yes | An open, future departure of that package |
+| `travel_client_id` | integer | no | An existing client; otherwise send the client fields |
+| `client_name` | string | without `travel_client_id` | |
+| `client_phone` / `client_email` | string | one of them, without `travel_client_id` | Used to find an existing client so nobody is added twice |
+| `adults` | integer | yes | At least 1 |
+| `children`, `infants` | integer | no | |
+| `special_requirements`, `dietary_requirements`, `notes` | string | no | |
+| `emergency_contact_name`, `emergency_contact_phone` | string | no | |
+| `guests` | array | no | One object per traveler: `full_name` (required), `type` (`adult`, `child`, `infant`; required), optional `is_booker`, `date_of_birth`, `nationality`, `id_number`, `phone`, `email`, `special_requirements`. When sent, the count and types must match `adults`, `children` and `infants`, or `422`. Left out, the booking has no guest details until they are added in the Hub |
+| `influencer_code` | string | no | Must be an active code for packages, or `422` "Code not valid for this booking" |
+| `salesperson_id` | integer | no | Managers only: book on behalf of a travel salesperson |
+
+The price comes from the approved version. The booking starts `pending` and holds its slots for 48 hours. If the departure does not have room it returns `422` (no overbooking). Returns `201`.
+
+### POST /travel/bookings/{id}/confirm
+
+**Scope:** `travel:write` · Confirms a pending booking. Refused with `422` if the hold ran out and the departure is now full.
+
+### POST /travel/bookings/{id}/mpesa
+
+**Scope:** `travel:write` · **Who:** the salesperson, the package owner, Sales Admin, Super Admin, Accounts
+
+Sends an M-Pesa payment request (STK push) to the client's phone. Send `phone` (Kenyan number, any common format) and `amount` (at most the balance). Returns `201` with a `pending` payment; it becomes `completed`, `failed` or `cancelled` when Safaricom answers, and the booking's payment status updates by itself.
+
+### GET /travel/payments
+
+**Scope:** `travel:read` · **Who:** travel salespeople (payments on their bookings), Sales Admin, Super Admin, Accounts
+
+Filters `status`, `method`, and `unmatched=1` (Accounts and managers: paybill payments whose account number matched no booking). Confirming cash and bank payments and allocating unmatched payments are done in the web app by Accounts.
+
+### GET /travel/influencer-codes
+
+**Scope:** `travel:read` · Influencer codes with their terms (`commission_type`, `commission_value`, `terms`, `applies_to`, `max_bookings`, period) and results (`bookings_used`, `bookings_remaining`, `revenue_generated`, `commission_pending`, `commission_payable`, `commission_paid`). Travel salespeople see their own influencers' codes. Filters `q`, `status`, `applies_to`.
+
+### GET /travel/reports
+
+**Scope:** `travel:read` · **Who:** travel salespeople (own figures), Sales Admin, Super Admin, Accounts
+
+`?period=month|last-month|quarter|year|custom` (with `from` and `to` for custom), `salesperson` (managers and Accounts). Returns `flights` (summary, routes, airlines, refunds by status), `tours` (summary, package performance, destinations), `providers` (summary, performance), `approvals` (pending, approved, rejected, changes requested, average approval time) and `salespeople` (bookings, revenue and targets).
+
+### GET /travel/targets
+
+**Scope:** `travel:read` · Monthly travel targets and progress (`?month=YYYY-MM`). Travel salespeople see their own; Sales Admin sees everyone. Targets are set by Sales Admin in the web app.
+
+### POST /travel/schedule
+
+**Scope:** `travel:write` · **Who:** travel salespeople
+
+Puts a follow-up, meeting or check-in on your Sales Calendar about a travel record.
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `subject` | string | yes | `provider:{id}`, `package:{id}`, `booking:{id}`, `client:{id}` or `flight:{id}` — a record you can see |
+| `type` | string | yes | `customer_follow_up`, `flight_follow_up`, `customer_meeting`, `provider_meeting`, `contract_meeting`, `package_review`, `pre_trip_briefing`, `partner_check_in`, `call`, `whatsapp` or `email` |
+| `task` | string | yes | Title |
+| `due_at` | datetime | yes | Today or later |
+| `has_time` | boolean | no | `false` (default) for an anytime reminder |
+| `duration_minutes`, `contact_name`, `location`, `notes` | | no | |
+
+## Connecting Flights Super Admin and M-Pesa
+
+For the developers connecting the systems. Until they are connected, the Hub runs on test data (`FLIGHTS_SOURCE=sandbox`, `MPESA_DRIVER=sandbox`) and shows a "test data" notice.
+
+### Flights Super Admin
+
+Flights Super Admin stays the source of truth: the Hub keeps a read-only copy and never changes a booking, payment, cancellation or refund. Choose one way to connect:
+
+**Option A: the Hub pulls (`FLIGHTS_SOURCE=api`).** Flights Super Admin exposes `GET {FLIGHTS_API_URL}/bookings?updated_since=<ISO 8601>&page=N`, authenticated with `Authorization: Bearer {FLIGHTS_API_TOKEN}`, returning `{"data": [ … bookings … ], "meta": {"next_page": 2}}` (or `last_page`). The Hub calls it every 10 minutes (`php artisan travel:sync-flights`, `--full` for everything).
+
+**Option B: Flights Super Admin pushes (`FLIGHTS_SOURCE=push`).**
+1. On the Hub server run `php artisan travel:create-flights-account`. It creates an account with no role and only permission to send flight bookings, and prints a token with the single scope `flights:push`. `--rotate` issues a new token and revokes the old one.
+2. Store the token as a secret in Flights Super Admin.
+3. Send every new or changed booking to `POST /api/v1/integrations/flights/bookings`, one as `booking` or up to 500 as `bookings`. Re-sending is safe: bookings are matched on `external_id`, and older `updated_at` values are ignored.
+
+```bash
+curl -X POST "https://sales-hub.tourlast.com/api/v1/integrations/flights/bookings" \
+  -H "Authorization: Bearer $FLIGHTS_PUSH_TOKEN" -H "Accept: application/json" -H "Content-Type: application/json" \
+  -d '{"bookings": [{"external_id": "FL-104233", "booked_at": "2026-10-07T10:03:00+03:00", "booking_status": "confirmed", "…": "…"}]}'
+```
+
+```json
+{ "received": 1, "created": 1, "updated": 0, "unchanged": 0, "failed": [] }
+```
+
+A booking that fails is listed in `failed` with its `external_id` and the reason; the others are still saved. If every booking fails the response is `422`.
+
+**The booking record (both options).** Keys are snake_case; only `external_id`, `booked_at` and `booking_status` are required. Dates are ISO 8601 with an offset, amounts are numbers in `currency`, and statuses are sent as Flights Super Admin uses them (the Hub stores them as sent, lower-cased).
+
+```json
+{
+  "external_id": "FL-104233",
+  "booking_reference": "TLF10423",
+  "pnr": "X7K2QP",
+  "customer": { "name": "Jane Doe", "email": "jane@example.com", "phone": "0712345678" },
+  "airline": { "code": "KQ", "name": "Kenya Airways" },
+  "origin": "NBO", "destination": "MBA",
+  "trip_type": "one_way", "cabin": "economy",
+  "departure_at": "2026-10-20T07:15:00+03:00", "arrival_at": "2026-10-20T08:15:00+03:00", "return_at": null,
+  "passengers": [ { "name": "Jane Doe", "type": "adult", "ticket_number": "7062345678901" } ],
+  "segments": [ { "flight_number": "KQ602", "airline": "KQ", "origin": "NBO", "destination": "MBA", "departure_at": "2026-10-20T07:15:00+03:00", "arrival_at": "2026-10-20T08:15:00+03:00", "cabin": "economy" } ],
+  "currency": "KES", "fare_amount": 9500, "total_amount": 11200, "markup_amount": 700,
+  "booking_status": "confirmed",
+  "payment_status": "paid",
+  "cancellation": { "status": "cancelled", "cancelled_at": "2026-10-10T09:00:00+03:00", "reason": "Customer request" },
+  "refund": { "status": "pending", "amount": 8000, "method": "mpesa", "requested_at": "2026-10-10T09:00:00+03:00", "completed_at": null },
+  "booked_at": "2026-10-07T10:03:00+03:00",
+  "agent_reference": "aisha@tourlast.com",
+  "promo_code": "AMINA10",
+  "updated_at": "2026-10-07T10:05:00+03:00"
+}
+```
+
+- `agent_reference` is the Hub email of the travel salesperson who sold the booking; it credits the sale to them.
+- `promo_code` is the influencer code the customer used, if any; it earns the influencer commission on flights.
+- Flat keys work too: `customer_name`, `customer_email`, `customer_phone`, `airline_code`, `airline_name`, `cancellation_status`, `cancelled_at`, `cancellation_reason`, `refund_status`, `refund_amount`, `refund_method`, `refund_requested_at`, `refund_completed_at`.
+- Each booking links back with `FLIGHTS_ADMIN_BOOKING_URL` (for example `https://admin.flights.tourlast.com/bookings/{id}`, where `{id}` is `external_id`).
+- If the data stops arriving (no successful sync in `FLIGHTS_STALE_AFTER_MINUTES`, or no push for 24 hours), the flights pages show "Flight data synchronization delayed" and Travel managers get an alert at most once an hour.
+
+### M-Pesa (Safaricom Daraja)
+
+Package payments go to the Hub's paybill (or till). Ask Safaricom for Daraja API access to a shortcode used **only** by the Hub: a paybill sends its payment notifications to one set of URLs, so it cannot be shared with tourlast.com.
+
+1. Set in the Hub's `.env`: `MPESA_DRIVER=daraja`, `DARAJA_ENVIRONMENT=sandbox` (then `production`), `DARAJA_CONSUMER_KEY`, `DARAJA_CONSUMER_SECRET`, `DARAJA_SHORTCODE`, `DARAJA_SHORTCODE_TYPE` (`paybill` or `till`; with `till` also `DARAJA_TILL_NUMBER`), `DARAJA_PASSKEY`, and `DARAJA_CALLBACK_SECRET` (a long random string; the callback URLs contain it).
+2. Run `php artisan travel:mpesa-register-urls`. It prints the callback URLs and registers the paybill URLs with Safaricom:
+   - `POST https://sales-hub.tourlast.com/api/daraja/{DARAJA_CALLBACK_SECRET}/stk` — results of payment requests sent from the Hub
+   - `POST https://sales-hub.tourlast.com/api/daraja/{DARAJA_CALLBACK_SECRET}/c2b/validation`
+   - `POST https://sales-hub.tourlast.com/api/daraja/{DARAJA_CALLBACK_SECRET}/c2b/confirmation` — customers paying the paybill directly
+3. Optionally restrict callbacks to Safaricom's addresses with `DARAJA_ALLOWED_IPS` (comma-separated).
+
+How payments arrive:
+- **Payment requests** (`POST /travel/bookings/{id}/mpesa` or the button on the booking page) send an STK push; Safaricom's answer arrives on the `stk` URL. Requests with no answer after `DARAJA_STK_TIMEOUT_MINUTES` are checked with Safaricom every 5 minutes (`php artisan travel:mpesa-reconcile`) and marked failed after an hour.
+- **Paybill payments**: the customer pays with the **booking reference** (for example `TB-2026-0042`) as the account number. The Hub matches it to the booking, ignoring case and surrounding spaces. Payments that match no booking wait under Payments → Unmatched for Accounts to allocate.
+- Every message from Safaricom is stored before it is processed, each M-Pesa receipt is applied once only, and M-Pesa payments can never be edited.
+- In test mode, `php artisan travel:mpesa-simulate {booking reference} {amount}` posts a realistic paybill payment through the real handler.

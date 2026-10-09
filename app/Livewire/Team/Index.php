@@ -292,6 +292,7 @@ class Index extends Component
     {
         return User::query()
             ->with(['roles', 'referralCode'])
+            ->visibleTo($this->actor())
             ->when($this->search !== '', fn ($query) => $query->where(fn ($query) => $query
                 ->where('name', 'like', "%{$this->search}%")
                 ->orWhere('email', 'like', "%{$this->search}%")

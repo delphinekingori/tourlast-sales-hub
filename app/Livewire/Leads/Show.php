@@ -266,7 +266,7 @@ class Show extends Component
         $lead = $this->ownedLead();
 
         $this->validate([
-            'activity.type' => ['required', Rule::enum(ActivityType::class)],
+            'activity.type' => ['required', Rule::enum(ActivityType::class)->only(ActivityType::forProperty())],
             'activity.happened_at' => ['required', 'date', 'before_or_equal:'.now()->addHour()->toDateTimeString()],
             'activity.notes' => ['nullable', 'string', 'max:5000'],
             'activity.next_action' => ['nullable', 'string', 'max:190'],
@@ -306,7 +306,7 @@ class Show extends Component
             'salespeople' => Auth::user()->can(Permission::TransferOwnership->value) ? User::query()->active()->sellers()->whereKeyNot($lead->user_id)->orderBy('name')->get(['id', 'name']) : collect(),
             'openFollowUps' => $lead->followUps->whereNull('completed_at')->sortBy(fn ($item) => [$item->due_at->toDateString(), ! $item->has_time, $item->due_at])->values(),
             'manualStatuses' => LeadStatus::manual(),
-            'activityTypes' => ActivityType::cases(),
+            'activityTypes' => ActivityType::forProperty(),
             'clicks' => $lead->user->referralCode ? ReferralClick::query()->where('lead_id', $lead->id)->count() : 0,
         ])->title($lead->business_name);
     }

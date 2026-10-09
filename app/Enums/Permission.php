@@ -63,6 +63,39 @@ enum Permission: string
     /** Assign and transfer leads between salespeople. */
     case TransferOwnership = 'transfer-ownership';
 
+    /** Open the Travel Sales workspace and manage your own providers, packages, bookings and influencers. */
+    case AccessTravelSales = 'access-travel-sales';
+
+    /** See and manage every travel salesperson's records, not only your own. */
+    case ManageTravelSales = 'manage-travel-sales';
+
+    /** First-level package approval (Sales Admin review). */
+    case ApprovePackagesFirst = 'approve-packages-first';
+
+    /** Final package approval (Super Admin review). */
+    case ApprovePackagesFinal = 'approve-packages-final';
+
+    /** Publish a package whose provider contract is not active, with a recorded reason. */
+    case OverridePackageContract = 'override-package-contract';
+
+    /** See provider prices, net rates, commission and margins on packages and contracts. */
+    case ViewTravelFinancials = 'view-travel-financials';
+
+    /** Confirm cash and bank payments, allocate unmatched M-Pesa payments and pay out refunds. */
+    case ManageTravelPayments = 'manage-travel-payments';
+
+    /** Approve or reject travel refund and cancellation requests. */
+    case ApproveTravelRefunds = 'approve-travel-refunds';
+
+    /** Set monthly travel targets for travel salespeople. */
+    case ManageTravelTargets = 'manage-travel-targets';
+
+    /** Send flight bookings to the Hub (the Flights Super Admin integration account only). */
+    case PushFlightBookings = 'push-flight-bookings';
+
+    /** Read the system-wide audit log. */
+    case ViewAuditLog = 'view-audit-log';
+
     case ApproveClaimsManager = 'approve-claims-manager';
     case ApproveClaimsHr = 'approve-claims-hr';
     case ApproveClaimsFinance = 'approve-claims-finance';

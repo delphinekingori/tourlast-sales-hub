@@ -3,9 +3,14 @@
 namespace App\Livewire\Calendar;
 
 use App\Enums\Permission;
+use App\Enums\Role;
+use App\Enums\Travel\DepartureStatus;
 use App\Models\FollowUp;
+use App\Models\PackageDeparture;
 use App\Models\User;
+use App\Support\Travel\TravelAccess;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -16,7 +21,9 @@ use Livewire\Component;
 
 /**
  * Day, week and month view of scheduled calls, meetings and visits.
- * Salespeople see their own; managers see the team.
+ * Salespeople see their own; managers see the team. Travel salespeople see
+ * their own items plus departures of their packages; Sales Managers never see
+ * travel salespeople (Travel managers do).
  */
 #[Title('Calendar')]
 class Index extends Component
@@ -33,7 +40,7 @@ class Index extends Component
 
     public function mount(): void
     {
-        abort_unless($this->sells() || $this->seesTeam(), 403);
+        abort_unless($this->sells() || $this->seesTeam() || $this->travels(), 403);
 
         if (! in_array($this->view, ['day', 'week', 'month'], true)) {
             $this->view = 'week';
@@ -78,6 +85,7 @@ class Index extends Component
     {
         [$from, $to] = $this->range();
         $items = $this->items($from, $to);
+        $departures = $this->departures($from, $to);
 
         return view('livewire.calendar.index', [
             'from' => $from,
@@ -85,10 +93,13 @@ class Index extends Component
             'anchor' => CarbonImmutable::parse($this->date),
             'days' => collect(range(0, (int) $from->diffInDays($to)))->map(fn (int $offset) => $from->addDays($offset)),
             'itemsByDay' => $items->groupBy(fn (FollowUp $item) => $item->due_at->toDateString()),
+            'departuresByDay' => $departures->groupBy(fn (PackageDeparture $departure) => $departure->starts_on->toDateString()),
             'total' => $items->count(),
             'meetings' => $items->filter(fn (FollowUp $item) => $item->isMeeting())->count(),
-            'salespeople' => $this->seesTeam() ? User::query()->active()->sellers()->orderBy('name')->get(['id', 'name']) : collect(),
+            'salespeople' => $this->seesTeam() ? $this->teamQuery()->active()->orderBy('name')->get(['id', 'name']) : collect(),
             'sells' => $this->sells(),
+            'travels' => $this->travels(),
+            'travelView' => $this->travels() || $departures->isNotEmpty(),
             'seesTeam' => $this->seesTeam(),
             'showOwner' => $this->scopeUserId() === null,
         ]);
@@ -116,12 +127,56 @@ class Index extends Component
         $userId = $this->scopeUserId();
 
         return FollowUp::query()
-            ->with(['lead:id,business_name,location,property_engagement_id', 'user:id,name,avatar_path'])
+            ->with(['lead:id,business_name,location,property_engagement_id', 'user:id,name,avatar_path', 'subject'])
             ->whereBetween('due_at', [$from->startOfDay(), $to->endOfDay()])
             ->when($userId, fn ($query) => $query->where('user_id', $userId))
-            ->when(! $userId, fn ($query) => $query->whereIn('user_id', User::query()->sellers()->select('id')))
+            ->when(! $userId, fn ($query) => $query->whereIn('user_id', $this->teamQuery()->select('id')))
             ->chronological()
             ->get();
+    }
+
+    /**
+     * Package departures for travel calendars: the scoped travel salesperson's
+     * packages, or every package for a Travel manager viewing the whole team.
+     *
+     * @return Collection<int, PackageDeparture>
+     */
+    private function departures(CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        $userId = $this->scopeUserId();
+        $viewer = Auth::user();
+        $scoped = $userId ? User::find($userId) : null;
+
+        $show = match (true) {
+            $scoped !== null => $scoped->isTravelSalesperson() && ($scoped->is($viewer) || TravelAccess::managesAll($viewer)),
+            default => TravelAccess::managesAll($viewer),
+        };
+
+        if (! $show) {
+            return collect();
+        }
+
+        return PackageDeparture::query()
+            ->with('package:id,name,owner_id')
+            ->withSlotCounts()
+            ->where('status', '!=', DepartureStatus::Cancelled)
+            ->whereBetween('starts_on', [$from->toDateString(), $to->toDateString()])
+            ->when($userId, fn ($query) => $query->whereHas('package', fn ($package) => $package->where('owner_id', $userId)))
+            ->orderBy('starts_on')
+            ->get();
+    }
+
+    /**
+     * People whose calendars managers can open: property sellers, plus travel
+     * salespeople for Travel managers (never for Sales Managers).
+     *
+     * @return Builder<User>
+     */
+    private function teamQuery(): Builder
+    {
+        return User::query()->where(fn (Builder $query) => $query
+            ->whereIn('id', User::query()->sellers()->select('id'))
+            ->when(TravelAccess::managesAll(Auth::user()), fn (Builder $query) => $query->orWhereIn('id', User::query()->role(Role::TravelSalesperson->value)->select('id'))));
     }
 
     /**
@@ -135,14 +190,20 @@ class Index extends Component
 
         return match (true) {
             $this->rep === 'team' => null,
-            $this->rep === '' => $this->sells() ? Auth::id() : null,
-            default => (int) $this->rep,
+            $this->rep === '' => $this->sells() || $this->travels() ? Auth::id() : null,
+            $this->teamQuery()->whereKey((int) $this->rep)->exists() => (int) $this->rep,
+            default => Auth::id(),
         };
     }
 
     private function sells(): bool
     {
         return (bool) Auth::user()->role()?->earnsReferrals();
+    }
+
+    private function travels(): bool
+    {
+        return Auth::user()->isTravelSalesperson();
     }
 
     private function seesTeam(): bool

@@ -35,7 +35,7 @@ class SendDailyAlerts extends Command
             $agreement->update(['expiry_alert_sent_at' => now()]);
         }
 
-        $overdue = FollowUp::query()->open()->where('due_at', '<', now()->startOfDay())
+        $overdue = FollowUp::query()->forLeads()->open()->where('due_at', '<', now()->startOfDay())
             ->selectRaw('user_id, count(*) as total')->groupBy('user_id')->pluck('total', 'user_id');
 
         foreach ($overdue as $userId => $count) {

@@ -7,6 +7,7 @@ use App\Http\Controllers\LogoutController;
 use App\Http\Controllers\PartnerRegisterExportController;
 use App\Http\Controllers\ReferralRedirectController;
 use App\Http\Controllers\TourlastWebhookController;
+use App\Http\Controllers\Travel\BookingTicketController;
 use App\Livewire\Accounts\Index as AccountsIndex;
 use App\Livewire\Accounts\Show as AccountsShow;
 use App\Livewire\Activities\Index as ActivitiesIndex;
@@ -60,6 +61,15 @@ Route::get('/r/{code}/{target?}', ReferralRedirectController::class)
 Route::post('/webhooks/tourlast', TourlastWebhookController::class)
     ->middleware('throttle:600,1')
     ->name('webhooks.tourlast');
+
+/*
+| Public ticket verification (the QR code on a booking ticket). The token is
+| random and unguessable; ids and references never work here.
+*/
+Route::get('/booking/verify/{token}', [BookingTicketController::class, 'verify'])
+    ->where('token', '[A-Za-z0-9]{32}')
+    ->middleware('throttle:30,1')
+    ->name('bookings.verify');
 
 Route::livewire('/invitations/{token}', AcceptInvitation::class)->name('invitations.accept');
 
@@ -122,4 +132,14 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::livewire('/notifications', NotificationsIndex::class)->name('notifications.index');
     Route::livewire('/payment-details', PaymentDetails::class)->name('payment-details.index');
     Route::post('/logout', LogoutController::class)->name('logout');
+
+    /*
+    | Travel Sales workspace: one file per module in routes/travel/.
+    */
+    $travelRoutes = glob(__DIR__.'/travel/*.php') ?: [];
+    sort($travelRoutes);
+
+    foreach ($travelRoutes as $file) {
+        require $file;
+    }
 });

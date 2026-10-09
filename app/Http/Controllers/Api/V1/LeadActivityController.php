@@ -38,7 +38,7 @@ class LeadActivityController extends ApiController
         abort_unless($lead->user_id === $this->user($request)->id, 403, 'Only the lead\'s owner can log activity.');
 
         $data = $request->validate([
-            'type' => ['required', Rule::enum(ActivityType::class)],
+            'type' => ['required', Rule::enum(ActivityType::class)->only(ActivityType::forProperty())],
             'happened_at' => ['required', 'date', 'before_or_equal:'.now()->addHour()->toDateTimeString()],
             'notes' => ['nullable', 'string', 'max:5000'],
             'next_action' => ['nullable', 'string', 'max:190'],

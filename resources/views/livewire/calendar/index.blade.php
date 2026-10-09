@@ -7,9 +7,9 @@
 @endphp
 
 <div class="grid gap-4">
-    <x-ui.page-header title="Calendar" description="Scheduled calls, meetings and site visits with properties. Completed items keep their outcome in the lead's and the property's history.">
+    <x-ui.page-header title="Calendar" :description="$travelView ? 'Your follow-ups, meetings and check-ins with customers and providers, plus package departures.' : 'Scheduled calls, meetings and site visits with properties. Completed items keep their outcome in the lead\'s and the property\'s history.'">
         <x-slot:actions>
-            @if ($sells)
+            @if ($sells || $travels)
                 <x-ui.button icon="plus" x-on:click="$dispatch('open-schedule', { date: @js($view === 'day' ? $anchor->toDateString() : null) })">Schedule</x-ui.button>
             @endif
         </x-slot:actions>
@@ -61,6 +61,9 @@
                                 'text-ink' => ! $day->isToday() && $day->isSameMonth($anchor),
                                 'text-ink-subtle' => ! $day->isToday() && ! $day->isSameMonth($anchor),
                             ])>{{ $day->day }}</button>
+                            @foreach ($departuresByDay->get($day->toDateString(), collect()) as $departure)
+                                @include('livewire.calendar.partials.departure', ['departure' => $departure, 'compact' => true])
+                            @endforeach
                             @foreach ($dayItems->take(3) as $item)
                                 @include('livewire.calendar.partials.item', ['item' => $item, 'compact' => true, 'showOwner' => $showOwner])
                             @endforeach
@@ -86,10 +89,13 @@
                             <span @class(['text-sm font-bold', 'text-brand-text' => $day->isToday(), 'text-ink' => ! $day->isToday()])>{{ $day->format('j') }}</span>
                             @if ($dayItems->isNotEmpty())<span class="ml-auto text-[11px] text-ink-subtle">{{ $dayItems->count() }}</span>@endif
                         </button>
+                        @foreach ($departuresByDay->get($day->toDateString(), collect()) as $departure)
+                            @include('livewire.calendar.partials.departure', ['departure' => $departure])
+                        @endforeach
                         @forelse ($dayItems as $item)
                             @include('livewire.calendar.partials.item', ['item' => $item, 'showOwner' => $showOwner])
                         @empty
-                            @if ($sells && ($day->isToday() || $day->isFuture()))
+                            @if (($sells || $travels) && ($day->isToday() || $day->isFuture()))
                                 <button type="button" x-on:click="$dispatch('open-schedule', { date: '{{ $day->toDateString() }}' })" class="rounded-md border border-dashed border-line px-2 py-2 text-[11px] text-ink-subtle hover:border-brand/40 hover:text-brand-text">+ Schedule</button>
                             @endif
                         @endforelse
@@ -101,6 +107,9 @@
                 $dayItems = $itemsByDay->get($anchor->toDateString(), collect());
             @endphp
             <div class="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
+                @foreach ($departuresByDay->get($anchor->toDateString(), collect()) as $departure)
+                    <div class="border-b border-line px-4 py-3">@include('livewire.calendar.partials.departure', ['departure' => $departure])</div>
+                @endforeach
                 @forelse ($dayItems as $item)
                     <div wire:key="d-{{ $item->id }}" class="grid grid-cols-[76px_minmax(0,1fr)] gap-3 border-b border-line px-4 py-3 last:border-b-0 sm:grid-cols-[96px_minmax(0,1fr)_auto]">
                         <div class="grid content-start leading-tight">
@@ -110,7 +119,7 @@
                         <div class="grid min-w-0 gap-0.5">
                             <span class="flex flex-wrap items-center gap-2">
                                 <span class="grid size-6 place-items-center rounded-full bg-brand-soft text-brand-text"><x-ui.icon :name="$item->type->icon()" class="size-3.5" /></span>
-                                <span @class(['text-sm font-semibold text-ink', 'line-through text-ink-subtle' => $item->isDone()])>{{ $item->lead->business_name }}</span>
+                                <span @class(['text-sm font-semibold text-ink', 'line-through text-ink-subtle' => $item->isDone()])>{{ $item->subjectLabel() }}</span>
                                 <span class="text-[13px] text-ink-muted">{{ $item->type->label() }} — {{ $item->task }}</span>
                                 @if ($item->isOverdue())<x-ui.pill tone="danger">Overdue</x-ui.pill>@endif
                                 @if ($item->isDone())<x-ui.pill tone="success">Done</x-ui.pill>@endif
@@ -127,11 +136,13 @@
                                 @endunless
                                 <x-ui.button size="sm" variant="ghost" x-on:click="$dispatch('open-schedule', { itemId: {{ $item->id }} })">Edit</x-ui.button>
                             @endif
-                            <x-ui.button size="sm" variant="ghost" :href="route('leads.show', $item->lead_id)" wire:navigate>Lead</x-ui.button>
+                            @if ($item->subjectUrl())
+                                <x-ui.button size="sm" variant="ghost" :href="$item->subjectUrl()" wire:navigate>{{ $item->lead_id ? 'Lead' : 'Open' }}</x-ui.button>
+                            @endif
                         </div>
                     </div>
                 @empty
-                    <x-ui.empty-state icon="clock" title="Nothing scheduled" :description="$sells ? 'Schedule a call, meeting or site visit for this day.' : 'No one has anything scheduled for this day.'" />
+                    <x-ui.empty-state icon="clock" title="Nothing scheduled" :description="$sells || $travels ? 'Schedule a call, meeting or follow-up for this day.' : 'No one has anything scheduled for this day.'" />
                 @endforelse
             </div>
         @endif
