@@ -85,8 +85,7 @@ php artisan hub:create-super-admin           # interactive; first Super Admin on
 php artisan hub:purge-demo-data [--force]  # list (default) or delete @tourlast.test users and TL-##### sample rows
 php artisan hub:create-integration-account [--rotate]  # least-privilege account + token for tourlast.com push
 php artisan hub:api-spec                    # regenerate docs/api/openapi.json from the routes
-php artisan travel:sync-flights [--full]     # pull flight bookings from Flights Super Admin (FLIGHTS_SOURCE=api or sandbox)
-php artisan travel:create-flights-account [--rotate]  # push-only account + token for Flights Super Admin
+php artisan travel:sync-flights [--full]     # pull flight bookings from Flights Super Admin (source from TOURLAST_SOURCE; FLIGHTS_SOURCE overrides)
 php artisan travel:mpesa-register-urls      # print and register the Daraja paybill callback URLs
 php artisan travel:mpesa-reconcile          # check unanswered M-Pesa payment requests (scheduled every 5 min)
 php artisan travel:mpesa-simulate TB-2026-0001 5000  # test mode: simulate a paybill payment

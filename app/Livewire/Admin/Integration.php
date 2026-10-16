@@ -156,7 +156,7 @@ class Integration extends Component
             'source' => $source,
             'isSandbox' => $isSandbox,
             'webhookEnabled' => filled(config('tourlast.webhook_secret')),
-            'webhookUrl' => route('webhooks.tourlast'),
+            'webhookUrl' => route('webhooks.integrations', ['source' => 'tourlast']),
             'lastSuccess' => SyncRun::query()->where('status', 'succeeded')->latest('started_at')->first(),
             'runs' => SyncRun::query()->latest('started_at')->limit(12)->get(),
             'recentChanges' => OnboardingStatusChange::query()->with('onboarding.user')->latest('id')->limit(10)->get(),

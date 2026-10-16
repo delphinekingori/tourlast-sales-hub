@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Actions\IssueReferralCode;
 use App\Enums\Role;
+use App\Models\FlightBooking;
 use App\Models\Lead;
 use App\Models\Onboarding;
 use App\Models\ReferralClick;
@@ -40,6 +41,7 @@ class WebhookAndClicksTest extends TestCase
 
     public function test_webhooks_with_a_bad_signature_or_no_secret_are_refused(): void
     {
+        config(['tourlast.webhook_secret' => null]);
         $body = json_encode(['provider' => ['property_id' => 'X']]);
 
         $this->call('POST', '/webhooks/tourlast', [], [], [], $this->headers($body, 'anything'), $body)->assertNotFound();
@@ -48,6 +50,75 @@ class WebhookAndClicksTest extends TestCase
         $this->call('POST', '/webhooks/tourlast', [], [], [], $this->headers($body, 'wrong'), $body)->assertUnauthorized();
 
         $this->assertSame(0, Onboarding::count());
+    }
+
+    public function test_an_unknown_webhook_source_is_refused(): void
+    {
+        config(['tourlast.webhook_secret' => 'shh']);
+        $body = json_encode(['provider' => ['property_id' => 'X']]);
+
+        $this->call('POST', '/webhooks/someone-else', [], [], [], $this->headers($body, 'shh'), $body)->assertNotFound();
+    }
+
+    public function test_an_experiences_app_uses_the_same_provider_contract(): void
+    {
+        config(['tourlast.webhook_secret' => 'shh']);
+        $body = json_encode(['event_id' => 'evt_exp_1', 'provider' => [
+            'property_id' => 'EXP-7', 'property_name' => 'City Tour', 'property_type' => 'tour', 'status' => 'active',
+        ]]);
+
+        $this->call('POST', '/webhooks/experiences', [], [], [], $this->headers($body, 'shh'), $body)
+            ->assertOk()->assertJson(['result' => 'created']);
+
+        $this->assertSame('EXP-7', Onboarding::sole()->tourlast_property_id);
+    }
+
+    public function test_a_signed_flight_webhook_creates_a_booking_and_ignores_duplicates(): void
+    {
+        config(['tourlast.webhook_secret' => 'shh']);
+        $body = json_encode(['event_id' => 'evt_f1', 'booking' => [
+            'external_id' => 'FL-77', 'booking_status' => 'confirmed',
+            'booked_at' => '2026-10-07T10:03:00+03:00', 'origin' => 'NBO', 'destination' => 'MBA',
+        ]]);
+
+        $this->call('POST', '/webhooks/flights', [], [], [], $this->headers($body, 'shh'), $body)
+            ->assertOk()->assertJson(['result' => 'created']);
+
+        $this->call('POST', '/webhooks/flights', [], [], [], $this->headers($body, 'shh'), $body)
+            ->assertOk()->assertJson(['result' => 'duplicate']);
+
+        $booking = FlightBooking::sole();
+        $this->assertSame('FL-77', $booking->external_id);
+        $this->assertSame('confirmed', $booking->booking_status);
+    }
+
+    public function test_a_flight_webhook_with_a_bad_signature_is_refused(): void
+    {
+        config(['tourlast.webhook_secret' => 'shh']);
+        $body = json_encode(['event_id' => 'evt_f2', 'booking' => ['external_id' => 'FL-88']]);
+
+        $this->call('POST', '/webhooks/flights', [], [], [], $this->headers($body, 'wrong'), $body)->assertUnauthorized();
+
+        $this->assertSame(0, FlightBooking::query()->count());
+    }
+
+    public function test_the_same_event_id_from_two_different_apps_does_not_collide(): void
+    {
+        config(['tourlast.webhook_secret' => 'shh']);
+        $provider = json_encode(['event_id' => 'evt_shared', 'provider' => [
+            'property_id' => 'TL-1', 'property_name' => 'Hotel', 'property_type' => 'hotel', 'status' => 'active',
+        ]]);
+        $flight = json_encode(['event_id' => 'evt_shared', 'booking' => [
+            'external_id' => 'FL-90', 'booking_status' => 'confirmed', 'booked_at' => '2026-10-07T10:03:00+03:00',
+        ]]);
+
+        $this->call('POST', '/webhooks/tourlast', [], [], [], $this->headers($provider, 'shh'), $provider)
+            ->assertOk()->assertJson(['result' => 'created']);
+        $this->call('POST', '/webhooks/flights', [], [], [], $this->headers($flight, 'shh'), $flight)
+            ->assertOk()->assertJson(['result' => 'created']);
+
+        $this->assertSame(1, Onboarding::count());
+        $this->assertSame(1, FlightBooking::query()->count());
     }
 
     public function test_clicks_on_a_tracked_link_are_counted_but_link_previews_are_not(): void

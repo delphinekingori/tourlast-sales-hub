@@ -13,10 +13,11 @@ use Illuminate\Support\Facades\Route;
 | owner must be allowed to do the same thing in the web Hub.
 | Module routes live in routes/api/v1/*.php. Reference: docs/API.md.
 |
-| The tourlast.com integration is the one exception: its feed endpoints
-| authenticate with the single shared sync token (TOURLAST_API_TOKEN here,
-| TOURLAST_HUB_TOKEN in each source app) instead of a user token, so the file
-| is required outside the Sanctum group below and picks its own middleware.
+| The integration feed endpoints are the one exception: tourlast.com and
+| Flights Super Admin authenticate with the single shared sync token
+| (TOURLAST_API_TOKEN here, TOURLAST_HUB_TOKEN in each source app) instead
+| of a user token, so those files are required outside the Sanctum group
+| below and pick their own middleware.
 |
 */
 
@@ -30,7 +31,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
     Route::middleware(['auth:sanctum', 'active', 'throttle:api'])->group(function () use ($files): void {
         foreach ($files as $file) {
-            if (basename($file) === '70-integration.php') {
+            if (in_array(basename($file), ['70-integration.php', '80-flights.php'], true)) {
                 continue;
             }
 
@@ -39,6 +40,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     });
 
     require __DIR__.'/api/v1/70-integration.php';
+    require __DIR__.'/api/v1/80-flights.php';
 });
 
 /*

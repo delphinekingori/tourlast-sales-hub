@@ -31,7 +31,6 @@ class ApiTokens extends Component
     public const Presets = [
         'tourlast' => ['label' => 'tourlast.com sync (Hub admin)', 'scopes' => ['integration:push']],
         'reporting' => ['label' => 'Reporting / BI (read only)', 'scopes' => ['registry:read', 'onboardings:read', 'incentives:read', 'team:read', 'reports:read', 'travel:read']],
-        'flights' => ['label' => 'Flights Super Admin (push)', 'scopes' => ['flights:push']],
         'mobile' => ['label' => 'Mobile app (salesperson)', 'scopes' => ['profile', 'leads:read', 'leads:write', 'schedule:read', 'schedule:write', 'registry:read', 'onboardings:read', 'incentives:read', 'claims:read', 'claims:write', 'notifications:read', 'notifications:write']],
     ];
 

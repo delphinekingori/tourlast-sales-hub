@@ -28,6 +28,16 @@ class FlightSyncTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The real .env points FLIGHTS_SOURCE at the live app; these tests
+        // expect the sandbox default unless a test overrides the config.
+        config(['travel.flights.source' => 'sandbox']);
+        app()->forgetInstance(FlightSource::class);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>
@@ -156,7 +166,7 @@ class FlightSyncTest extends TestCase
         app()->forgetInstance(FlightSource::class);
 
         Http::fake([
-            'flights.test/api/bookings*' => Http::sequence()
+            'flights.test/api/hub/bookings*' => Http::sequence()
                 ->push(['data' => [$this->payload()], 'meta' => ['current_page' => 1, 'last_page' => 2]])
                 ->push(['data' => [$this->payload(['external_id' => 'FL-2']), ['external_id' => 'FL-BAD']], 'meta' => ['current_page' => 2, 'last_page' => 2]]),
         ]);

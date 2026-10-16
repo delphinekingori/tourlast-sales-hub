@@ -1,5 +1,7 @@
 @php
-    $kes = fn ($value) => 'KES '.number_format((float) $value);
+    $money = fn ($value, string $currency) => $currency.' '.number_format((float) $value);
+    $kes = fn ($value) => $money($value, 'KES');
+    $usd = fn ($value) => $money($value, 'USD');
     $link = fn (string $route, array $parameters = []) => \Illuminate\Support\Facades\Route::has($route) ? route($route, $parameters) : null;
 @endphp
 
@@ -38,8 +40,8 @@
                 ['Cancelled this month', number_format($flights['cancelled'])],
                 ['Refunds pending', number_format($flights['refunds_pending'])],
                 ['Refunds completed', number_format($flights['refunds_completed'])],
-                ['Booking revenue', $kes($flights['revenue'])],
-                $seesMoney ? ['Markup', $kes($flights['markup'])] : null,
+                ['Booking revenue', $usd($flights['revenue'])],
+                $seesMoney ? ['Markup', $usd($flights['markup'])] : null,
             ]) as [$label, $value])
                 <div @class(['grid gap-0.5 bg-surface px-4 py-3', 'col-span-2' => ! $seesMoney && $loop->last])>
                     <dt class="truncate text-xs font-medium text-ink-subtle">{{ $label }}</dt>
@@ -81,7 +83,7 @@
 
     <x-ui.card :title="$team ? 'Travel sales, last 6 months' : 'My travel sales, last 6 months'" description="Revenue from flight and tour bookings that count as sales, by booking month">
         <x-chart.columns :points="$trend" money label="Travel sales revenue per month, flights and tours" empty="No travel sales in the last 6 months."
-            :series="[['key' => 'flight_revenue', 'name' => 'Flights', 'slot' => 1], ['key' => 'tour_revenue', 'name' => 'Tours & experiences', 'slot' => 2]]" />
+            :series="[['key' => 'flight_revenue', 'name' => 'Flights', 'slot' => 1, 'currency' => 'USD'], ['key' => 'tour_revenue', 'name' => 'Tours & experiences', 'slot' => 2, 'currency' => 'KES']]" />
     </x-ui.card>
 
     <div class="grid items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -107,7 +109,7 @@
                 {{-- Team performance --}}
                 <x-ui.card title="Travel salespeople this month" :padding="false">
                     <x-chart.bars class="border-b border-line px-4 py-3" money label="Travel sales per salesperson this month"
-                        :series="[['key' => 'flight_revenue', 'name' => 'Flights', 'slot' => 1], ['key' => 'tour_revenue', 'name' => 'Tours & experiences', 'slot' => 2]]"
+                        :series="[['key' => 'flight_revenue', 'name' => 'Flights', 'slot' => 1, 'currency' => 'USD'], ['key' => 'tour_revenue', 'name' => 'Tours & experiences', 'slot' => 2, 'currency' => 'KES']]"
                         :rows="$salespeople->map(fn ($row) => ['label' => $row['user']->name, 'values' => ['flight_revenue' => $row['flight_revenue'], 'tour_revenue' => $row['tour_revenue']]])->all()" />
                     <x-ui.table-card :sticky="false" class="rounded-none border-0 shadow-none">
                         <table class="w-full min-w-[720px] text-sm">
@@ -115,7 +117,7 @@
                                 <tr>
                                     <th class="text-left">Salesperson</th>
                                     <th class="text-right">Flight bookings</th>
-                                    <th class="text-right">Flight revenue</th>
+                                    <th class="text-right">Flight revenue (USD)</th>
                                     <th class="text-right">Tour bookings</th>
                                     <th class="text-right">Tour revenue</th>
                                     <th class="text-right">Total travel sales</th>
@@ -127,7 +129,7 @@
                                     <tr wire:key="ts-{{ $row['user']->id }}">
                                         <td><div class="flex items-center gap-2.5"><x-ui.avatar :user="$row['user']" size="sm" /><span class="font-semibold text-ink">{{ $row['user']->name }}</span></div></td>
                                         <td class="tabular text-right">{{ number_format($row['flight_bookings']) }}</td>
-                                        <td class="tabular text-right">{{ $kes($row['flight_revenue']) }}</td>
+                                        <td class="tabular text-right">{{ $usd($row['flight_revenue']) }}</td>
                                         <td class="tabular text-right">{{ number_format($row['tour_bookings']) }}</td>
                                         <td class="tabular text-right">{{ $kes($row['tour_revenue']) }}</td>
                                         <td class="tabular text-right font-bold text-ink">{{ $kes($row['total']) }}</td>
@@ -153,8 +155,8 @@
                                 <div class="flex items-baseline justify-between gap-2 text-[13px]">
                                     <span class="font-medium text-ink">{{ $target['label'] }}</span>
                                     <span class="tabular text-ink-muted">
-                                        {{ $target['money'] ? $kes($target['actual']) : number_format($target['actual']) }}
-                                        @if ($target['target']) / {{ $target['money'] ? $kes($target['target']) : number_format($target['target']) }} @endif
+                                        {{ $target['money'] ? $money($target['actual'], $target['currency']) : number_format($target['actual']) }}
+                                        @if ($target['target']) / {{ $target['money'] ? $money($target['target'], $target['currency']) : number_format($target['target']) }} @endif
                                     </span>
                                 </div>
                                 @if ($pct !== null)

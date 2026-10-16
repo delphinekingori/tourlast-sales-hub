@@ -726,7 +726,7 @@
                 ],
                 "operationId": "integrationsFlightsPush",
                 "summary": "Send flight bookings from Flights Super Admin: {\"booking\": {...}} or {\"bookings\": [...]} (max 500)",
-                "description": "Each booking uses the shape documented on App\\Integrations\\Flights\\FlightRecord; external_id, booked_at and booking_status are required. Sending a booking again updates it (older updated_at values are ignored).\n\n**Scope:** `flights:push`",
+                "description": "Each booking uses the shape documented on App\\Integrations\\Flights\\FlightRecord; external_id, booked_at and booking_status are required. Sending a booking again updates it (older updated_at values are ignored).\n\n**Shared token:** the one sync secret from `php artisan hub:generate-token` (no user, role or scope).",
                 "parameters": [],
                 "responses": {
                     "200": {
@@ -744,10 +744,7 @@
                     "422": {
                         "$ref": "#/components/responses/ValidationError"
                     }
-                },
-                "x-scopes": [
-                    "flights:push"
-                ]
+                }
             }
         },
         "/integrations/tourlast/providers": {
@@ -4383,7 +4380,7 @@
             "bearerAuth": {
                 "type": "http",
                 "scheme": "bearer",
-                "description": "Sanctum token from POST /auth/tokens or Admin → API tokens. Scopes: profile, leads:read, leads:write, schedule:read, schedule:write, registry:read, registry:write, onboardings:read, onboardings:write, incentives:read, incentives:write, claims:read, claims:write, team:read, team:write, notifications:read, notifications:write, reports:read, integration:read, integration:push, travel:read, travel:write, flights:push. The tourlast.com feed endpoints take the shared sync token instead (php artisan hub:generate-token)."
+                "description": "Sanctum token from POST /auth/tokens or Admin → API tokens. Scopes: profile, leads:read, leads:write, schedule:read, schedule:write, registry:read, registry:write, onboardings:read, onboardings:write, incentives:read, incentives:write, claims:read, claims:write, team:read, team:write, notifications:read, notifications:write, reports:read, integration:read, integration:push, travel:read, travel:write. The tourlast.com feed endpoints take the shared sync token instead (php artisan hub:generate-token)."
             }
         },
         "responses": {

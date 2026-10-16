@@ -103,7 +103,7 @@ class GenerateApiSpec extends Command
         $scopes = $this->scopes($route);
         [$summary, $description] = $this->docs($route);
         $prefix = Str::before((string) Str::after((string) $route->getName(), 'api.v1.'), '.');
-        $shared = in_array('shared-token', $route->gatherMiddleware(), true);
+        $shared = collect($route->gatherMiddleware())->contains(fn (string $middleware) => $middleware === 'shared-token' || str_starts_with($middleware, 'shared-token:'));
         $public = ! $shared && ! in_array('auth:sanctum', $route->gatherMiddleware(), true);
 
         $operation = [

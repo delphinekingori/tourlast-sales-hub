@@ -10,8 +10,10 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 
 /**
- * FLIGHTS_SOURCE=sandbox (the default until Flights Super Admin connects):
- * about sixty realistic test bookings over the last 45 days and the next 60,
+ * The sandbox source — the default until Flights Super Admin connects, and
+ * what flights falls back to when neither TOURLAST_SOURCE nor FLIGHTS_SOURCE
+ * (the per-flight override) is set: about sixty realistic test bookings over
+ * the last 45 days and the next 60,
  * on Kenyan and regional routes. The same seed always produces the same
  * bookings (ids SBX-0001…), so syncing again only updates them. Bookings are
  * credited to existing travel salespeople by email, and a few use an active

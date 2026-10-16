@@ -5,7 +5,8 @@ namespace App\Integrations\Flights;
 use Carbon\CarbonImmutable;
 
 /**
- * Where the Hub reads flight bookings from (config travel.flights.source).
+ * Where the Hub reads flight bookings from (config travel.flights.source:
+ * the shared TOURLAST_SOURCE switch, overridable per flight via FLIGHTS_SOURCE).
  */
 interface FlightSource
 {

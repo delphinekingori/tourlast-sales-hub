@@ -14,7 +14,7 @@ class SyncFlights extends Command
     public function handle(SyncFlightsAction $sync): int
     {
         if (config('travel.flights.source') === 'push') {
-            $this->components->info('FLIGHTS_SOURCE=push: Flights Super Admin sends bookings to the API, nothing to pull.');
+            $this->components->info('TOURLAST_SOURCE=push: Flights Super Admin sends bookings to the API, nothing to pull.');
 
             return self::SUCCESS;
         }

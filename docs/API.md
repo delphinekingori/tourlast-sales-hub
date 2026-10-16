@@ -88,7 +88,7 @@ There are two ways to get one:
 
 People can see and revoke tokens issued as them on their Hub profile, or with `GET /auth/tokens` and `DELETE /auth/tokens/{id}`.
 
-**One endpoint is different.** The tourlast.com feed (`POST /integrations/tourlast/providers`) authenticates with a single **shared sync token** instead of a person's token: a Super Admin runs `php artisan hub:generate-token` on the Hub, which writes `TOURLAST_API_TOKEN=` into the Hub's `.env` and prints the value once. The same value is set in each source app's `.env` as `TOURLAST_HUB_TOKEN` and sent back as `Authorization: Bearer <token>`. There is no user, role, scope or permission behind it — possession of the secret is the whole credential, and changing it is the only way to revoke it.
+**A few endpoints are different.** The integration feeds — `POST /integrations/tourlast/providers`, `GET /integrations/tourlast/ref-codes` and `POST /integrations/flights/bookings` — authenticate with a single **shared sync token** instead of a person's token: a Super Admin runs `php artisan hub:generate-token` on the Hub, which writes `TOURLAST_API_TOKEN=` into the Hub's `.env` and prints the value once. The same value is set in each source app's `.env` as `TOURLAST_HUB_TOKEN` and sent back as `Authorization: Bearer <token>`. There is no user, role, scope or permission behind it — possession of the secret is the whole credential, and changing it is the only way to revoke it.
 
 ### POST /auth/tokens
 
@@ -124,7 +124,6 @@ Returns `201` with `token`, `scopes`, `expires_at` and `user`. Wrong credentials
 | `reports:read` | Insights and Excel/PDF exports |
 | `integration:read` / `integration:push` | Read the tourlast.com sync log / run a tourlast.com sync now (Hub admin) |
 | `travel:read` / `travel:write` | Read Travel Sales (flights, providers, contracts, packages, departures, bookings, payments, influencer codes, reports, targets) / change packages, bookings, payment requests and travel follow-ups |
-| `flights:push` | Send flight bookings from Tourlast Flights Super Admin (integration account only) |
 
 **Scope plus permission.** A token with `registry:write` held by a salesperson still gets `403` on registry writes, because salespeople cannot change the registry in the Hub. The roles and what each can do are listed in the System Guide (`docs/SYSTEM_GUIDE.md`, section 2).
 
@@ -135,7 +134,7 @@ Returns `201` with `token`, `scopes`, `expires_at` and `user`. Wrong credentials
 | tourlast.com feed (push, ref-codes) | none — the shared sync token (`php artisan hub:generate-token`) |
 | tourlast.com sync log and manual sync | `integration:read` / `integration:push` on a Hub admin |
 | Reporting / BI (read only) | `registry:read`, `onboardings:read`, `incentives:read`, `team:read`, `reports:read`, `travel:read` |
-| Flights Super Admin (push) | `flights:push` only, on the account from `php artisan travel:create-flights-account` |
+| Flights Super Admin (push) | none — the shared sync token (the same secret as the tourlast.com feed) |
 | Travel sales app | `profile`, `travel:read`, `travel:write`, `notifications:*` |
 | Salesperson mobile app | `profile`, `leads:*`, `schedule:*`, `registry:read`, `onboardings:read`, `incentives:read`, `claims:*`, `notifications:*` |
 
@@ -2281,18 +2280,18 @@ Puts a follow-up, meeting or check-in on your Sales Calendar about a travel reco
 
 ## Connecting Flights Super Admin and M-Pesa
 
-For the developers connecting the systems. Until they are connected, the Hub runs on test data (`FLIGHTS_SOURCE=sandbox`, `MPESA_DRIVER=sandbox`) and shows a "test data" notice.
+For the developers connecting the systems. Until they are connected, the Hub runs on test data (`TOURLAST_SOURCE=sandbox`, `MPESA_DRIVER=sandbox`) and shows a "test data" notice.
 
 ### Flights Super Admin
 
 Flights Super Admin stays the source of truth: the Hub keeps a read-only copy and never changes a booking, payment, cancellation or refund. Choose one way to connect:
 
-**Option A: the Hub pulls (`FLIGHTS_SOURCE=api`).** Flights Super Admin exposes `GET {FLIGHTS_API_URL}/bookings?updated_since=<ISO 8601>&page=N`, authenticated with `Authorization: Bearer {FLIGHTS_API_TOKEN}`, returning `{"data": [ … bookings … ], "meta": {"next_page": 2}}` (or `last_page`). The Hub calls it every 10 minutes (`php artisan travel:sync-flights`, `--full` for everything).
+**Option A: the Hub pulls (`TOURLAST_SOURCE=api`; `FLIGHTS_SOURCE` overrides flights alone).** Flights Super Admin exposes `GET /hub/bookings?updated_since=<ISO 8601>&page=N` under the bare `FLIGHTS_API_URL` base (e.g. `http://toursflights.test`), authenticated with `Authorization: Bearer {FLIGHTS_API_TOKEN}`, returning `{"data": [ … bookings … ], "meta": {"next_page": 2}}` (or `last_page`). The Hub calls it every 10 minutes (`php artisan travel:sync-flights`, `--full` for everything).
 
-**Option B: Flights Super Admin pushes (`FLIGHTS_SOURCE=push`).**
-1. On the Hub server run `php artisan travel:create-flights-account`. It creates an account with no role and only permission to send flight bookings, and prints a token with the single scope `flights:push`. `--rotate` issues a new token and revokes the old one.
-2. Store the token as a secret in Flights Super Admin.
-3. Send every new or changed booking to `POST /api/v1/integrations/flights/bookings`, one as `booking` or up to 500 as `bookings`. Re-sending is safe: bookings are matched on `external_id`, and older `updated_at` values are ignored.
+**Option B: Flights Super Admin pushes (`TOURLAST_SOURCE=push`; `FLIGHTS_SOURCE` overrides flights alone).**
+1. Use the **one shared sync token** every integration uses: on the Hub server run `php artisan hub:generate-token` (it prints `TOURLAST_API_TOKEN` once) and store the same value in Flights Super Admin — the stays and experiences apps call it `TOURLAST_HUB_TOKEN`.
+2. Send every new or changed booking to `POST /api/v1/integrations/flights/bookings`, one as `booking` or up to 500 as `bookings`. Re-sending is safe: bookings are matched on `external_id`, and older `updated_at` values are ignored.
+3. Optional instant updates: `POST /webhooks/flights` with body `{"event_id": "…", "booking": { … }}`, signed with the shared webhook secret (`X-Tourlast-Signature: sha256=…`). The `{source}` path identifies the sender; duplicate event ids are ignored. See `docs/FLIGHTS_INTEGRATION.md`.
 
 ```bash
 curl -X POST "https://sales-hub.tourlast.com/api/v1/integrations/flights/bookings" \

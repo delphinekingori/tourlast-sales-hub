@@ -9,9 +9,12 @@ use InvalidArgumentException;
 use RuntimeException;
 
 /**
- * FLIGHTS_SOURCE=api: pulls bookings from Tourlast Flights Super Admin.
+ * The api source (TOURLAST_SOURCE=api, or FLIGHTS_SOURCE=api to override
+ * flights alone): pulls bookings from Tourlast Flights Super Admin.
+ * FLIGHTS_API_URL is the bare app base (e.g. http://toursflights.test);
+ * this source appends the /hub prefix the source app serves under.
  *
- *     GET {FLIGHTS_API_URL}/bookings?updated_since=2026-10-07T08:00:00+00:00&page=1
+ *     GET {FLIGHTS_API_URL}/hub/bookings?updated_since=2026-10-07T08:00:00+00:00&page=1
  *     Authorization: Bearer {FLIGHTS_API_TOKEN}
  *
  * Response: {"data": [ {booking}, ... ], "meta": {"current_page": 1, "last_page": 4}}
@@ -60,7 +63,7 @@ class ApiFlightSource implements FlightSource
                 ->withToken((string) $config['api_token'])
                 ->acceptJson()
                 ->timeout((int) $config['timeout'])
-                ->get('bookings', array_filter([
+                ->get('hub/bookings', array_filter([
                     'updated_since' => $since?->toIso8601String(),
                     'page' => $page,
                 ]));

@@ -90,9 +90,6 @@ enum Permission: string
     /** Set monthly travel targets for travel salespeople. */
     case ManageTravelTargets = 'manage-travel-targets';
 
-    /** Send flight bookings to the Hub (the Flights Super Admin integration account only). */
-    case PushFlightBookings = 'push-flight-bookings';
-
     /** Read the system-wide audit log. */
     case ViewAuditLog = 'view-audit-log';
 

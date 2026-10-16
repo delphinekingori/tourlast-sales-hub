@@ -10,17 +10,28 @@ return [
     | Flights Super Admin is the source of truth for flight bookings. The Hub
     | keeps a read-only copy for sales reporting and never changes a booking.
     |
-    | Sources: "sandbox" (dummy bookings, the default until the Flights team
-    | connects), "api" (the Hub pulls from FLIGHTS_API_URL on a schedule) or
-    | "push" (Flights Super Admin posts bookings to /api/v1/integrations/flights/bookings).
+    | Sources: "sandbox" (dummy bookings), "api" (the Hub pulls from
+    | FLIGHTS_API_URL on a schedule) or "push" (Flights Super Admin posts
+    | bookings to /api/v1/integrations/flights/bookings).
+    |
+    | Flights follows the shared TOURLAST_SOURCE switch that stays and
+    | experiences use. FLIGHTS_SOURCE only overrides it for flights alone —
+    | for tests (phpunit pins sandbox) or an independent flights source mode.
+    | "sandbox" is the fallback when neither variable is set (the default
+    | until the Flights team connects).
+    |
+    | The token is the one shared sync token every integration uses
+    | (TOURLAST_API_TOKEN, written by php artisan hub:generate-token). The
+    | FLIGHTS_API_TOKEN key only overrides it when flights must use a
+    | separate secret; the source apps always store TOURLAST_HUB_TOKEN.
     |
     */
 
     'flights' => [
-        'source' => env('FLIGHTS_SOURCE', 'sandbox'),
+        'source' => env('FLIGHTS_SOURCE', env('TOURLAST_SOURCE', 'sandbox')),
         'system' => 'tourlast-flights',
         'api_url' => env('FLIGHTS_API_URL'),
-        'api_token' => env('FLIGHTS_API_TOKEN'),
+        'api_token' => env('FLIGHTS_API_TOKEN', env('TOURLAST_API_TOKEN')),
         'timeout' => (int) env('FLIGHTS_API_TIMEOUT', 20),
         'admin_booking_url' => env('FLIGHTS_ADMIN_BOOKING_URL', 'https://admin.flights.tourlast.com/bookings/{id}'),
         'stale_after_minutes' => (int) env('FLIGHTS_STALE_AFTER_MINUTES', 30),

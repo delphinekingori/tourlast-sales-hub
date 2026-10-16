@@ -1,13 +1,16 @@
 {{--
     Horizontal bar chart for ranking categories, one or two stacked series.
     $rows: list of ['label' => string, 'values' => [series key => number]].
-    $series: list of ['key' => values key, 'name' => legend name, 'slot' => 1|2 (colour --series-N)].
+    $series: list of ['key' => values key, 'name' => legend name, 'slot' => 1|2 (colour --series-N), 'currency' => code].
     Shows the first $limit rows, largest first; the full list stays in the table it sits beside.
 --}}
 @props(['rows' => [], 'series' => [], 'money' => false, 'limit' => 10, 'label' => 'Chart'])
 
 @php
-    $format = fn (float $value): string => ($money ? 'KES ' : '').number_format($value);
+    $currencyOf = fn (array $s): string => $s['currency'] ?? 'KES';
+    $format = fn (float $value, string $currency = 'KES'): string => ($money ? $currency.' ' : '').number_format($value);
+    $seriesCurrencies = array_unique(array_map($currencyOf, $series));
+    $formatTotal = fn (float $value): string => count($seriesCurrencies) === 1 ? $format($value, reset($seriesCurrencies)) : number_format($value);
     $fill = fn (int $slot): string => $slot === 2 ? 'bg-series-2' : 'bg-series-1';
     $rows = collect($rows)
         ->map(fn (array $row): array => [...$row, 'total' => array_sum(array_map(fn (array $s): float => (float) ($row['values'][$s['key']] ?? 0), $series))])
@@ -31,7 +34,7 @@
         <ul class="grid gap-1">
             @foreach ($rows as $index => $row)
                 <li tabindex="0" class="group relative grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)_auto] items-center gap-3 rounded-sm py-1 outline-none hover:bg-surface-muted/60 focus-visible:bg-surface-muted/60 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)_auto]"
-                    aria-label="{{ $row['label'] }}: {{ collect($series)->map(fn ($s) => $s['name'].' '.$format((float) ($row['values'][$s['key']] ?? 0)))->implode(', ') }}">
+                    aria-label="{{ $row['label'] }}: {{ collect($series)->map(fn ($s) => $s['name'].' '.$format((float) ($row['values'][$s['key']] ?? 0), $currencyOf($s)))->implode(', ') }}">
                     <span class="truncate text-[13px] text-ink" title="{{ $row['label'] }}">{{ $row['label'] }}</span>
                     <span class="flex h-4 min-w-0 items-center">
                         <span class="flex h-full gap-[2px] overflow-hidden rounded-r-[4px]" style="width: {{ max(1, $row['total'] / max(1, $max) * 100) }}%">
@@ -43,7 +46,7 @@
                             @endforeach
                         </span>
                     </span>
-                    <span class="tabular text-right text-xs font-medium text-ink">{{ $format($row['total']) }}</span>
+                    <span class="tabular text-right text-xs font-medium text-ink">{{ $formatTotal($row['total']) }}</span>
 
                     @if (count($series) > 1)
                         <div @class([
@@ -53,7 +56,7 @@
                         ])>
                             <p class="mb-1 font-medium text-ink-muted">{{ $row['label'] }}</p>
                             @foreach ($series as $s)
-                                <p class="flex items-center gap-2"><span class="h-0.5 w-2.5 rounded-full {{ $fill($s['slot']) }}"></span><span class="tabular font-bold text-ink">{{ $format((float) ($row['values'][$s['key']] ?? 0)) }}</span><span class="text-ink-subtle">{{ $s['name'] }}</span></p>
+                                <p class="flex items-center gap-2"><span class="h-0.5 w-2.5 rounded-full {{ $fill($s['slot']) }}"></span><span class="tabular font-bold text-ink">{{ $format((float) ($row['values'][$s['key']] ?? 0), $currencyOf($s)) }}</span><span class="text-ink-subtle">{{ $s['name'] }}</span></p>
                             @endforeach
                         </div>
                     @endif

@@ -32,5 +32,9 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- FLIGHTS_SOURCE overrides the shared TOURLAST_SOURCE for flights, keeping tests off the live connection; tests that need api/push set the config themselves. -->
+        <env name="FLIGHTS_SOURCE" value="sandbox"/>
+        <env name="FLIGHTS_API_URL" value=""/>
+        <env name="FLIGHTS_API_TOKEN" value=""/>
     </php>
 </phpunit>

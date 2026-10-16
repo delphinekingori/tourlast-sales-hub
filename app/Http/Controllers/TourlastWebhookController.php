@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Actions\ApplyProviderRecord;
+use App\Actions\Travel\Flights\ApplyFlightRecord;
+use App\Integrations\Flights\FlightRecord;
 use App\Integrations\Tourlast\ProviderRecordMapper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,13 +14,38 @@ use InvalidArgumentException;
 class TourlastWebhookController extends Controller
 {
     /**
-     * Receive a signed provider update from tourlast.com.
+     * Which payload shape each source sends. Everything but flights is a
+     * provider record; flights sends one flight booking.
      *
-     * Header: X-Tourlast-Signature: sha256=<hex HMAC-SHA256 of the raw body>
-     * Body:   {"event_id": "...", "provider": { ...Hub field names... }}
+     * @var array<string, string>
      */
-    public function __invoke(Request $request, ProviderRecordMapper $mapper, ApplyProviderRecord $applyProviderRecord): JsonResponse
+    private const Shapes = [
+        'tourlast' => 'provider',
+        'stays' => 'provider',
+        'experiences' => 'provider',
+        'flights' => 'booking',
+    ];
+
+    /**
+     * Receive a signed update from a source app. One contract for every app:
+     *
+     * POST {APP_URL}/webhooks/{source}   (source: tourlast, stays, experiences, flights)
+     * Header: X-Tourlast-Signature: sha256=<hex HMAC-SHA256 of the raw body>
+     * Body (provider): {"event_id": "...", "provider": { ...Hub field names... }}
+     * Body (booking):  {"event_id": "...", "booking":  { ...FlightRecord shape... }}
+     *
+     * The same secret (TOURLAST_WEBHOOK_SECRET) signs for every app; {source}
+     * identifies who it is, namespaces the duplicate-event cache and picks
+     * the handler, so two apps can never collide.
+     */
+    public function __invoke(Request $request, string $source, ProviderRecordMapper $mapper, ApplyProviderRecord $applyProviderRecord, ApplyFlightRecord $applyFlightRecord): JsonResponse
     {
+        $shape = self::Shapes[$source] ?? null;
+
+        if ($shape === null) {
+            return response()->json(['message' => 'Unknown webhook source.'], 404);
+        }
+
         $secret = config('tourlast.webhook_secret');
 
         if (blank($secret)) {
@@ -33,16 +60,24 @@ class TourlastWebhookController extends Controller
 
         $eventId = (string) $request->input('event_id') ?: sha1($request->getContent());
 
-        if (! Cache::add('tourlast-webhook:'.$eventId, true, now()->addDays(7))) {
+        if (! Cache::add('webhook:'.$source.':'.$eventId, true, now()->addDays(7))) {
             return response()->json(['result' => 'duplicate']);
         }
 
         try {
-            $record = $mapper->fromArray((array) $request->input('provider', []));
+            if ($shape === 'booking') {
+                $record = FlightRecord::fromArray((array) $request->input('booking', []));
+            } else {
+                $record = $mapper->fromArray((array) $request->input('provider', []));
+            }
         } catch (InvalidArgumentException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
-        return response()->json(['result' => $applyProviderRecord->handle($record, 'webhook')]);
+        $result = $shape === 'booking'
+            ? $applyFlightRecord->handle($record, 'webhook')
+            : $applyProviderRecord->handle($record, 'webhook');
+
+        return response()->json(['result' => $result]);
     }
 }

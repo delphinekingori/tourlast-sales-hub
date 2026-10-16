@@ -12,6 +12,7 @@ use App\Livewire\Accounts\Index as AccountsIndex;
 use App\Livewire\Accounts\Show as AccountsShow;
 use App\Livewire\Activities\Index as ActivitiesIndex;
 use App\Livewire\Admin\ApiTokens;
+use App\Livewire\Admin\ConnectedApps;
 use App\Livewire\Admin\Incentives as AdminIncentives;
 use App\Livewire\Admin\Integration;
 use App\Livewire\Auth\AcceptInvitation;
@@ -56,11 +57,14 @@ Route::get('/r/{code}/{target?}', ReferralRedirectController::class)
     ->name('referral.redirect');
 
 /*
-| Signed provider updates from tourlast.com (optional; see docs/TOURLAST_INTEGRATION.md).
+| Signed updates from the source apps (optional; see docs/TOURLAST_INTEGRATION.md
+| and docs/FLIGHTS_INTEGRATION.md). The path names the sender: tourlast,
+| stays and experiences send providers, flights sends one booking.
 */
-Route::post('/webhooks/tourlast', TourlastWebhookController::class)
+Route::post('/webhooks/{source}', TourlastWebhookController::class)
+    ->where('source', '[a-z][a-z0-9_-]*')
     ->middleware('throttle:600,1')
-    ->name('webhooks.tourlast');
+    ->name('webhooks.integrations');
 
 /*
 | Public ticket verification (the QR code on a booking ticket). The token is
@@ -123,6 +127,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/downloads/payouts', [DownloadController::class, 'payouts'])->name('downloads.payouts');
 
     Route::livewire('/admin/integration', Integration::class)->name('admin.integration');
+    Route::livewire('/admin/connected-apps', ConnectedApps::class)->name('admin.connected-apps');
     Route::livewire('/admin/incentives', AdminIncentives::class)->name('admin.incentives');
     Route::livewire('/admin/api-tokens', ApiTokens::class)->name('admin.api-tokens');
 

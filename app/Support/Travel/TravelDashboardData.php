@@ -116,7 +116,7 @@ class TravelDashboardData
     /**
      * Progress against this month's travel targets (one salesperson only).
      *
-     * @return list<array{label: string, money: bool, actual: float, target: ?int}>
+     * @return list<array{label: string, money: bool, currency: string, actual: float, target: ?int}>
      */
     public function targets(): array
     {
@@ -130,6 +130,7 @@ class TravelDashboardData
         return array_map(fn (TravelTargetMetric $metric): array => [
             'label' => $metric->label(),
             'money' => $metric->isMoney(),
+            'currency' => $metric->currency(),
             'actual' => $actuals[$metric->value],
             'target' => isset($targets[$metric->value]) ? (int) $targets[$metric->value] : null,
         ], TravelTargetMetric::cases());

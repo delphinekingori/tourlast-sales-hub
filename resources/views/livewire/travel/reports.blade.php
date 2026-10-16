@@ -57,8 +57,8 @@
         @endif
 
         @php
-            $flightsSeries = ['key' => 'flight_revenue', 'name' => 'Flights', 'slot' => 1];
-            $toursSeries = ['key' => 'tour_revenue', 'name' => 'Tours & experiences', 'slot' => 2];
+            $flightsSeries = ['key' => 'flight_revenue', 'name' => 'Flights', 'slot' => 1, 'currency' => 'USD'];
+            $toursSeries = ['key' => 'tour_revenue', 'name' => 'Tours & experiences', 'slot' => 2, 'currency' => 'KES'];
             $trendSeries = match ($tab) {
                 'flights' => [$flightsSeries],
                 'tours' => [$toursSeries],
@@ -76,9 +76,9 @@
         @if ($tab === 'flights')
             <div class="grid items-start gap-4 xl:grid-cols-2">
                 @include('livewire.travel.partials.report-table', ['title' => 'Top routes', 'rows' => $report->routes(), 'chart' => ['series' => ['Bookings' => ['name' => 'Bookings', 'slot' => 1]]]])
-                @include('livewire.travel.partials.report-table', ['title' => 'Airlines', 'rows' => $report->airlines(), 'chart' => ['series' => ['Revenue (KES)' => ['name' => 'Revenue', 'slot' => 1]], 'money' => true]])
+                @include('livewire.travel.partials.report-table', ['title' => 'Airlines', 'rows' => $report->airlines(), 'chart' => ['series' => ['Revenue (USD)' => ['name' => 'Revenue', 'slot' => 1, 'currency' => 'USD']], 'money' => true]])
             </div>
-            @include('livewire.travel.partials.report-table', ['title' => 'Refunds by status', 'description' => 'Statuses as Tourlast Flights Super Admin reports them', 'rows' => $report->flightRefunds(), 'chart' => ['series' => ['Amount (KES)' => ['name' => 'Amount', 'slot' => 1]], 'money' => true]])
+            @include('livewire.travel.partials.report-table', ['title' => 'Refunds by status', 'description' => 'Statuses as Tourlast Flights Super Admin reports them', 'rows' => $report->flightRefunds(), 'chart' => ['series' => ['Amount (USD)' => ['name' => 'Amount', 'slot' => 1, 'currency' => 'USD']], 'money' => true]])
         @elseif ($tab === 'tours')
             @include('livewire.travel.partials.report-table', ['title' => 'Package performance', 'description' => 'Revenue from confirmed and completed bookings', 'rows' => $report->packagePerformance(), 'chart' => ['series' => ['Revenue (KES)' => ['name' => 'Revenue', 'slot' => 2]], 'money' => true]])
             @include('livewire.travel.partials.report-table', ['title' => 'Destinations', 'rows' => $report->destinations(), 'chart' => ['series' => ['Revenue (KES)' => ['name' => 'Revenue', 'slot' => 2]], 'money' => true]])
@@ -96,7 +96,7 @@
                 @endif
             </x-ui.card>
         @elseif ($tab === 'salespeople')
-            @include('livewire.travel.partials.report-table', ['title' => 'Travel salespeople', 'description' => 'Targets show when the period is one whole month', 'rows' => $report->salespeople(), 'chart' => ['series' => ['Flight revenue (KES)' => ['name' => 'Flights', 'slot' => 1], 'Tour revenue (KES)' => ['name' => 'Tours & experiences', 'slot' => 2]], 'money' => true]])
+            @include('livewire.travel.partials.report-table', ['title' => 'Travel salespeople', 'description' => 'Targets show when the period is one whole month', 'rows' => $report->salespeople(), 'chart' => ['series' => ['Flight revenue (USD)' => ['name' => 'Flights', 'slot' => 1, 'currency' => 'USD'], 'Tour revenue (KES)' => ['name' => 'Tours & experiences', 'slot' => 2]], 'money' => true]])
         @endif
     </div>
 </div>

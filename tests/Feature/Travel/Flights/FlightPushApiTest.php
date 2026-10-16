@@ -3,7 +3,6 @@
 namespace Tests\Feature\Travel\Flights;
 
 use App\Enums\ApiScope;
-use App\Enums\Permission;
 use App\Enums\Role;
 use App\Models\FlightBooking;
 use App\Models\User;
@@ -16,6 +15,13 @@ class FlightPushApiTest extends TestCase
     use MakesApiRequests, RefreshDatabase;
 
     private const Url = '/api/v1/integrations/flights/bookings';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['travel.flights.api_token' => 'shared-secret']);
+    }
 
     /**
      * @return array<string, mixed>
@@ -32,65 +38,56 @@ class FlightPushApiTest extends TestCase
         ];
     }
 
-    private function integrationAccount(): User
-    {
-        $user = User::factory()->create();
-        $user->givePermissionTo(Permission::PushFlightBookings->value);
-
-        return $user;
-    }
-
-    public function test_pushing_needs_a_token(): void
+    public function test_pushing_needs_the_shared_token(): void
     {
         $this->postJson(self::Url, ['booking' => $this->booking()])->assertUnauthorized();
     }
 
-    public function test_pushing_needs_the_flights_push_scope(): void
+    public function test_pushing_needs_the_configured_secret(): void
     {
-        $this->api($this->integrationAccount(), [ApiScope::TravelRead->value])
+        $this->withToken('wrong')
             ->postJson(self::Url, ['booking' => $this->booking()])
-            ->assertForbidden();
-    }
-
-    public function test_pushing_needs_the_permission_even_with_the_scope(): void
-    {
-        $admin = User::factory()->withRole(Role::SalesAdmin)->create();
-
-        $this->api($admin, [ApiScope::FlightsPush->value])
-            ->postJson(self::Url, ['booking' => $this->booking()])
-            ->assertForbidden();
+            ->assertUnauthorized();
 
         $this->assertSame(0, FlightBooking::query()->count());
     }
 
-    public function test_the_integration_account_pushes_bookings(): void
+    public function test_pushing_is_refused_before_the_hub_has_a_token(): void
     {
-        $client = $this->api($this->integrationAccount(), [ApiScope::FlightsPush->value]);
+        config(['travel.flights.api_token' => null]);
 
-        $client->postJson(self::Url, ['bookings' => [$this->booking('FL-1'), $this->booking('FL-2'), ['external_id' => 'FL-3']]])
+        $this->withToken('anything')
+            ->postJson(self::Url, ['booking' => $this->booking()])
+            ->assertStatus(503);
+    }
+
+    public function test_a_user_api_token_does_not_open_the_push_endpoint(): void
+    {
+        $user = User::factory()->withRole(Role::SalesAdmin)->create();
+
+        $this->api($user, [ApiScope::TravelRead->value])
+            ->postJson(self::Url, ['booking' => $this->booking()])
+            ->assertUnauthorized();
+
+        $this->assertSame(0, FlightBooking::query()->count());
+    }
+
+    public function test_the_shared_secret_pushes_bookings(): void
+    {
+        $one = $this->booking('FL-1');
+
+        $this->withToken('shared-secret')
+            ->postJson(self::Url, ['bookings' => [$one, $this->booking('FL-2'), ['external_id' => 'FL-3']]])
             ->assertOk()
             ->assertJsonPath('received', 3)
             ->assertJsonPath('created', 2)
             ->assertJsonPath('failed.0.external_id', 'FL-3');
 
-        $client->postJson(self::Url, ['booking' => $this->booking('FL-1')])
+        $this->withToken('shared-secret')
+            ->postJson(self::Url, ['booking' => $one])
             ->assertOk()
             ->assertJsonPath('unchanged', 1);
 
         $this->assertSame(2, FlightBooking::query()->count());
-    }
-
-    public function test_the_create_account_command_issues_a_push_only_token(): void
-    {
-        $this->artisan('travel:create-flights-account')->assertSuccessful();
-
-        $account = User::query()->where('email', 'flights-integration@tourlast.com')->sole();
-        $this->assertTrue($account->can(Permission::PushFlightBookings->value));
-        $this->assertFalse($account->can(Permission::AccessTravelSales->value));
-        $this->assertSame([ApiScope::FlightsPush->value], $account->tokens()->sole()->abilities);
-
-        $this->artisan('travel:create-flights-account')->assertFailed();
-        $this->artisan('travel:create-flights-account', ['--rotate' => true])->assertSuccessful();
-        $this->assertSame(1, $account->tokens()->count());
     }
 }

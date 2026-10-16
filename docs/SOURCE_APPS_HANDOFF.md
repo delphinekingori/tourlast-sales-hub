@@ -432,6 +432,8 @@ Each item is independent; do them as separate commits per app.
 - **Webhook path is optional.** `POST /webhooks/tourlast` with an
   `X-Tourlast-Signature` HMAC header works alongside push and the scheduled
   pull ([TOURLAST_INTEGRATION.md → Optional: instant updates](TOURLAST_INTEGRATION.md#4-optional-instant-updates-webhook)).
+  A source app may also post to `/webhooks/stays` or `/webhooks/experiences`
+  — same contract, and the path tells the Hub which app sent the event.
   Not required for this release.
 - **Push is optional.** The scheduled pull alone is enough for correctness;
   push is a latency improvement (§4).

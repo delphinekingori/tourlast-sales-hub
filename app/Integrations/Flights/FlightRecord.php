@@ -8,7 +8,7 @@ use Throwable;
 
 /**
  * One booking as Tourlast Flights Super Admin sends it to the Hub (pulled
- * from GET {FLIGHTS_API_URL}/bookings or pushed to
+ * from GET {FLIGHTS_API_URL}/hub/bookings or pushed to
  * POST /api/v1/integrations/flights/bookings). This is the contract the
  * Flights developer implements. Keys are snake_case; only external_id,
  * booked_at and booking_status are required, everything else may be omitted

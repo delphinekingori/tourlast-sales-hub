@@ -123,6 +123,8 @@ The Hub can also receive updates the moment they happen. POST to `https://sales-
 - Header `X-Tourlast-Signature: sha256=<hex HMAC-SHA256 of the raw request body, keyed with the shared secret>`
 - Body `{"event_id": "<unique id>", "provider": { ...same fields as the API item above... }}`
 
+The path names the sender: this app posts to `/webhooks/tourlast`; the stays and experiences source apps may post to `/webhooks/stays` or `/webhooks/experiences` (same contract), and Flights Super Admin posts bookings to `/webhooks/flights` (see `docs/FLIGHTS_INTEGRATION.md`). The Hub deduplicates `event_id`s per source, so ids from different apps never collide.
+
 ```php
 $body = json_encode(['event_id' => (string) Str::uuid(), 'provider' => $payload]);
 Http::withBody($body, 'application/json')

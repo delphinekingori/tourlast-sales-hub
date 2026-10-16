@@ -1,10 +1,10 @@
 @php
-    $money = fn ($amount, $currency = 'KES') => $amount === null ? '—' : $currency.' '.number_format((float) $amount);
+    $money = fn ($amount, $currency = 'USD') => $amount === null ? '—' : $currency.' '.number_format((float) $amount);
     $sortIcon = fn (string $column) => $sort === $column ? ($dir === 'asc' ? '↑' : '↓') : '';
     $filtersActive = $search !== '' || $status !== '' || $airline !== '' || $origin !== '' || $destination !== '' || $bookedFrom !== '' || $bookedTo !== '' || $departFrom !== '' || $departTo !== '' || $salesperson !== '' || $mine;
 @endphp
 
-<div class="grid gap-5">
+<div class="grid gap-5" wire:poll.visible.30s>
     <x-ui.page-header title="Flights" description="Bookings from Tourlast Flights Super Admin. This is a read-only copy: bookings, payments, cancellations and refunds are managed in Flights Super Admin." />
 
     @include('livewire.travel.flights.partials.sync-status')

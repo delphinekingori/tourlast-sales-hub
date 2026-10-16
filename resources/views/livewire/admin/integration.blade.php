@@ -1,6 +1,7 @@
 <div class="grid gap-5">
     <x-ui.page-header eyebrow="Admin" title="Integration" description="How the Hub reads referred providers from tourlast.com. The Hub only reads; it never changes anything on tourlast.com.">
         <x-slot:actions>
+            <x-ui.button variant="secondary" icon="link" href="{{ route('admin.connected-apps') }}">Connected apps</x-ui.button>
             <x-ui.button variant="secondary" icon="refresh" wire:click="syncNow(true)" wire:loading.attr="disabled">Full re-check</x-ui.button>
             <x-ui.button icon="refresh" wire:click="syncNow" wire:loading.attr="disabled">
                 <span wire:loading.remove wire:target="syncNow">Sync now</span>

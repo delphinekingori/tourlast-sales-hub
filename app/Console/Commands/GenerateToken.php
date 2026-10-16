@@ -17,9 +17,10 @@ class GenerateToken extends Command
      * updated with the new one.
      *
      * - TOURLAST_API_TOKEN: the Hub sends it to the source apps and they send it
-     *   back as TOURLAST_HUB_TOKEN. No user account or API token is involved.
-     * - TOURLAST_WEBHOOK_SECRET: the source apps sign their instant updates with
-     *   it, as TOURLAST_HUB_WEBHOOK_SECRET.
+     *   back as TOURLAST_HUB_TOKEN. The Flights Super Admin uses the same secret
+     *   for its bookings feed and push. No user account or API token is involved.
+     * - TOURLAST_WEBHOOK_SECRET: every source app signs its instant updates with
+     *   it, as TOURLAST_HUB_WEBHOOK_SECRET; the /webhooks/{source} path says who.
      *
      * @var array<string, array{label: string, bytes: int, copyAs: string, failure: string}>
      */

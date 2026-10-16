@@ -482,7 +482,7 @@ Defined in `routes/console.php`. They require the Laravel scheduler to run every
 | 07:30 weekdays | `hub:send-manager-alerts` | Managers' summary email |
 | 1st of month, 06:00 | `hub:generate-statements` | Draft payout statements for the previous month |
 | Every 5 min | `travel:mpesa-reconcile` | Asks Safaricom about payment requests with no answer; fails them after an hour |
-| Every 10 min | `travel:sync-flights` | Reads changed flight bookings from Flights Super Admin (skipped when `FLIGHTS_SOURCE=push`) |
+| Every 10 min | `travel:sync-flights` | Reads changed flight bookings from Flights Super Admin (skipped when the source is `push`) |
 | Hourly | `travel:expire-holds` | Cancels unpaid pending package bookings whose hold ran out |
 | 07:10 daily | `travel:contract-alerts` | Provider contract expiry alerts |
 | 08:00 daily | `travel:pretrip-reminders` | Missing driver/guide and pre-trip alerts for the next 3 days |
@@ -550,7 +550,7 @@ Everything in the Hub is also available through a REST API at `https://sales-hub
 - **Tokens:** people sign in with `POST /auth/tokens`; systems get tokens from **Admin → API tokens** (Super Admin, Sales Admin). Everyone can see and revoke their own tokens on their profile.
 - **Scopes plus permissions:** each token is limited to scopes (e.g. `leads:read`, `registry:write`) and can never do more than its owner can in the Hub. Suspending or firing someone stops their tokens immediately.
 - **Same rules as the web app:** duplicate protection (`409`), required lost reasons, append-only history and role permissions all apply.
-- **tourlast.com push:** `php artisan hub:generate-token` writes one shared secret into the Hub's `.env` as `TOURLAST_API_TOKEN` and prints it once — put the same value in each source app's `.env` as `TOURLAST_HUB_TOKEN`. It authenticates `POST /integrations/tourlast/providers` and `GET /integrations/tourlast/ref-codes` (no account, role or scope is created); set `TOURLAST_SOURCE=push`.
+- **tourlast.com push:** `php artisan hub:generate-token` writes one shared secret into the Hub's `.env` as `TOURLAST_API_TOKEN` and prints it once — put the same value in each source app's `.env` as `TOURLAST_HUB_TOKEN`. It authenticates `POST /integrations/tourlast/providers`, `GET /integrations/tourlast/ref-codes` and (for the Flights Super Admin) `POST /integrations/flights/bookings` — no account, role or scope is created; set `TOURLAST_SOURCE=push` (or `FLIGHTS_SOURCE=push` to override flights alone). The optional webhooks sign with `TOURLAST_WEBHOOK_SECRET` (source apps: `TOURLAST_HUB_WEBHOOK_SECRET`), and the `{source}` path segment (`tourlast`, `stays`, `experiences`, `flights`) tells the Hub which app sent the event.
  - Rate limit: 120 requests per minute per user (per IP address on the shared-token feed).
 
 ### 8.5 Testing the connection
@@ -562,19 +562,20 @@ Everything in the Hub is also available through a REST API at `https://sales-hub
 
 ### 8.6 Tourlast Flights Super Admin (flight bookings)
 
-The Hub only **reads** flight bookings; Flights Super Admin stays the source of truth. Today `FLIGHTS_SOURCE=sandbox` fills the Flights pages with clearly labelled test data. The Flights developer connects in one of two ways:
+The Hub only **reads** flight bookings; Flights Super Admin stays the source of truth. Today flights falls back to sandbox (neither `TOURLAST_SOURCE` nor `FLIGHTS_SOURCE` set), filling the Flights pages with clearly labelled test data. The Flights developer connects in one of two ways:
 
-**Option A — the Hub pulls** (`FLIGHTS_SOURCE=api`)
+**Option A — the Hub pulls** (`TOURLAST_SOURCE=api`, or `FLIGHTS_SOURCE=api` to override flights alone)
 
-1. Flights Super Admin exposes `GET {FLIGHTS_API_URL}/bookings?updated_since=<ISO 8601>&page=<n>`, protected by a bearer token, returning `{"data": [ …bookings… ], "meta": {"next_page": 2}}` (or `last_page`).
-2. Set `FLIGHTS_API_URL`, `FLIGHTS_API_TOKEN` (and optionally `FLIGHTS_API_TIMEOUT`) in the Hub's `.env`.
+1. Flights Super Admin exposes `GET /hub/bookings?updated_since=<ISO 8601>&page=<n>`, protected by a bearer token, returning `{"data": [ …bookings… ], "meta": {"next_page": 2}}` (or `last_page`). The Hub appends `/hub/bookings` to the bare `FLIGHTS_API_URL` base (e.g. `http://toursflights.test`).
+2. Set `FLIGHTS_API_URL` (and optionally `FLIGHTS_API_TIMEOUT`) in the Hub's `.env`. The bearer is the one shared sync token (`TOURLAST_API_TOKEN`); `FLIGHTS_API_TOKEN` only overrides it when flights must use a separate secret.
 3. The Hub syncs every 10 minutes (`travel:sync-flights`; run `php artisan travel:sync-flights --full` once to load history). A failed run changes nothing and alerts Travel managers.
 
-**Option B — Flights pushes** (`FLIGHTS_SOURCE=push`)
+**Option B — Flights pushes** (`TOURLAST_SOURCE=push`, or `FLIGHTS_SOURCE=push` to override flights alone)
 
-1. On the Hub server run `php artisan travel:create-flights-account`. It creates an account with no role that can only push flight bookings, and prints a token (scope `flights:push`). `--rotate` replaces the token.
+1. Use the one shared sync token every integration uses: on the Hub server run `php artisan hub:generate-token` (it prints `TOURLAST_API_TOKEN` once) and store the same value in Flights Super Admin (`TOURLAST_HUB_TOKEN` in the stays/experiences apps).
 2. Flights Super Admin sends `POST https://sales-hub.tourlast.com/api/v1/integrations/flights/bookings` with `Authorization: Bearer <token>` and `{"bookings": [ … ]}` (up to 500) or `{"booking": { … }}` whenever a booking is created or changes. The reply counts created, updated, unchanged and failed records.
-3. In push mode the scheduled pull is skipped; pages warn if nothing has arrived for 24 hours.
+3. Optional instant updates: `POST /webhooks/flights` with `{"event_id": "…", "booking": { … }}`, signed with the shared webhook secret; the scheduled sync remains the safety net.
+4. In push mode the scheduled pull is skipped; pages warn if nothing has arrived for 24 hours.
 
 **The booking record** (both options) uses snake_case keys. Required: `external_id`, `booked_at`, `booking_status`. The full shape — references, customer, airline, route, segments, passengers, amounts, markup, payment/cancellation/refund fields, `agent_reference` (the travel salesperson's Hub email, for credit), `promo_code` (influencer code) and `updated_at` — is documented in [API.md](API.md) and in `app/Integrations/Flights/FlightRecord.php`. Statuses are stored exactly as sent (lower-cased); the Hub's refund report groups `pending`, `requested`, `processing`, `in_progress`, `submitted` as open and `completed`, `refunded`, `paid`, `processed` as done, so tell the Hub team if Flights uses other words.
 
@@ -647,15 +648,16 @@ Refunds are paid out by Accounts outside the Hub (M-Pesa or bank) and recorded w
 |---|---|
 | `TOURLAST_SOURCE` | `api` (Hub reads source apps over their API) · `push` (source apps call the Hub API; scheduled sync skipped) · `sandbox` (local simulator; refused outside local and test environments) |
 | `TOURLAST_SYNC_EVERY_MINUTES` / `TOURLAST_FULL_SYNC_AT` | Sync frequency (10) and nightly full check (`02:00`) |
-| `TOURLAST_API_URL`, `TOURLAST_API_PATH`, `TOURLAST_API_TOKEN`, `TOURLAST_API_TIMEOUT` | Read-only JSON endpoint (Option A); `TOURLAST_API_URL` accepts a comma-separated list of app bases. `TOURLAST_API_TOKEN` is also the shared sync token that `POST /integrations/tourlast/providers` accepts — set it with `php artisan hub:generate-token` |
-| `TOURLAST_WEBHOOK_SECRET` | Shared secret for the optional webhook |
+| `TOURLAST_API_URL`, `TOURLAST_API_PATH`, `TOURLAST_API_TOKEN`, `TOURLAST_API_TIMEOUT` | Read-only JSON endpoint (Option A); `TOURLAST_API_URL` accepts a comma-separated list of app bases. `TOURLAST_API_TOKEN` is also the one shared sync token that `POST /integrations/tourlast/providers` and `POST /integrations/flights/bookings` accept — set it with `php artisan hub:generate-token` |
+| `TOURLAST_WEBHOOK_SECRET` | Shared secret for the optional webhooks (`/webhooks/{source}`), all apps |
 
 **Travel Sales: flights** (section 8.6)
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `FLIGHTS_SOURCE` | `sandbox` | `sandbox` (test data) · `api` (Hub pulls) · `push` (Flights pushes to the Hub API) |
-| `FLIGHTS_API_URL`, `FLIGHTS_API_TOKEN`, `FLIGHTS_API_TIMEOUT` | empty, empty, `20` | Flights Super Admin bookings endpoint (Option A) |
+| `FLIGHTS_SOURCE` | unset (follows `TOURLAST_SOURCE`) | Optional override for flights alone: `sandbox` (test data) · `api` (Hub pulls) · `push` (Flights pushes to the Hub API) |
+| `FLIGHTS_API_URL`, `FLIGHTS_API_TIMEOUT` | empty, `20` | Flights Super Admin bookings endpoint (Option A); the bearer is the shared sync token |
+| `FLIGHTS_API_TOKEN` | empty | Optional override — only set it when flights must use a different secret than `TOURLAST_API_TOKEN` |
 | `FLIGHTS_ADMIN_BOOKING_URL` | `https://admin.flights.tourlast.com/bookings/{id}` | Link behind **Open in Flights Admin** |
 | `FLIGHTS_STALE_AFTER_MINUTES` | `30` | After this, pages show `Flight data synchronization delayed` |
 
@@ -748,7 +750,7 @@ sudo supervisorctl restart sales-hub-worker
 - [ ] Scheduler cron and queue worker are running (`php artisan schedule:list` shows the jobs in section 7)
 - [ ] RDS automated backups are on
 - [ ] Sales Admin has reviewed the Schedule 1 pay tables and claim approval chain
-- [ ] `FLIGHTS_SOURCE` set (or left on `sandbox` knowingly) and, if connected, `php artisan travel:sync-flights --full` succeeds
+- [ ] Flights source mode correct (`TOURLAST_SOURCE`, or `FLIGHTS_SOURCE` as an override) and, if connected, `php artisan travel:sync-flights --full` succeeds
 - [ ] M-Pesa: live credentials and secret set, `php artisan travel:mpesa-register-urls` run, one real test payment matched to a booking
 
 ---

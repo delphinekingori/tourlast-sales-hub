@@ -1,7 +1,7 @@
 {{--
     Generic report table: $rows is a list of rows keyed by heading.
     Optional $chart draws bars above the table from the same rows (labelled by the first column):
-    ['series' => [column heading => ['name' => legend name, 'slot' => 1|2]], 'money' => bool].
+    ['series' => [column heading => ['name' => legend name, 'slot' => 1|2, 'currency' => code]], 'money' => bool].
 --}}
 <x-ui.card :title="$title" :description="$description ?? null" :padding="false">
     @if ($rows === [])
@@ -10,7 +10,7 @@
         @isset($chart)
             @php($labelColumn = array_key_first($rows[0]))
             <x-chart.bars class="border-b border-line px-4 py-3" :money="$chart['money'] ?? false" :label="$title"
-                :series="collect($chart['series'])->map(fn ($s, $column) => ['key' => $column, 'name' => $s['name'], 'slot' => $s['slot']])->values()->all()"
+                :series="collect($chart['series'])->map(fn ($s, $column) => ['key' => $column, 'name' => $s['name'], 'slot' => $s['slot'], 'currency' => $s['currency'] ?? 'KES'])->values()->all()"
                 :rows="array_map(fn ($row) => ['label' => (string) $row[$labelColumn], 'values' => array_intersect_key($row, $chart['series'])], $rows)" />
         @endisset
         <x-ui.table-card :sticky="false" class="rounded-none border-0 shadow-none">

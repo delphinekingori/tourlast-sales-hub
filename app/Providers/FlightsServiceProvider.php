@@ -9,7 +9,8 @@ use App\Integrations\Flights\SandboxFlightSource;
 use Illuminate\Support\ServiceProvider;
 
 /**
- * Picks the flight bookings source from FLIGHTS_SOURCE (sandbox | api | push).
+ * Picks the flight bookings source from the shared TOURLAST_SOURCE switch
+ * (sandbox | api | push); FLIGHTS_SOURCE overrides it for flights alone.
  */
 class FlightsServiceProvider extends ServiceProvider
 {

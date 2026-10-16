@@ -51,7 +51,7 @@
                                         placeholder="No target"
                                         class="h-8 w-32 rounded-md border border-line-strong bg-surface px-2 text-[13px] tabular text-ink focus:border-brand focus:ring-3 focus:ring-brand-soft focus:outline-none disabled:bg-surface-muted" />
                                     <div class="flex items-center gap-2 text-xs text-ink-muted">
-                                        <span class="tabular">{{ $metric->isMoney() ? 'KES '.number_format($actual) : number_format($actual) }} so far</span>
+                                        <span class="tabular">{{ $metric->isMoney() ? $metric->currency().' '.number_format($actual) : number_format($actual) }} so far</span>
                                         @if ($pct !== null)
                                             <div class="h-1.5 w-14 overflow-hidden rounded-full bg-surface-muted"><div class="h-full rounded-full bg-brand" style="width: {{ $pct }}%"></div></div>
                                             <span class="tabular">{{ $pct }}%</span>

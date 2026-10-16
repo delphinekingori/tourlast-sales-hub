@@ -38,6 +38,8 @@ class Index extends Component
 
     private const Sorts = ['booked_at', 'departure_at', 'total_amount'];
 
+    private const PerPage = 8;
+
     #[Url]
     public string $view = 'bookings';
 
@@ -146,11 +148,11 @@ class Index extends Component
         $query = $this->filtered()->with(['salesperson:id,name', 'passengers:id,flight_booking_id,name,ticket_number']);
 
         return match ($this->view) {
-            'upcoming' => $query->upcoming()->orderBy('departure_at')->paginate(50),
+            'upcoming' => $query->upcoming()->orderBy('departure_at')->paginate(self::PerPage),
             'cancellations' => $query->where(fn (Builder $query) => $query->whereNotNull('cancelled_at')->orWhereNotNull('cancellation_status'))
-                ->orderByDesc('cancelled_at')->paginate(25),
-            'refunds' => $query->whereNotNull('refund_status')->orderByDesc('refund_requested_at')->paginate(25),
-            default => $query->orderBy($this->sort, $this->dir)->orderByDesc('id')->paginate(25),
+                ->orderByDesc('cancelled_at')->paginate(self::PerPage),
+            'refunds' => $query->whereNotNull('refund_status')->orderByDesc('refund_requested_at')->paginate(self::PerPage),
+            default => $query->orderBy($this->sort, $this->dir)->orderByDesc('id')->paginate(self::PerPage),
         };
     }
 
@@ -195,7 +197,7 @@ class Index extends Component
             ->selectRaw('max(case when salesperson_id = ? then 1 else 0 end) as is_mine', [Auth::id()])
             ->groupBy(DB::raw($key))
             ->orderByDesc('last_booked_at')
-            ->paginate(25);
+            ->paginate(self::PerPage);
     }
 
     /**

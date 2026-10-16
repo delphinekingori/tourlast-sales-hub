@@ -31,7 +31,6 @@ enum ApiScope: string
     case IntegrationPush = 'integration:push';
     case TravelRead = 'travel:read';
     case TravelWrite = 'travel:write';
-    case FlightsPush = 'flights:push';
 
     public function label(): string
     {
@@ -58,7 +57,6 @@ enum ApiScope: string
             self::IntegrationPush => 'Run a tourlast.com sync now (Hub admin)',
             self::TravelRead => 'Read Travel Sales: flights, providers, packages, bookings, payments',
             self::TravelWrite => 'Change Travel Sales records the token owner may change',
-            self::FlightsPush => 'Send flight bookings from Tourlast Flights Super Admin',
         };
     }
 

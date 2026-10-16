@@ -31,7 +31,7 @@ class ApplyFlightRecord
     ];
 
     /**
-     * @param  string  $via  "sandbox", "api" or "push"
+     * @param  string  $via  "sandbox", "api", "push" or "webhook"
      */
     public function handle(FlightRecord $record, string $via): string
     {

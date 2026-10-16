@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Travel\Flights\ApplyFlightRecord;
-use App\Enums\Permission;
 use App\Integrations\Flights\FlightRecord;
 use App\Models\FlightSyncRun;
 use Illuminate\Http\JsonResponse;
@@ -13,8 +12,9 @@ use Throwable;
 
 /**
  * Tourlast Flights Super Admin pushes bookings to the Hub's read-only copy.
- * Auth: a token with only flights:push, owned by the role-less account from
- * php artisan travel:create-flights-account (permission push-flight-bookings).
+ * Auth: the one shared sync token every integration uses (the same secret as
+ * the tourlast.com feed, from php artisan hub:generate-token) — no user,
+ * role or scope behind it.
  */
 class FlightIntegrationController extends ApiController
 {
@@ -26,8 +26,6 @@ class FlightIntegrationController extends ApiController
      */
     public function push(Request $request, ApplyFlightRecord $apply): JsonResponse
     {
-        $this->requirePermission($request, Permission::PushFlightBookings);
-
         $request->validate([
             'booking' => ['required_without:bookings', 'array'],
             'bookings' => ['required_without:booking', 'array', 'min:1', 'max:500'],

@@ -5,7 +5,8 @@ namespace App\Integrations\Flights;
 use Carbon\CarbonImmutable;
 
 /**
- * FLIGHTS_SOURCE=push: Flights Super Admin posts bookings to
+ * The push source (TOURLAST_SOURCE=push, or FLIGHTS_SOURCE=push to override
+ * flights alone): Flights Super Admin posts bookings to
  * POST /api/v1/integrations/flights/bookings, so there is nothing to pull.
  */
 class PushFlightSource implements FlightSource

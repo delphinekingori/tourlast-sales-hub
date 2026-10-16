@@ -1,13 +1,16 @@
 {{--
     Column chart over time, one or two stacked series.
     $points: list of rows, each with 'label' and a value under every series key.
-    $series: list of ['key' => row key, 'name' => legend name, 'slot' => 1|2 (colour --series-N)].
+    $series: list of ['key' => row key, 'name' => legend name, 'slot' => 1|2 (colour --series-N), 'currency' => code].
     Every value is also in the "Show as table" view; the tooltip only adds to it.
 --}}
 @props(['points' => [], 'series' => [], 'money' => false, 'height' => 180, 'label' => 'Chart', 'empty' => 'Nothing in this period.'])
 
 @php
-    $format = fn (float $value): string => ($money ? 'KES ' : '').number_format($value);
+    $currencyOf = fn (array $s): string => $s['currency'] ?? 'KES';
+    $format = fn (float $value, string $currency = 'KES'): string => ($money ? $currency.' ' : '').number_format($value);
+    $seriesCurrencies = array_unique(array_map($currencyOf, $series));
+    $formatTotal = fn (float $value): string => count($seriesCurrencies) === 1 ? $format($value, reset($seriesCurrencies)) : number_format($value);
     $fill = fn (int $slot): string => $slot === 2 ? 'bg-series-2' : 'bg-series-1';
     $compact = fn (float $value): string => match (true) {
         $value >= 1_000_000 => rtrim(rtrim(number_format($value / 1_000_000, 1), '0'), '.').'M',
@@ -58,7 +61,7 @@
 
                 <div class="absolute inset-0 flex items-end">
                     @foreach ($points as $index => $point)
-                        <div tabindex="0" class="group relative flex h-full min-w-0 flex-1 items-end justify-center px-[2px] outline-none" aria-label="{{ $point['label'] }}: {{ collect($series)->map(fn ($s) => $s['name'].' '.$format((float) ($point[$s['key']] ?? 0)))->implode(', ') }}">
+                        <div tabindex="0" class="group relative flex h-full min-w-0 flex-1 items-end justify-center px-[2px] outline-none" aria-label="{{ $point['label'] }}: {{ collect($series)->map(fn ($s) => $s['name'].' '.$format((float) ($point[$s['key']] ?? 0), $currencyOf($s)))->implode(', ') }}">
                             <span class="absolute inset-x-0 inset-y-0 rounded-sm group-hover:bg-surface-muted/60 group-focus-visible:bg-surface-muted/60"></span>
                             @if ($totals[$index] > 0)
                                 <div class="relative flex w-full max-w-6 flex-col-reverse gap-[2px] overflow-hidden rounded-t-[4px]" style="height: {{ $totals[$index] / $top * 100 }}%">
@@ -79,10 +82,10 @@
                             ])>
                                 <p class="mb-1 font-medium text-ink-muted">{{ $point['label'] }}</p>
                                 @foreach ($series as $s)
-                                    <p class="flex items-center gap-2"><span class="h-0.5 w-2.5 rounded-full {{ $fill($s['slot']) }}"></span><span class="tabular font-bold text-ink">{{ $format((float) ($point[$s['key']] ?? 0)) }}</span><span class="text-ink-subtle">{{ $s['name'] }}</span></p>
+                                    <p class="flex items-center gap-2"><span class="h-0.5 w-2.5 rounded-full {{ $fill($s['slot']) }}"></span><span class="tabular font-bold text-ink">{{ $format((float) ($point[$s['key']] ?? 0), $currencyOf($s)) }}</span><span class="text-ink-subtle">{{ $s['name'] }}</span></p>
                                 @endforeach
                                 @if (count($series) > 1)
-                                    <p class="mt-1 border-t border-line pt-1 text-ink-muted">Total <span class="tabular font-bold text-ink">{{ $format($totals[$index]) }}</span></p>
+                                    <p class="mt-1 border-t border-line pt-1 text-ink-muted">Total <span class="tabular font-bold text-ink">{{ $formatTotal($totals[$index]) }}</span></p>
                                 @endif
                             </div>
                         </div>
@@ -114,8 +117,8 @@
                         @foreach ($points as $index => $point)
                             <tr>
                                 <td class="px-3 py-1.5 text-ink">{{ $point['label'] }}</td>
-                                @foreach ($series as $s)<td class="tabular px-3 py-1.5 text-right">{{ $format((float) ($point[$s['key']] ?? 0)) }}</td>@endforeach
-                                @if (count($series) > 1)<td class="tabular px-3 py-1.5 text-right font-bold text-ink">{{ $format($totals[$index]) }}</td>@endif
+                                @foreach ($series as $s)<td class="tabular px-3 py-1.5 text-right">{{ $format((float) ($point[$s['key']] ?? 0), $currencyOf($s)) }}</td>@endforeach
+                                @if (count($series) > 1)<td class="tabular px-3 py-1.5 text-right font-bold text-ink">{{ $formatTotal($totals[$index]) }}</td>@endif
                             </tr>
                         @endforeach
                     </tbody>

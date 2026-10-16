@@ -165,4 +165,59 @@ class FlightPagesTest extends TestCase
             ->assertSee('TLF55501')
             ->assertDontSee('TLF55502');
     }
+
+    public function test_summary_stats_refresh_when_bookings_arrive(): void
+    {
+        $user = User::factory()->withRole(Role::TravelSalesperson)->create();
+        FlightBooking::factory()->create(['booked_at' => now(), 'total_amount' => 10000]);
+
+        $before = Livewire::actingAs($user)->test(Index::class)->html();
+        $this->assertSame('1', $this->stat($before, 'Bookings today'));
+        $this->assertSame('1', $this->stat($before, 'Bookings this month'));
+        $this->assertSame('0', $this->stat($before, 'Refunds pending'));
+        $this->assertSame('USD 10,000', $this->stat($before, 'Booking revenue (month)'));
+        $this->assertStringContainsString('wire:poll.visible.30s', $before);
+
+        // A sync/push lands new rows; the next render (what the poll issues) recomputes every stat.
+        FlightBooking::factory()->create(['booked_at' => now(), 'total_amount' => 20000, 'refund_status' => 'pending', 'refund_requested_at' => now()]);
+        FlightBooking::factory()->create(['booked_at' => now()->subMonth(), 'total_amount' => 5000, 'refund_status' => 'completed', 'refund_completed_at' => now()]);
+
+        $after = Livewire::actingAs($user)->test(Index::class)->html();
+        $this->assertSame('2', $this->stat($after, 'Bookings today'));
+        $this->assertSame('2', $this->stat($after, 'Bookings this month'));
+        $this->assertSame('1', $this->stat($after, 'Refunds pending'));
+        $this->assertSame('1', $this->stat($after, 'Refunds completed'));
+        $this->assertSame('USD 30,000', $this->stat($after, 'Booking revenue (month)'));
+    }
+
+    public function test_the_table_paginates_eight_bookings_per_page(): void
+    {
+        foreach (range(1, 10) as $i) {
+            FlightBooking::factory()->create([
+                'booking_reference' => sprintf('PAGE%02d', $i),
+                'booked_at' => now()->subMinutes(100 - $i),
+            ]);
+        }
+        $user = User::factory()->withRole(Role::TravelSalesperson)->create();
+
+        // Default sort is booked_at desc: page 1 holds PAGE10…PAGE03 only.
+        $page1 = Livewire::actingAs($user)->test(Index::class);
+        $page1->assertSee('10 bookings')
+            ->assertSee('PAGE10')->assertSee('PAGE03')
+            ->assertDontSee('PAGE01')->assertDontSee('PAGE02');
+
+        $page1->call('gotoPage', 2)
+            ->assertSee('PAGE02')->assertSee('PAGE01')
+            ->assertDontSee('PAGE10');
+    }
+
+    /**
+     * The <dd> value paired with a <dt> label in the summary row.
+     */
+    private function stat(string $html, string $label): string
+    {
+        preg_match('/<dt[^>]*>'.preg_quote($label, '/').'<\/dt>\s*<dd[^>]*>([^<]+)<\/dd>/', $html, $matches);
+
+        return trim($matches[1] ?? '');
+    }
 }

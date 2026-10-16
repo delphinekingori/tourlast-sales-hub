@@ -56,12 +56,12 @@ class TravelReport
 
         return array_filter([
             'Bookings' => (clone $sales)->count(),
-            'Revenue (KES)' => (float) (clone $sales)->sum('total_amount'),
-            'Markup (KES)' => $this->withMarkup ? (float) (clone $sales)->sum('markup_amount') : null,
+            'Revenue (USD)' => (float) (clone $sales)->sum('total_amount'),
+            'Markup (USD)' => $this->withMarkup ? (float) (clone $sales)->sum('markup_amount') : null,
             'Passengers' => (int) (clone $sales)->sum('passenger_count'),
             'Cancelled bookings' => (clone $all)->where(fn (Builder $query) => $query->whereNotNull('cancelled_at')->orWhereNotNull('cancellation_status'))->count(),
             'Refunds requested' => (clone $all)->whereNotNull('refund_status')->count(),
-            'Refund value (KES)' => (float) (clone $all)->whereNotNull('refund_status')->sum('refund_amount'),
+            'Refund value (USD)' => (float) (clone $all)->whereNotNull('refund_status')->sum('refund_amount'),
         ], fn ($value) => $value !== null);
     }
 
@@ -83,7 +83,7 @@ class TravelReport
         return $this->flights(FlightBooking::query()->whereBetween('booked_at', [$this->from, $this->to])->whereNotNull('refund_status'))
             ->selectRaw('refund_status, count(*) as total, coalesce(sum(refund_amount), 0) as amount')
             ->groupBy('refund_status')->orderByDesc('total')->get()
-            ->map(fn ($row) => ['Refund status' => ucfirst(str_replace('_', ' ', $row->refund_status)), 'Bookings' => (int) $row->total, 'Amount (KES)' => (float) $row->amount])
+            ->map(fn ($row) => ['Refund status' => ucfirst(str_replace('_', ' ', $row->refund_status)), 'Bookings' => (int) $row->total, 'Amount (USD)' => (float) $row->amount])
             ->all();
     }
 
@@ -95,7 +95,7 @@ class TravelReport
         return $this->flights(TravelSalesMetrics::flightSales($this->from, $this->to))
             ->selectRaw('origin, destination, count(*) as total, coalesce(sum(total_amount), 0) as revenue')
             ->groupBy('origin', 'destination')->orderByDesc('total')->limit($limit)->get()
-            ->map(fn ($row) => ['Route' => $row->origin.' → '.$row->destination, 'Bookings' => (int) $row->total, 'Revenue (KES)' => (float) $row->revenue])
+            ->map(fn ($row) => ['Route' => $row->origin.' → '.$row->destination, 'Bookings' => (int) $row->total, 'Revenue (USD)' => (float) $row->revenue])
             ->all();
     }
 
@@ -107,7 +107,7 @@ class TravelReport
         return $this->flights(TravelSalesMetrics::flightSales($this->from, $this->to))
             ->selectRaw('coalesce(airline_name, airline_code) as airline, count(*) as total, coalesce(sum(total_amount), 0) as revenue')
             ->groupBy(DB::raw('coalesce(airline_name, airline_code)'))->orderByDesc('total')->get()
-            ->map(fn ($row) => ['Airline' => (string) $row->airline, 'Bookings' => (int) $row->total, 'Revenue (KES)' => (float) $row->revenue])
+            ->map(fn ($row) => ['Airline' => (string) $row->airline, 'Bookings' => (int) $row->total, 'Revenue (USD)' => (float) $row->revenue])
             ->all();
     }
 
@@ -275,13 +275,13 @@ class TravelReport
                 'Salesperson' => $user->name,
                 'Flight bookings' => (int) $figures['flight_bookings'],
                 'Flight target' => $target(TravelTargetMetric::FlightBookings),
-                'Flight revenue (KES)' => $figures['flight_revenue'],
+                'Flight revenue (USD)' => $figures['flight_revenue'],
                 'Tour bookings' => (int) $figures['tour_bookings'],
                 'Tour target' => $target(TravelTargetMetric::TourBookings),
                 'Tour revenue (KES)' => $figures['tour_revenue'],
-                'Total travel sales (KES)' => $figures['flight_revenue'] + $figures['tour_revenue'],
+                'Total travel sales' => $figures['flight_revenue'] + $figures['tour_revenue'],
             ];
-        })->sortByDesc('Total travel sales (KES)')->values()->all();
+        })->sortByDesc('Total travel sales')->values()->all();
     }
 
     /**

@@ -16,9 +16,17 @@ enum TravelTargetMetric: string
     {
         return match ($this) {
             self::FlightBookings => 'Flight bookings',
-            self::FlightRevenue => 'Flight revenue (KES)',
+            self::FlightRevenue => 'Flight revenue (USD)',
             self::TourBookings => 'Tour & experience bookings',
             self::TourRevenue => 'Tour & experience revenue (KES)',
+        };
+    }
+
+    public function currency(): string
+    {
+        return match ($this) {
+            self::FlightRevenue => 'USD',
+            default => 'KES',
         };
     }
 
