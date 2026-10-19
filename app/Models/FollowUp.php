@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  */
 #[Fillable([
     'lead_id', 'subject_type', 'subject_id', 'user_id', 'type', 'task', 'due_at', 'has_time', 'duration_minutes',
-    'contact_name', 'contact_role', 'location', 'notes', 'completed_at', 'outcome_activity_id',
+    'contact_name', 'contact_role', 'location', 'notes', 'completed_at', 'reminder_sent_at', 'outcome_activity_id',
 ])]
 class FollowUp extends Model
 {
@@ -45,7 +45,20 @@ class FollowUp extends Model
             'has_time' => 'boolean',
             'duration_minutes' => 'integer',
             'completed_at' => 'datetime',
+            'reminder_sent_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Rescheduling re-arms the "starting soon" reminder.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (FollowUp $item): void {
+            if ($item->exists && ($item->isDirty('due_at') || $item->isDirty('has_time')) && ! $item->isDirty('reminder_sent_at')) {
+                $item->reminder_sent_at = null;
+            }
+        });
     }
 
     /**

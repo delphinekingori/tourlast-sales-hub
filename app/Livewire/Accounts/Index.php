@@ -6,6 +6,7 @@ use App\Enums\Permission;
 use App\Models\IncentivePolicy;
 use App\Models\PartnerAccount;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Livewire\Attributes\Title;
@@ -31,6 +32,10 @@ class Index extends Component
     #[Url]
     public string $owner = '';
 
+    /** Activation month (Y-m); empty means all time. */
+    #[Url]
+    public string $period = '';
+
     public function mount(): void
     {
         abort_unless($this->seesAll() || Auth::user()->role()?->earnsReferrals(), 403);
@@ -46,7 +51,11 @@ class Index extends Component
         $base = PartnerAccount::query()
             ->current()
             ->when(! $this->seesAll(), fn ($query) => $query->where('user_id', Auth::id()))
-            ->when($this->seesAll() && $this->owner !== '', fn ($query) => $query->where('user_id', $this->owner));
+            ->when($this->seesAll() && $this->owner !== '', fn ($query) => $query->where('user_id', $this->owner))
+            ->when(preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $this->period) === 1, fn ($query) => $query->whereBetween('activation_date', [
+                CarbonImmutable::parse($this->period.'-01')->startOfMonth(),
+                CarbonImmutable::parse($this->period.'-01')->endOfMonth(),
+            ]));
 
         $policy = IncentivePolicy::for(now())->policy();
         $reviewDays = $policy->reviewDays();
@@ -86,6 +95,6 @@ class Index extends Component
 
         return $user->can(Permission::VerifyAccounts->value)
             || $user->can(Permission::ViewTeamPerformance->value)
-            || $user->can(Permission::ViewTeamEarnings->value);
+            || $user->can(Permission::ViewAccountHistory->value);
     }
 }

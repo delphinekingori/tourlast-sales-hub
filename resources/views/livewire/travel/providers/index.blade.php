@@ -7,6 +7,7 @@
         <x-slot:actions>
             <x-ui.button variant="secondary" icon="document" :href="route('travel.contracts.index')" wire:navigate>Contracts</x-ui.button>
             <x-ui.button variant="secondary" icon="alert" :href="route('travel.incidents.index')" wire:navigate>Incidents</x-ui.button>
+            <x-ui.button variant="secondary" icon="check-circle" :href="route('travel.reviews.index')" wire:navigate>Reviews</x-ui.button>
             <x-ui.button icon="plus" :href="route('travel.providers.create')" wire:navigate>Add provider</x-ui.button>
         </x-slot:actions>
     </x-ui.page-header>

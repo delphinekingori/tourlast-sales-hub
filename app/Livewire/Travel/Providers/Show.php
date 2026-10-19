@@ -61,6 +61,7 @@ class Show extends Component
     {
         $user = Auth::user();
         $provider = TravelProvider::query()
+            ->withReviewStats()
             ->with([
                 'owner:id,name,avatar_path',
                 'creator:id,name',

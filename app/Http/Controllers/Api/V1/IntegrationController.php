@@ -72,13 +72,13 @@ class IntegrationController extends ApiController
     }
 
     /**
-     * GET /integrations/tourlast/ref-codes — every active referral code, so the source app can validate ?ref= and stamp its rows.
+     * GET /integrations/tourlast/ref-codes — every active referral code (codes of fired salespeople are left out), so the source app can validate ?ref= and stamp its rows.
      * Auth: the shared sync token from php artisan hub:generate-token, no user account.
      */
     public function refCodes(): AnonymousResourceCollection
     {
         return ReferralCodeResource::collection(
-            ReferralCode::query()->where('is_active', true)->with('user:id,name')->orderBy('code')->get()
+            ReferralCode::query()->where('is_active', true)->creditable()->with('user:id,name')->orderBy('code')->get()
         );
     }
 

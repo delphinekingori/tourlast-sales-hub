@@ -30,6 +30,16 @@ class Alerts
     }
 
     /**
+     * A personal alert for one person only (e.g. a meeting reminder).
+     */
+    public static function sendToUser(User $user, string $type, string $title, string $body, ?string $url = null): void
+    {
+        if ($user->is_active) {
+            Notification::send($user, new SmartAlert($type, $title, $body, $url));
+        }
+    }
+
+    /**
      * Alerts only for the people who handle a sensitive change (HR and Finance).
      */
     public static function sendToPaymentReviewers(string $type, string $title, string $body, ?string $url = null): void

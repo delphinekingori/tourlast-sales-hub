@@ -191,6 +191,7 @@ class TravelReport
         return TravelProvider::query()->current()
             ->when($this->userId, fn (Builder $query) => $query->where('owner_id', $this->userId))
             ->withCount('packages')
+            ->withReviewStats()
             ->with(['owner:id,name', 'contracts'])
             ->orderBy('name')->get()
             ->map(function (TravelProvider $provider) use ($bookings): array {
@@ -204,6 +205,8 @@ class TravelReport
                     'Bookings' => (int) ($row->total ?? 0),
                     'Revenue (KES)' => (float) ($row->revenue ?? 0),
                     'Cancellations' => (int) ($row->cancelled ?? 0),
+                    'Reviews' => (int) $provider->reviews_count,
+                    'Avg rating' => $provider->ratingAverage() ?? '',
                     'Contract ends' => $contract?->ends_on?->format('j M Y') ?? ($contract ? 'Open-ended' : 'No active contract'),
                     'Salesperson' => (string) $provider->owner?->name,
                 ];

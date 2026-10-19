@@ -36,6 +36,7 @@ class TravelPackageController extends ApiController
         TravelAccess::abortUnlessWorks($viewer);
 
         $packages = Package::query()
+            ->withReviewStats()
             ->with(['provider:id,name', 'owner:id,name,avatar_path', 'liveVersion', 'workingVersion'])
             ->when(! $request->boolean('archived'), fn (Builder $query) => $query->current())
             ->search((string) $request->query('q', ''))
@@ -55,7 +56,7 @@ class TravelPackageController extends ApiController
     {
         TravelAccess::abortUnlessWorks($this->user($request));
 
-        return new PackageResource($this->load(Package::query()->findOrFail($package)));
+        return new PackageResource($this->load(Package::query()->withReviewStats()->findOrFail($package)));
     }
 
     /**

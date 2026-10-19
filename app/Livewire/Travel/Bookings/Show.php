@@ -8,7 +8,9 @@ use App\Actions\Travel\Bookings\RequestCancellation;
 use App\Actions\Travel\Bookings\SaveBookingGuests;
 use App\Actions\Travel\Bookings\ToggleChecklistItem;
 use App\Actions\Travel\Resources\AssignTripResources;
+use App\Actions\Travel\Reviews\RecordTripReview;
 use App\Enums\Travel\ResourceStatus;
+use App\Enums\Travel\TravelBookingStatus;
 use App\Livewire\Travel\Bookings\Concerns\CapturesActionErrors;
 use App\Livewire\Travel\Bookings\Concerns\EditsGuestRows;
 use App\Models\AuditEvent;
@@ -41,6 +43,11 @@ class Show extends Component
     public bool $showAssign = false;
 
     public bool $showGuests = false;
+
+    public bool $showReview = false;
+
+    /** @var array<string, string> */
+    public array $review = [];
 
     /** @var array<int, array<string, mixed>> */
     public array $guests = [];
@@ -134,6 +141,26 @@ class Show extends Component
         }
     }
 
+    public function openReview(): void
+    {
+        $booking = $this->booking();
+        abort_unless($booking->isWorkableBy(Auth::user()) && $booking->status === TravelBookingStatus::Completed && ! $booking->review()->exists(), 403);
+        $this->resetErrorBag();
+        $this->review = ['rating' => '', 'rating_service' => '', 'rating_guide' => '', 'rating_value' => '', 'rating_safety' => '', 'source' => 'phone', 'comment' => ''];
+        $this->showReview = true;
+    }
+
+    public function saveReview(RecordTripReview $record): void
+    {
+        $data = array_map(fn (string $value): ?string => $value === '' ? null : $value, $this->review);
+        $this->resetErrorBag();
+
+        if ($this->attempt(fn () => $record->handle(Auth::user(), $this->booking(), $data), 'review')) {
+            $this->showReview = false;
+            $this->dispatch('toast', message: 'Review recorded.');
+        }
+    }
+
     public function openCancel(): void
     {
         abort_unless($this->booking()->isWorkableBy(Auth::user()), 403);
@@ -177,13 +204,14 @@ class Show extends Component
             'package.provider:id,name', 'package.owner:id,name', 'package.driver', 'package.guide',
             'version', 'departure.driver', 'departure.guide', 'client', 'guests', 'salesperson:id,name', 'driver', 'guide',
             'influencerCode.influencer:id,name', 'checklistItems.completer:id,name',
-            'cancellations.requester:id,name', 'cancellations.decider:id,name',
+            'review.recorder:id,name', 'cancellations.requester:id,name', 'cancellations.decider:id,name',
             'refunds.requester:id,name', 'refunds.approver:id,name', 'refunds.processor:id,name',
         ]);
 
         return view('livewire.travel.bookings.show', [
             'booking' => $booking,
             'canWork' => $booking->isWorkableBy($user),
+            'canReview' => $booking->isWorkableBy($user) && $booking->status === TravelBookingStatus::Completed && $booking->review === null,
             'managesAll' => TravelAccess::managesAll($user),
             'seesContact' => $booking->canSeeClientContact($user),
             'checklist' => PreTripChecklist::items($booking),

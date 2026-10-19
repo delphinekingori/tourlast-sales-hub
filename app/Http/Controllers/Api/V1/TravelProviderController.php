@@ -30,6 +30,7 @@ class TravelProviderController extends ApiController
         $providers = TravelProvider::query()
             ->with('owner:id,name,avatar_path')
             ->withCount('packages')
+            ->withReviewStats()
             ->when(! $request->boolean('archived'), fn (Builder $query) => $query->current())
             ->search((string) $request->query('q', ''))
             ->when($request->filled('status'), fn (Builder $query) => $query->where('status', (string) $request->query('status')))
@@ -51,6 +52,7 @@ class TravelProviderController extends ApiController
         return new TravelProviderResource(TravelProvider::query()
             ->with(['owner:id,name,avatar_path', 'contracts.provider', 'contracts.documents'])
             ->withCount('packages')
+            ->withReviewStats()
             ->findOrFail($provider));
     }
 

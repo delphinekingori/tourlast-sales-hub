@@ -484,6 +484,8 @@ Defined in `routes/console.php`. They require the Laravel scheduler to run every
 | Every 5 min | `travel:mpesa-reconcile` | Asks Safaricom about payment requests with no answer; fails them after an hour |
 | Every 10 min | `travel:sync-flights` | Reads changed flight bookings from Flights Super Admin (skipped when the source is `push`) |
 | Hourly | `travel:expire-holds` | Cancels unpaid pending package bookings whose hold ran out |
+| Every 5 minutes | `hub:send-meeting-reminders` | Sends each owner one "Starting soon" alert for an open, timed meeting, call, site visit or follow-up that starts within `HUB_MEETING_REMINDER_MINUTES` (default 30). Skips completed, anytime and already-started items and inactive owners. Stamps `follow_ups.reminder_sent_at`; rescheduling clears it |
+| Every 10 minutes | `travel:refunds-flag-stuck` | Alerts Accounts once to an M-Pesa refund payout with no answer after `TRAVEL_REFUND_STUCK_MINUTES` (default 30) |
 | 07:10 daily | `travel:contract-alerts` | Provider contract expiry alerts |
 | 08:00 daily | `travel:pretrip-reminders` | Missing driver/guide and pre-trip alerts for the next 3 days |
 
@@ -594,6 +596,16 @@ Built and tested end to end in test mode (`MPESA_DRIVER=sandbox`: nothing reache
 
 Refunds are paid out by Accounts outside the Hub (M-Pesa or bank) and recorded with their reference. Automatic M-Pesa refunds (Daraja B2C) are not built (section 11).
 
+### 8.8 Refunds through M-Pesa (B2C)
+
+When `TRAVEL_AUTO_REFUNDS=true`, Accounts see **Send refund via M-Pesa** on approved refunds (and **Retry via M-Pesa** on failed ones) under Cancellations & refunds. The Hub sends a Daraja B2C `BusinessPayment` to the client's phone (whole shillings, within the booking's refundable balance). The refund moves to Processing under a row lock before Safaricom is called, with a unique `originator_conversation_id` per attempt, so it cannot be sent twice. Safaricom answers on `POST /api/daraja/{secret}/b2c/result` and `/b2c/timeout`, handled by `ReceiveDarajaCallback`: payload stored first, always answered "Accepted", duplicates ignored. Success completes the refund (reference = M-Pesa receipt) and alerts Accounts and the salesperson. Failure marks it Failed with Safaricom's reason and allows a retry. A timeout leaves it Processing, since the money may still move. B2C has no status query, so `travel:refunds-flag-stuck` flags a payout with no answer; **check the M-Pesa portal before retrying** so the client is not paid twice. Manual "record reference" is unchanged. With the sandbox driver use the Simulate buttons or `php artisan travel:mpesa-simulate-refund {id} [--fail]`.
+
+**B2C go-live checklist:** (1) get a B2C shortcode and approved initiator from Safaricom; (2) set `DARAJA_B2C_SECURITY_CREDENTIAL`, or the initiator password and certificate path (production certificate for production); (3) confirm `MPESA_DRIVER=daraja`, `DARAJA_ENVIRONMENT=production`, key/secret, `DARAJA_CALLBACK_SECRET` and a public HTTPS `DARAJA_CALLBACK_BASE_URL`; (4) run `php artisan travel:mpesa-register-urls`; (5) allow Safaricom IPs if `DARAJA_ALLOWED_IPS` is used; (6) `php artisan migrate`; (7) fund the B2C utility account; (8) test in the Daraja sandbox, then send one real KES 1 refund to a staff phone; (9) only then set `TRAVEL_AUTO_REFUNDS=true` and confirm the scheduler runs. The certificate-encryption path could not be tested on the development machine, so verify it in the sandbox first.
+
+### 8.9 Trip reviews and provider ratings
+
+After a trip is completed, the team records the client's feedback on their behalf: Bookings > the completed booking > **Record review**. One review per booking: overall rating (1-5), optional ratings for service, guide/driver, value and safety, a comment, how the client gave it (phone, WhatsApp, email, form, in person), who recorded it and when. Salespeople record on their own bookings and on packages they own; Travel managers on any booking. A rating of 2 or below sends a "low_trip_review" Smart Alert to Travel managers. Provider and package ratings are the average of visible reviews with the count, shown on the provider page, package page, Reports > Providers and the API. **Travel > Providers > Reviews** (`/travel/reviews`) lists all reviews (filters: provider, package, rating including "Low", date) with Excel export. Travel managers can hide a review with a reason; it stays on file, is visible only to managers and no longer counts in ratings. Everything is audited.
+
 ---
 
 ## 9. Configuration
@@ -641,6 +653,11 @@ Refunds are paid out by Accounts outside the Hub (M-Pesa or bank) and recorded w
 | `HUB_INACTIVE_AFTER_DAYS` | `3` | Salesperson flagged inactive after this many days without activity |
 | `HUB_DEFAULT_COUNTRY` | `Kenya` | Pre-filled country on new registry records |
 | `HUB_TRANSPORT_MONTHLY_CAP` | empty (no cap) | Monthly transport claim cap per salesperson, KES |
+| `HUB_MEETING_REMINDER_MINUTES` | `30` | Minutes before a timed item starts that its owner is reminded |
+| `TRAVEL_AUTO_REFUNDS` | `false` | Show "Send refund via M-Pesa" and allow B2C refunds |
+| `TRAVEL_REFUND_STUCK_MINUTES` | `30` | Alert Accounts to refund payouts unanswered this long |
+| `DARAJA_B2C_SHORTCODE`, `DARAJA_B2C_INITIATOR` | none | B2C shortcode and Safaricom-approved API initiator |
+| `DARAJA_B2C_SECURITY_CREDENTIAL` or `DARAJA_B2C_INITIATOR_PASSWORD` + `DARAJA_B2C_CERTIFICATE_PATH` | none | Pre-encrypted credential (wins), or initiator password plus Safaricom certificate (PEM) |
 
 **tourlast.com connection**
 
@@ -787,16 +804,16 @@ sudo supervisorctl restart sales-hub-worker
 
 | # | Question | Current behaviour |
 |---|---|---|
-| 17 | Should a **fired salesperson's referral link** stop crediting new signups? | It keeps working and crediting them |
-| 18 | Should marking a **lead Lost** also update its linked **registry record**? | No — managers record the registry outcome (keeps the registry manager-owned) |
-| 19 | Should **tourlast.com signups automatically create registry records**? | No — managers add records; signups are linked when they match |
-| 20 | **Reminders before meetings** (e.g. 30 minutes before)? | Not built; overdue items are alerted daily |
+| 17 | ~~Should a **fired salesperson's referral link** stop crediting new signups?~~ | Done: the link still forwards the visitor to tourlast.com but attaches no `?ref=` and counts no click. A signup carrying that code lands unattributed and raises the needs-assigning alert. Credit already given is kept. `GET /integrations/tourlast/ref-codes` no longer lists fired users' codes. Reinstating restores it; suspended users are unchanged |
+| 18 | ~~Should marking a **lead Lost** also update its linked **registry record**?~~ | Done: the linked registry record is also marked Lost with the same objection, competitor, notes and re-engage date, and a timeline event is added. Re-opening a lost lead does not change the registry record |
+| 19 | ~~Should **tourlast.com signups automatically create registry records**?~~ | Done (2026-10-08): a signup credited to a salesperson creates its registry record automatically |
+| 20 | ~~**Reminders before meetings**~~ | Done: `hub:send-meeting-reminders` (every 5 minutes) sends the owner one "Starting soon" alert `HUB_MEETING_REMINDER_MINUTES` (default 30) before a timed item |
 | 21 | Lead pipeline stages **Proposal** and **Negotiation**? | Lead statuses are New, Contacted, Meeting, Link sent, Onboarded, Lost; the registry has the full stage list |
-| 22 | Should HR get a read-only view of account history for all staff? | HR sees it per person under People |
-| 23 | **Automatic M-Pesa refunds** (Daraja B2C)? | Not built: Accounts pays refunds outside the Hub and records the reference. B2C needs separate Safaricom credentials and approval |
+| 22 | ~~Should HR get a read-only view of account history for all staff?~~ | Done: HR, Accounts, Sales Manager and Sales Admin hold `view-account-history` and read all Partner Accounts, points and verification history. Verify, fail-review and merge stay behind `verify-accounts`. Deploy: run `RolesAndPermissionsSeeder` |
+| 23 | ~~**Automatic M-Pesa refunds** (Daraja B2C)~~ | Built, off by default (`TRAVEL_AUTO_REFUNDS=false`). Nothing changes in production until Safaricom approves the B2C initiator (see 8.8). Manual recording remains |
 | 24 | **Publishing packages to tourlast.com** automatically? | Manual by design: the salesperson publishes on the chosen channel and records it in the Hub; no package API to tourlast.com |
 | 25 | **Commission scheme for travel salespeople** themselves? | None defined; travel salespeople earn no Schedule 1 points. Targets and sales figures are tracked |
-| 26 | **Customer reviews and provider ratings** after a trip? | Not built; incidents are logged. Room is left to add feedback on completed bookings |
+| 26 | ~~**Customer reviews and provider ratings** after a trip~~ | Done: reviews recorded on completed bookings, provider and package ratings, reviews list with Excel export, manager moderation, low-rating alerts, API (see 8.9) |
 | 27 | **Flight status words** | The Hub shows Flights Super Admin's own status names; the open/done refund grouping (8.6) must be confirmed against the real API |
 | 28 | ~~Should Accounts see the **Bookings** page in their menu?~~ | Done: Accounts now have **Bookings** in their Travel Sales menu (read-only, with payments and refunds) |
 

@@ -11,11 +11,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Money returned to a package client. Requested by sales, approved by a
  * Sales Admin, then paid out by Accounts, who record the M-Pesa or bank
- * reference. Only completed refunds reduce what the booking has paid.
+ * reference, or send it through M-Pesa B2C (the Daraja result then completes
+ * it). Only completed refunds reduce what the booking has paid.
  */
 #[Fillable([
     'package_booking_id', 'package_cancellation_id', 'travel_payment_id', 'amount', 'reason', 'status', 'method',
-    'reference', 'failure_reason', 'requested_by', 'approved_by', 'approved_at', 'processed_by', 'processed_at',
+    'reference', 'failure_reason', 'originator_conversation_id', 'conversation_id', 'payout_phone', 'payout_requested_at',
+    'payout_flagged_at', 'requested_by', 'approved_by', 'approved_at', 'processed_by', 'processed_at',
 ])]
 class TravelRefund extends Model
 {
@@ -30,6 +32,8 @@ class TravelRefund extends Model
             'amount' => 'decimal:2',
             'approved_at' => 'datetime',
             'processed_at' => 'datetime',
+            'payout_requested_at' => 'datetime',
+            'payout_flagged_at' => 'datetime',
         ];
     }
 

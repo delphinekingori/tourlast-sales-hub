@@ -15,6 +15,9 @@ enum Permission: string
     /** Verify Partner Accounts, approve points, run the 14-day review. */
     case VerifyAccounts = 'verify-accounts';
 
+    /** Read every salesperson's Partner Accounts, points ledger and verification history (read only). */
+    case ViewAccountHistory = 'view-account-history';
+
     /** See everyone's pay amounts and statements. */
     case ViewTeamEarnings = 'view-team-earnings';
 

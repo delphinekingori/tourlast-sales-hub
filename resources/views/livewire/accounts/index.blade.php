@@ -27,6 +27,7 @@
                     @endforeach
                 </select>
             @endif
+            <input type="month" wire:model.live="period" aria-label="Activation month" class="h-9 rounded-md border border-line-strong bg-surface px-3 text-[13px] text-ink focus:border-brand focus:ring-3 focus:ring-brand-soft focus:outline-none">
             <x-ui.search wire:model.live.debounce.300ms="search" placeholder="Search legal name" />
         </div>
     </div>

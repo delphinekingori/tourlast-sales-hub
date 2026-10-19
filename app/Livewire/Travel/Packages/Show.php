@@ -70,6 +70,7 @@ class Show extends Component
     {
         $user = Auth::user();
         $package = Package::query()
+            ->withReviewStats()
             ->with([
                 'provider', 'contract', 'owner:id,name', 'creator:id,name', 'updater:id,name', 'publisher:id,name',
                 'driver', 'guide', 'liveVersion.itineraryDays', 'workingVersion.itineraryDays', 'workingVersion.submitter:id,name',

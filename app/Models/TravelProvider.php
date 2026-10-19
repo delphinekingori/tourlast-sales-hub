@@ -116,6 +116,36 @@ class TravelProvider extends Model
     }
 
     /**
+     * @return HasMany<TripReview, $this>
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(TripReview::class);
+    }
+
+    /**
+     * Average of the visible reviews, one decimal; null until there is one.
+     * Needs withReviewStats() on the query.
+     */
+    public function ratingAverage(): ?float
+    {
+        return (int) ($this->reviews_count ?? 0) > 0 ? round((float) $this->reviews_avg_rating, 1) : null;
+    }
+
+    /**
+     * Adds reviews_count and reviews_avg_rating (visible reviews only).
+     *
+     * @param  Builder<TravelProvider>  $query
+     */
+    #[Scope]
+    protected function withReviewStats(Builder $query): void
+    {
+        $visible = fn (Builder $reviews) => $reviews->where('is_hidden', false);
+
+        $query->withCount(['reviews' => $visible])->withAvg(['reviews' => $visible], 'rating');
+    }
+
+    /**
      * @return HasMany<Driver, $this>
      */
     public function drivers(): HasMany

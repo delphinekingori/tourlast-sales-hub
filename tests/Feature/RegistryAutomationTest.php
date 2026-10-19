@@ -4,11 +4,14 @@ namespace Tests\Feature;
 
 use App\Actions\ApplyProviderRecord;
 use App\Actions\AssignOnboarding;
+use App\Actions\ChangeAccountStatus;
 use App\Actions\IssueReferralCode;
+use App\Actions\MarkLeadLost;
 use App\Enums\EngagementSource;
 use App\Enums\EngagementStage;
 use App\Enums\EngagementStatus;
 use App\Enums\LeadStatus;
+use App\Enums\Objection;
 use App\Enums\Role;
 use App\Incentives\AccountPoints;
 use App\Integrations\Tourlast\ProviderRecordMapper;
@@ -61,6 +64,49 @@ class RegistryAutomationTest extends TestCase
             'updated_at' => now()->toIso8601String(),
             ...$overrides,
         ]), 'sync');
+    }
+
+    public function test_a_fired_salespersons_code_leaves_a_new_signup_unattributed(): void
+    {
+        app(ChangeAccountStatus::class)->terminate($this->mary, User::factory()->withRole(Role::SuperAdmin)->create(), 'other');
+
+        $this->sync();
+
+        $onboarding = Onboarding::sole();
+        $this->assertNull($onboarding->user_id);
+        $this->assertNull($onboarding->referral_code_id);
+        $this->assertSame(1, Onboarding::unattributed()->count());
+    }
+
+    public function test_firing_a_salesperson_keeps_credit_already_given_and_reinstating_restores_the_code(): void
+    {
+        $this->sync();
+        $admin = User::factory()->withRole(Role::SuperAdmin)->create();
+
+        app(ChangeAccountStatus::class)->terminate($this->mary, $admin, 'other');
+        $this->sync(['updated_at' => now()->addMinute()->toIso8601String(), 'status' => 'approved']);
+        $this->assertSame($this->mary->id, Onboarding::sole()->user_id);
+
+        app(ChangeAccountStatus::class)->reinstate($this->mary, $admin);
+        $this->sync(['property_id' => 'TL-90002', 'contact_email' => 'x@other.example.com', 'contact_phone' => '+254 700 000 000']);
+        $this->assertSame($this->mary->id, Onboarding::where('tourlast_property_id', 'TL-90002')->sole()->user_id);
+    }
+
+    public function test_marking_a_lead_lost_also_marks_its_registry_record_lost(): void
+    {
+        $lead = Lead::factory()->for($this->mary)->create(['business_name' => 'Tulia Retreat', 'property_type' => 'lodge', 'location' => 'Nanyuki, Kenya', 'contact_name' => 'Ken Ole', 'contact_phone' => '+254 722 111 222', 'status' => LeadStatus::Meeting]);
+        Livewire::actingAs($this->mary)->test(LeadShow::class, ['lead' => $lead])->call('addToRegistry');
+
+        app(MarkLeadLost::class)->handle($lead->fresh(), $this->mary, Objection::Pricing, 'Rival Ltd', 'Too costly', now()->addMonths(3)->toImmutable());
+
+        $engagement = PropertyEngagement::sole();
+        $this->assertSame(EngagementStatus::Lost, $engagement->status);
+        $this->assertSame(Objection::Pricing, $engagement->objection);
+        $this->assertSame('Rival Ltd', $engagement->competitor);
+        $this->assertSame('Too costly', $engagement->outcome_notes);
+        $this->assertNotNull($engagement->reengage_on);
+        $this->assertNotNull($engagement->closed_at);
+        $this->assertTrue($engagement->events()->where('to_value', 'lost')->exists());
     }
 
     public function test_a_signup_credited_to_a_salesperson_is_added_to_the_registry(): void

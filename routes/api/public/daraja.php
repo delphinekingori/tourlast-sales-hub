@@ -15,4 +15,6 @@ Route::prefix('daraja/{secret}')
         Route::post('stk', [DarajaCallbackController::class, 'stk'])->name('stk');
         Route::post('c2b/validation', [DarajaCallbackController::class, 'validation'])->name('c2b.validation');
         Route::post('c2b/confirmation', [DarajaCallbackController::class, 'confirmation'])->name('c2b.confirmation');
+        Route::post('b2c/result', [DarajaCallbackController::class, 'b2cResult'])->name('b2c.result');
+        Route::post('b2c/timeout', [DarajaCallbackController::class, 'b2cTimeout'])->name('b2c.timeout');
     });

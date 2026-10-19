@@ -95,6 +95,70 @@ class DarajaMpesaGateway implements MpesaGateway
         );
     }
 
+    public function b2cPayout(string $phone254, int $amount, string $originatorConversationId, string $remarks): B2cPayoutResult
+    {
+        $b2c = (array) ($this->config['b2c'] ?? []);
+
+        if (blank($b2c['initiator_name'] ?? null) || blank($b2c['shortcode'] ?? null)) {
+            throw new MpesaException('M-Pesa payouts are not configured: set DARAJA_B2C_INITIATOR and DARAJA_B2C_SHORTCODE.');
+        }
+
+        $response = $this->send('/mpesa/b2c/v3/paymentrequest', [
+            'OriginatorConversationID' => $originatorConversationId,
+            'InitiatorName' => (string) $b2c['initiator_name'],
+            'SecurityCredential' => $this->securityCredential(),
+            'CommandID' => 'BusinessPayment',
+            'Amount' => $amount,
+            'PartyA' => (string) $b2c['shortcode'],
+            'PartyB' => $phone254,
+            'Remarks' => mb_substr($remarks, 0, 100),
+            'QueueTimeOutURL' => CallbackUrls::b2cTimeout(),
+            'ResultURL' => CallbackUrls::b2cResult(),
+            'Occassion' => '',
+        ]);
+
+        $body = $response->json() ?? [];
+
+        if (! $response->successful() || (string) ($body['ResponseCode'] ?? '') !== '0') {
+            throw new MpesaException('M-Pesa did not accept the payout: '.($body['errorMessage'] ?? $body['ResponseDescription'] ?? 'HTTP '.$response->status()).'.');
+        }
+
+        return new B2cPayoutResult(
+            conversationId: (string) ($body['ConversationID'] ?? ''),
+            originatorConversationId: (string) ($body['OriginatorConversationID'] ?? $originatorConversationId),
+            responseCode: (string) $body['ResponseCode'],
+            description: (string) ($body['ResponseDescription'] ?? ''),
+        );
+    }
+
+    /**
+     * The initiator password encrypted with Safaricom's public certificate
+     * (RSA, PKCS1 padding, base64), or DARAJA_B2C_SECURITY_CREDENTIAL when
+     * it was generated ahead of time.
+     */
+    public function securityCredential(): string
+    {
+        $b2c = (array) ($this->config['b2c'] ?? []);
+
+        if (filled($b2c['security_credential'] ?? null)) {
+            return (string) $b2c['security_credential'];
+        }
+
+        $path = (string) ($b2c['certificate_path'] ?? '');
+
+        if (blank($b2c['initiator_password'] ?? null) || $path === '' || ! is_file($path)) {
+            throw new MpesaException('M-Pesa payouts are not configured: set DARAJA_B2C_SECURITY_CREDENTIAL, or DARAJA_B2C_INITIATOR_PASSWORD with DARAJA_B2C_CERTIFICATE_PATH.');
+        }
+
+        $certificate = openssl_x509_read((string) file_get_contents($path));
+
+        if ($certificate === false || ! openssl_public_encrypt((string) $b2c['initiator_password'], $encrypted, $certificate, OPENSSL_PKCS1_PADDING)) {
+            throw new MpesaException('M-Pesa payouts could not encrypt the initiator password with the certificate at DARAJA_B2C_CERTIFICATE_PATH.');
+        }
+
+        return base64_encode($encrypted);
+    }
+
     public function registerC2bUrls(): array
     {
         $response = $this->send('/mpesa/c2b/v1/registerurl', [

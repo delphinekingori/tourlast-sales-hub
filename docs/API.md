@@ -1069,7 +1069,7 @@ A **Partner Account** groups every property of one legal business; Schedule 1 po
 
 ### GET /partner-accounts
 
-**Scope:** `incentives:read` · **Who:** salespeople (own), Sales Admin, Sales Manager, HR, Accounts (all)
+**Scope:** `incentives:read` · **Who:** salespeople (own); Sales Admin, Sales Manager, HR, Accounts (all, read only, through the `view-account-history` permission)
 
 | Name | Type | Required | Description |
 |---|---|---|---|
@@ -2006,7 +2006,7 @@ Every active referral code, so the source app can validate `?ref=` on its list-p
 }
 ```
 
-Inactive codes are not returned. A code the Hub does not know must be treated as unattributed, never invented. Errors: `401` with `{"message": "Missing or invalid shared token."}`; `503` if the Hub has no shared token configured yet.
+Inactive codes, and the codes of fired salespeople, are not returned (a fired owner's link also forwards visitors without `?ref=` and counts no click). A code the Hub does not know must be treated as unattributed, never invented. Errors: `401` with `{"message": "Missing or invalid shared token."}`; `503` if the Hub has no shared token configured yet.
 
 ### GET /integrations/tourlast/sync-runs
 
@@ -2124,6 +2124,14 @@ Statuses are exactly as Flights Super Admin sends them. To change a booking, ope
 ```json
 { "data": { "id": 2, "contract_number": "TL-2026-002", "provider_name": "Amboseli Trails Ltd", "starts_on": "2026-01-01", "ends_on": "2026-10-17", "days_until_expiry": 10, "status": "expiring_soon", "status_label": "Expiring soon", "commission_model": "percentage", "commission_rate": "12.50", "cancellation_terms": "Free cancellation up to 14 days before travel." } }
 ```
+
+### GET /travel/reviews · GET /travel/reviews/{id} · POST /travel/bookings/{id}/review
+
+**Scope:** `travel:read` (list, single) · `travel:write` (record). Clients' reviews of completed trips. Filters: `provider_id`, `package_id`, `rating` (1–5, or `low` for 2 or below), `from`, `to` (`YYYY-MM-DD`, by recorded date). Hidden reviews are listed only for Travel managers (others get `404` on a hidden review).
+
+`POST` records the review of a completed booking you can work on. Body: `rating` (1–5, required), `source` (`phone`, `whatsapp`, `email`, `form`, `in_person`, required), `comment`, `rating_service`, `rating_guide`, `rating_value`, `rating_safety` (each 1–5, optional). Returns `201`; `422` if the booking is not completed or already has a review; `403` if you cannot work on it.
+
+Review object: `id, booking_id, booking_reference, package{id,name}, provider{id,name}, client_name, rating, category_ratings{service,guide,value,safety}, comment, source, source_label, is_low, is_hidden, hidden_reason (only when hidden), recorded_by, recorded_at`. `GET /travel/providers`, `/travel/providers/{id}`, `/travel/packages` and `/travel/packages/{id}` also carry `reviews_count` and `rating_average` (visible reviews, one decimal, `null` when none).
 
 ### GET /travel/packages · GET /travel/packages/{id}
 

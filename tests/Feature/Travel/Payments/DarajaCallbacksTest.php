@@ -111,6 +111,35 @@ class DarajaCallbacksTest extends TestCase
         $this->assertSame(BookingPaymentStatus::Unpaid, $booking->fresh()->payment_status);
     }
 
+    public function test_a_late_success_completes_a_payment_the_hub_had_given_up_on(): void
+    {
+        Notification::fake();
+        $booking = PackageBooking::factory()->create();
+        $payment = $this->prompt($booking);
+        $payment->forceFill(['status' => PaymentStatus::Failed, 'result_code' => -1, 'result_description' => 'No response from M-Pesa'])->save();
+
+        $this->postJson('/api/daraja/test-secret/stk', $this->stkPayload($payment))->assertOk();
+
+        $payment->refresh();
+        $this->assertSame(PaymentStatus::Completed, $payment->status);
+        $this->assertSame('QHX1234ABC', $payment->mpesa_receipt);
+        $this->assertStringContainsString('after it was marked failed', (string) $payment->notes);
+        $this->assertSame(40000.0, (float) $booking->fresh()->amount_paid);
+        Notification::assertSentTo($booking->salesperson, SmartAlert::class, fn (SmartAlert $alert) => $alert->type === 'travel_payment_received');
+    }
+
+    public function test_a_late_failure_never_undoes_a_completed_payment(): void
+    {
+        $booking = PackageBooking::factory()->create();
+        $payment = $this->prompt($booking);
+
+        $this->postJson('/api/daraja/test-secret/stk', $this->stkPayload($payment))->assertOk();
+        $this->postJson('/api/daraja/test-secret/stk', $this->stkPayload($payment, code: 1))->assertOk();
+
+        $this->assertSame(PaymentStatus::Completed, $payment->fresh()->status);
+        $this->assertSame(40000.0, (float) $booking->fresh()->amount_paid);
+    }
+
     public function test_a_receipt_already_used_is_ignored(): void
     {
         $booking = PackageBooking::factory()->create();

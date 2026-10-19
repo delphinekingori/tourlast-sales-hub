@@ -4,6 +4,8 @@ namespace App\Livewire\Travel\Cancellations;
 
 use App\Actions\Travel\Bookings\DecideCancellation;
 use App\Actions\Travel\Bookings\ManageRefund;
+use App\Actions\Travel\Payments\SendRefundPayout;
+use App\Actions\Travel\Payments\SimulateMpesaCustomer;
 use App\Enums\Permission;
 use App\Enums\Role;
 use App\Enums\Travel\CancellationStatus;
@@ -128,6 +130,25 @@ class Index extends Component
         }
     }
 
+    public function sendViaMpesa(int $id, SendRefundPayout $send): void
+    {
+        $done = $this->attempt(fn () => $send->handle(Auth::user(), TravelRefund::query()->findOrFail($id)), '');
+
+        if ($done) {
+            $this->dispatch('toast', message: 'Refund sent to M-Pesa. It completes when Safaricom confirms.');
+        } else {
+            $this->dispatch('toast', message: $this->getErrorBag()->first('refund') ?: 'The refund was not sent.');
+        }
+    }
+
+    public function simulatePayout(int $id, bool $succeeds, SimulateMpesaCustomer $simulate): void
+    {
+        abort_unless(TravelAccess::handlesPayments(Auth::user()) && SimulateMpesaCustomer::allowed(), 403);
+
+        $simulate->answerPayout(TravelRefund::query()->findOrFail($id), $succeeds);
+        $this->dispatch('toast', message: 'Simulated the M-Pesa result.');
+    }
+
     public function render(): View
     {
         $user = Auth::user();
@@ -159,6 +180,9 @@ class Index extends Component
             ],
             'canDecide' => $user->can(Permission::ApproveTravelRefunds->value),
             'canPayOut' => TravelAccess::handlesPayments($user),
+            'autoRefunds' => SendRefundPayout::enabled(),
+            'simulated' => SimulateMpesaCustomer::allowed(),
+            'stuckMinutes' => max(1, (int) config('travel.refunds.stuck_minutes', 30)),
             'userId' => $user->id,
             'isSuperAdmin' => $user->hasRole(Role::SuperAdmin->value),
         ]);

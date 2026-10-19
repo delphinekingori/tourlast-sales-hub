@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Actions\ChangeAccountStatus;
 use App\Actions\IssueReferralCode;
 use App\Enums\OnboardingStatus;
 use App\Enums\Role;
@@ -95,6 +96,19 @@ class IntegrationApiTest extends TestCase
             ->assertJsonPath('data.1.code', $maryCode)
             ->assertJsonPath('data.1.user_name', 'Mary Wambui')
             ->assertJsonMissingPath('data.2');
+    }
+
+    public function test_ref_codes_of_fired_salespeople_are_left_out_until_reinstated(): void
+    {
+        $john = User::factory()->withRole(Role::Salesperson)->create();
+        app(IssueReferralCode::class)->handle($john);
+        $admin = User::factory()->withRole(Role::SuperAdmin)->create();
+
+        app(ChangeAccountStatus::class)->terminate($john, $admin, 'other');
+        $this->sharedToken('shared-secret')->getJson('/api/v1/integrations/tourlast/ref-codes')->assertOk()->assertJsonCount(0, 'data');
+
+        app(ChangeAccountStatus::class)->reinstate($john, $admin);
+        $this->sharedToken('shared-secret')->getJson('/api/v1/integrations/tourlast/ref-codes')->assertOk()->assertJsonCount(1, 'data');
     }
 
     public function test_ref_codes_need_the_shared_token(): void

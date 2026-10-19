@@ -22,6 +22,8 @@ class MpesaRegisterUrls extends Command
         $this->components->twoColumnDetail('Payment prompt (STK) callback', CallbackUrls::stk());
         $this->components->twoColumnDetail('Paybill validation', CallbackUrls::c2bValidation());
         $this->components->twoColumnDetail('Paybill confirmation', CallbackUrls::c2bConfirmation());
+        $this->components->twoColumnDetail('Refund payout (B2C) result', CallbackUrls::b2cResult());
+        $this->components->twoColumnDetail('Refund payout (B2C) timeout', CallbackUrls::b2cTimeout());
 
         if ($gateway->isSimulated()) {
             $this->components->info('MPESA_DRIVER=sandbox: nothing registered with Safaricom (test mode).');

@@ -122,6 +122,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Meeting reminders
+    |--------------------------------------------------------------------------
+    |
+    | Timed meetings, calls, site visits and follow-ups send their owner one
+    | alert this many minutes before they start (hub:send-meeting-reminders).
+    |
+    */
+
+    'meeting_reminder_minutes' => (int) env('HUB_MEETING_REMINDER_MINUTES', 30),
+
+    /*
+    |--------------------------------------------------------------------------
     | Targets
     |--------------------------------------------------------------------------
     |

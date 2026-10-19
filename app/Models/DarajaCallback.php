@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Every message received from Safaricom Daraja, stored as it arrived before
  * it is processed (for reconciliation and support).
  */
-#[Fillable(['type', 'payload', 'ip_address', 'travel_payment_id', 'processed_at', 'error'])]
+#[Fillable(['type', 'payload', 'ip_address', 'travel_payment_id', 'travel_refund_id', 'processed_at', 'error'])]
 class DarajaCallback extends Model
 {
     /**
@@ -30,5 +30,13 @@ class DarajaCallback extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(TravelPayment::class, 'travel_payment_id');
+    }
+
+    /**
+     * @return BelongsTo<TravelRefund, $this>
+     */
+    public function refund(): BelongsTo
+    {
+        return $this->belongsTo(TravelRefund::class, 'travel_refund_id');
     }
 }

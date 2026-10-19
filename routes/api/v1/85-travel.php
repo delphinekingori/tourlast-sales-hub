@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\TravelFlightController;
 use App\Http\Controllers\Api\V1\TravelPackageController;
 use App\Http\Controllers\Api\V1\TravelPaymentController;
 use App\Http\Controllers\Api\V1\TravelProviderController;
+use App\Http\Controllers\Api\V1\TravelReviewController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -36,6 +37,9 @@ Route::prefix('travel')->name('travel.')->group(function (): void {
         Route::get('bookings', [TravelBookingController::class, 'index'])->name('bookings.index');
         Route::get('bookings/{booking}', [TravelBookingController::class, 'show'])->whereNumber('booking')->name('bookings.show');
 
+        Route::get('reviews', [TravelReviewController::class, 'index'])->name('reviews.index');
+        Route::get('reviews/{review}', [TravelReviewController::class, 'show'])->whereNumber('review')->name('reviews.show');
+
         Route::get('payments', [TravelPaymentController::class, 'index'])->name('payments.index');
         Route::get('influencer-codes', [TravelPaymentController::class, 'influencerCodes'])->name('influencer-codes.index');
     });
@@ -50,6 +54,7 @@ Route::prefix('travel')->name('travel.')->group(function (): void {
 
         Route::post('bookings', [TravelBookingController::class, 'store'])->name('bookings.store');
         Route::post('bookings/{booking}/confirm', [TravelBookingController::class, 'confirm'])->whereNumber('booking')->name('bookings.confirm');
+        Route::post('bookings/{booking}/review', [TravelReviewController::class, 'store'])->whereNumber('booking')->name('bookings.review');
         Route::post('bookings/{booking}/mpesa', [TravelBookingController::class, 'requestMpesa'])->whereNumber('booking')->name('bookings.mpesa');
 
         Route::post('schedule', [TravelController::class, 'schedule'])->name('schedule.store');

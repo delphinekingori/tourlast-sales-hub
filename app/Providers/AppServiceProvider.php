@@ -73,7 +73,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('view-account', fn (User $user, PartnerAccount $account): bool => $account->user_id === $user->id
             || $user->can(Permission::VerifyAccounts->value)
             || $user->can(Permission::ViewTeamPerformance->value)
-            || $user->can(Permission::ViewTeamEarnings->value));
+            || $user->can(Permission::ViewAccountHistory->value));
 
         Gate::define('view-claim', fn (User $user, ExpenseClaim $claim): bool => $claim->user_id === $user->id
             || $user->can(Permission::ApproveClaimsManager->value)

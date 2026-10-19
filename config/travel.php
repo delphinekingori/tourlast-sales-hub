@@ -62,6 +62,28 @@ return [
         'callback_base_url' => env('DARAJA_CALLBACK_BASE_URL', env('APP_URL')),
         'allowed_ips' => array_filter(explode(',', (string) env('DARAJA_ALLOWED_IPS', ''))),
         'stk_timeout_minutes' => (int) env('DARAJA_STK_TIMEOUT_MINUTES', 3),
+
+        /** Business to Customer payouts (refunds). Needs Safaricom's approval of the initiator. */
+        'b2c' => [
+            'shortcode' => env('DARAJA_B2C_SHORTCODE'),
+            'initiator_name' => env('DARAJA_B2C_INITIATOR'),
+            'security_credential' => env('DARAJA_B2C_SECURITY_CREDENTIAL'),
+            'initiator_password' => env('DARAJA_B2C_INITIATOR_PASSWORD'),
+            'certificate_path' => env('DARAJA_B2C_CERTIFICATE_PATH'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Refunds
+    |--------------------------------------------------------------------------
+    */
+
+    'refunds' => [
+        /** Off: Accounts pays outside the Hub and records the reference. On: "Send refund via M-Pesa" appears. */
+        'auto_payout' => (bool) env('TRAVEL_AUTO_REFUNDS', false),
+        /** A payout still waiting on Safaricom after this long is flagged to Accounts. */
+        'stuck_minutes' => (int) env('TRAVEL_REFUND_STUCK_MINUTES', 30),
     ],
 
     /*

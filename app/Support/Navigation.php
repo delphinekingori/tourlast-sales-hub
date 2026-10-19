@@ -84,7 +84,7 @@ class Navigation
             $management[] = self::item('Verification', 'check-circle', 'accounts.index', ['tab' => 'verify'], activeOn: []);
         }
 
-        if (! $sells && ($user->can(Permission::ViewTeamPerformance->value) || $user->can(Permission::ViewTeamEarnings->value))) {
+        if (! $sells && ($user->can(Permission::ViewTeamPerformance->value) || $user->can(Permission::ViewAccountHistory->value))) {
             $management[] = self::item('Partner Accounts', 'building', 'accounts.*');
         }
 
@@ -169,7 +169,7 @@ class Navigation
             [$works, 'Travel dashboard', 'home', 'travel.dashboard', ['travel.dashboard']],
             [$user->isTravelSalesperson(), 'Calendar', 'calendar', 'calendar.index', ['calendar.index']],
             [$works, 'Flights', 'plane', 'travel.flights.*', null],
-            [$works, 'Providers', 'building', 'travel.providers.*', ['travel.providers.*', 'travel.incidents.*']],
+            [$works, 'Providers', 'building', 'travel.providers.*', ['travel.providers.*', 'travel.incidents.*', 'travel.reviews.*']],
             [$works, 'Contracts', 'document', 'travel.contracts.*', null],
             [$works, 'Packages', 'map', 'travel.packages.*', null],
             [$approves, 'Approvals', 'shield', 'travel.approvals.*', null],

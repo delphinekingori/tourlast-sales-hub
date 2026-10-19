@@ -19,6 +19,9 @@
                     <x-ui.button icon="check-circle" wire:click="complete" wire:confirm="Mark this trip completed?">Mark completed</x-ui.button>
                     <x-ui.button variant="secondary" wire:click="noShow" wire:confirm="Mark the client as a no-show?">No-show</x-ui.button>
                 @endif
+                @if ($canReview)
+                    <x-ui.button variant="secondary" icon="check-circle" wire:click="openReview">Record review</x-ui.button>
+                @endif
                 @if ((float) $booking->amount_paid > (float) $booking->amount_refunded)
                     <x-ui.button variant="secondary" icon="refresh" wire:click="openRefund">Request refund</x-ui.button>
                 @endif
@@ -167,6 +170,28 @@
                 <livewire:travel.payments.booking-payments :booking-id="$booking->id" :key="'pay-'.$booking->id" />
             @endif
 
+            @if ($booking->review || $status === \App\Enums\Travel\TravelBookingStatus::Completed)
+                <x-ui.card title="Client review" :padding="false">
+                    @if ($booking->review)
+                        @php($trip = $booking->review)
+                        <div class="grid gap-1.5 px-4 py-3 text-[13px]">
+                            <p class="flex flex-wrap items-center gap-2">
+                                <span class="tabular text-base font-bold {{ $trip->isLow() ? 'text-danger' : 'text-ink' }}"><span class="text-warning" aria-hidden="true">★</span> {{ $trip->rating }}/5</span>
+                                @if ($trip->is_hidden)<x-ui.pill tone="neutral" :dot="false">Hidden</x-ui.pill>@endif
+                            </p>
+                            @foreach (\App\Models\TripReview::Categories as $column => $label)
+                                @if ($trip->{$column} !== null)<p class="text-ink-muted">{{ $label }}: {{ $trip->{$column} }}/5</p>@endif
+                            @endforeach
+                            @if ($trip->comment)<p class="text-ink">{{ $trip->comment }}</p>@endif
+                            <p class="text-xs text-ink-subtle">Recorded by {{ $trip->recorder?->name ?? 'staff' }} via {{ $trip->source->label() }} on {{ $trip->recorded_at->format('j M Y') }}</p>
+                            @if ($trip->is_hidden)<p class="text-xs text-ink-subtle">Hidden: {{ $trip->hidden_reason }}</p>@endif
+                        </div>
+                    @else
+                        <p class="px-4 py-4 text-[13px] text-ink-subtle">No review recorded yet.</p>
+                    @endif
+                </x-ui.card>
+            @endif
+
             <x-ui.card title="Cancellations and refunds" :padding="false">
                 @if ($booking->cancellations->isEmpty() && $booking->refunds->isEmpty())
                     <p class="px-4 py-4 text-[13px] text-ink-subtle">None.</p>
@@ -277,6 +302,39 @@
         <x-slot:footer>
             <x-ui.button variant="secondary" x-on:click="open = false">Cancel</x-ui.button>
             <x-ui.button type="submit" form="guests-form">Save guests</x-ui.button>
+        </x-slot:footer>
+    </x-ui.modal>
+
+    <x-ui.modal wire:model="showReview" title="Record client review" description="Enter what the client told you about the trip, on their behalf." maxWidth="max-w-xl">
+        <form wire:submit="saveReview" id="review-form" class="grid gap-3 sm:grid-cols-2">
+            <div class="sm:col-span-2">
+                <x-ui.select label="Overall rating *" wire:model="review.rating" id="review-rating">
+                    <option value="">Choose 1 to 5</option>
+                    @foreach ([5 => 'Excellent', 4 => 'Good', 3 => 'Fair', 2 => 'Poor', 1 => 'Very poor'] as $stars => $word)<option value="{{ $stars }}">{{ $stars }} - {{ $word }}</option>@endforeach
+                </x-ui.select>
+                @error('review.rating')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+            </div>
+            @foreach (\App\Models\TripReview::Categories as $column => $label)
+                <x-ui.select :label="$label" wire:model="review.{{ $column }}" id="review-{{ $column }}">
+                    <option value="">Not rated</option>
+                    @foreach ([5, 4, 3, 2, 1] as $stars)<option value="{{ $stars }}">{{ $stars }}</option>@endforeach
+                </x-ui.select>
+            @endforeach
+            <div class="sm:col-span-2">
+                <x-ui.select label="How did the client tell you? *" wire:model="review.source" id="review-source">
+                    @foreach (\App\Enums\Travel\ReviewSource::options() as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                </x-ui.select>
+                @error('review.source')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+            </div>
+            <div class="grid gap-1 sm:col-span-2">
+                <label for="review-comment" class="text-xs font-medium text-ink-muted">Comment</label>
+                <textarea id="review-comment" rows="3" wire:model="review.comment" class="w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink placeholder:text-ink-subtle focus:border-brand focus:ring-3 focus:ring-brand-soft focus:outline-none"></textarea>
+                @error('review.comment')<p class="text-xs text-danger">{{ $message }}</p>@enderror
+            </div>
+        </form>
+        <x-slot:footer>
+            <x-ui.button variant="secondary" x-on:click="open = false">Cancel</x-ui.button>
+            <x-ui.button type="submit" form="review-form">Record review</x-ui.button>
         </x-slot:footer>
     </x-ui.modal>
 

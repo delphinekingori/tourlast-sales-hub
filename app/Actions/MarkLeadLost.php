@@ -3,9 +3,11 @@
 namespace App\Actions;
 
 use App\Enums\ActivityType;
+use App\Enums\EngagementStatus;
 use App\Enums\LeadStatus;
 use App\Enums\Objection;
 use App\Models\Lead;
+use App\Models\PropertyEngagement;
 use App\Models\User;
 use App\Support\Alerts;
 use Carbon\CarbonImmutable;
@@ -13,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 class MarkLeadLost
 {
+    public function __construct(private TransitionEngagement $transition) {}
+
     /**
      * Close a lead as lost with the reason on record. A re-engage date books
      * a future sales action in the owner's schedule, so the property comes
@@ -43,6 +47,17 @@ class MarkLeadLost
                     'contact_name' => $lead->contact_name,
                     'contact_role' => $lead->contact_role,
                     'notes' => 'Lost '.now()->format('F Y').': '.$lead->lost_reason.($notes ? '. '.$notes : ''),
+                ]);
+            }
+
+            $engagement = $lead->property_engagement_id ? PropertyEngagement::query()->find($lead->property_engagement_id) : null;
+
+            if ($engagement?->status->isOpen()) {
+                $this->transition->handle($engagement, null, EngagementStatus::Lost, $by, summary: 'Lead marked lost', outcome: [
+                    'objection' => $objection,
+                    'competitor' => $competitor,
+                    'notes' => $notes,
+                    'reengage_on' => $reengageOn,
                 ]);
             }
 

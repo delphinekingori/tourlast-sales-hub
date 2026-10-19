@@ -46,6 +46,11 @@ class PackageBookingFactory extends Factory
         return $this->state(fn (): array => ['status' => TravelBookingStatus::Confirmed, 'confirmed_at' => now(), 'hold_expires_at' => null]);
     }
 
+    public function completed(): static
+    {
+        return $this->confirmed()->state(fn (): array => ['status' => TravelBookingStatus::Completed, 'completed_at' => now()]);
+    }
+
     public function paid(): static
     {
         return $this->confirmed()->state(fn (array $attributes): array => [

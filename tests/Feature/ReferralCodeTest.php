@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\ChangeAccountStatus;
 use App\Actions\IssueReferralCode;
 use App\Enums\ReferralTarget;
 use App\Enums\Role;
@@ -55,6 +56,19 @@ class ReferralCodeTest extends TestCase
 
         $this->get('/r/tl-john-2847')
             ->assertRedirect('https://www.tourlast.com/list-your-property?ref=TL-JOHN-2847');
+    }
+
+    public function test_a_fired_salespersons_link_still_forwards_but_counts_nothing(): void
+    {
+        $user = User::factory()->withRole(Role::Salesperson)->create();
+        $code = app(IssueReferralCode::class)->handle($user);
+        app(ChangeAccountStatus::class)->terminate($user, User::factory()->withRole(Role::SuperAdmin)->create(), 'other');
+
+        $this->get('/r/'.$code->code)->assertRedirect('https://www.tourlast.com/list-your-property');
+        $this->assertSame(0, $code->clicks()->count());
+
+        app(ChangeAccountStatus::class)->reinstate($user, null);
+        $this->get('/r/'.$code->code)->assertRedirect('https://www.tourlast.com/list-your-property?ref='.$code->code);
     }
 
     public function test_an_unknown_code_still_reaches_list_your_property(): void

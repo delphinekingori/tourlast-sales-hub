@@ -96,10 +96,15 @@ class ApplyProviderRecord
             // the Hub already gave, and a row that carries one re-points attribution
             // (source apps copy the list from GET /integrations/tourlast/ref-codes).
             // A code the Hub does not know (renamed since, or retyped wrongly at the
-            // source) never removes credit already given: that is by design. Only a
+            // source) never removes credit already given: that is by design, and so is a fired owner's code. Only a
             // property with no credit yet is left unattributed by an unknown code.
             if ($onboarding->attribution !== 'manual' && $record->refCode) {
-                $referralCode = ReferralCode::query()->where('code', $record->refCode)->first();
+                $referralCode = ReferralCode::query()->where('code', $record->refCode)->with('user')->first();
+
+                // A fired salesperson's code credits nothing new: treated like an unknown code.
+                if ($referralCode?->ownerIsFired()) {
+                    $referralCode = null;
+                }
 
                 if ($referralCode || ! ($onboarding->referral_code_id || $onboarding->user_id)) {
                     $onboarding->referral_code_id = $referralCode?->id;

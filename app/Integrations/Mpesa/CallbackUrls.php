@@ -23,6 +23,16 @@ class CallbackUrls
         return self::build('daraja.c2b.confirmation');
     }
 
+    public static function b2cResult(): string
+    {
+        return self::build('daraja.b2c.result');
+    }
+
+    public static function b2cTimeout(): string
+    {
+        return self::build('daraja.b2c.timeout');
+    }
+
     private static function build(string $route): string
     {
         $base = rtrim((string) (config('travel.mpesa.callback_base_url') ?: config('app.url')), '/');

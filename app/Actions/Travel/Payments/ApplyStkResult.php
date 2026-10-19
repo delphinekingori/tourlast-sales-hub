@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\DB;
 /**
  * Applies M-Pesa's answer to a payment prompt, from the STK callback or a
  * status query. Only a pending payment changes, so repeated callbacks are
- * harmless.
+ * harmless. The one exception is a success for a payment already marked
+ * failed or cancelled (a late callback after the Hub gave up): the money
+ * moved, so it completes and says so in the payment's notes.
  *
  * Result codes: 0 paid, 1032 cancelled by the customer, anything else failed
  * (1037 no answer from the phone, 1 insufficient balance, 2001 wrong PIN...).
@@ -32,7 +34,9 @@ class ApplyStkResult
         $changed = DB::transaction(function () use ($payment, $resultCode, $description, $meta, &$error): bool {
             $payment = TravelPayment::query()->lockForUpdate()->findOrFail($payment->id);
 
-            if ($payment->status !== PaymentStatus::Pending) {
+            $lateSuccess = $resultCode === 0 && in_array($payment->status, [PaymentStatus::Failed, PaymentStatus::Cancelled], true);
+
+            if ($payment->status !== PaymentStatus::Pending && ! $lateSuccess) {
                 return false;
             }
 
@@ -60,6 +64,10 @@ class ApplyStkResult
 
             if (abs($actual - $requested) > 0.004) {
                 $notes = trim($notes."\n".'Requested KES '.number_format($requested, 2).', M-Pesa confirmed KES '.number_format($actual, 2).'.');
+            }
+
+            if ($lateSuccess) {
+                $notes = trim($notes."\n".'M-Pesa confirmed this payment after it was marked '.$payment->status->value.'.');
             }
 
             if (! $receipt) {

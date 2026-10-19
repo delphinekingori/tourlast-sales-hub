@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\AccountStatus;
 use App\Enums\ReferralTarget;
 use Database\Factories\ReferralCodeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,6 +26,22 @@ class ReferralCode extends Model
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Codes whose owner has not been fired. A fired salesperson's code stops
+     * crediting new signups; reinstating the owner restores it.
+     *
+     * @param  Builder<ReferralCode>  $query
+     */
+    public function scopeCreditable(Builder $query): void
+    {
+        $query->whereHas('user', fn (Builder $user) => $user->where(fn (Builder $status) => $status->whereNull('account_status')->orWhere('account_status', '!=', AccountStatus::Terminated->value)));
+    }
+
+    public function ownerIsFired(): bool
+    {
+        return $this->user?->accountStatus() === AccountStatus::Terminated;
     }
 
     /**

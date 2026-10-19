@@ -22,6 +22,10 @@ class ReceiveDarajaCallback
 
     public const C2bConfirmation = 'c2b_confirmation';
 
+    public const B2cResult = 'b2c_result';
+
+    public const B2cTimeout = 'b2c_timeout';
+
     /**
      * C2B validation policy: accept every paybill payment, even when the
      * account number matches no booking, so a customer's money is never
@@ -32,6 +36,7 @@ class ReceiveDarajaCallback
     public function __construct(
         private ApplyStkResult $applyStkResult,
         private RecordPaybillPayment $recordPaybillPayment,
+        private ApplyB2cResult $applyB2cResult,
     ) {}
 
     /**
@@ -47,14 +52,16 @@ class ReceiveDarajaCallback
         ]);
 
         try {
-            [$paymentId, $error] = match ($type) {
+            [$paymentId, $error, $refundId] = array_pad(match ($type) {
                 self::Stk => $this->stk($payload),
                 self::C2bConfirmation => $this->confirmation($payload),
+                self::B2cResult, self::B2cTimeout => $this->applyB2cResult->handle($payload, $type === self::B2cTimeout),
                 default => [null, null],
-            };
+            }, 3, null);
 
             $callback->forceFill([
                 'travel_payment_id' => $paymentId,
+                'travel_refund_id' => $refundId,
                 'processed_at' => now(),
                 'error' => $error ? mb_substr($error, 0, 255) : null,
             ])->save();

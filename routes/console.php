@@ -40,6 +40,11 @@ Schedule::command('hub:send-daily-alerts')
     ->timezone(config('app.timezone'))
     ->onOneServer();
 
+Schedule::command('hub:send-meeting-reminders')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 Schedule::command('hub:send-manager-alerts')
     ->weekdays()
     ->at('07:30')
@@ -57,6 +62,11 @@ Schedule::command('travel:sync-flights')
 
 Schedule::command('travel:mpesa-reconcile')
     ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('travel:refunds-flag-stuck')
+    ->everyTenMinutes()
     ->withoutOverlapping()
     ->onOneServer();
 

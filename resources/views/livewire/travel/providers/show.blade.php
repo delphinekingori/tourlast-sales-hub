@@ -65,6 +65,7 @@
                 ['Active contract', $activeContract ? $activeContract->contract_number : 'None'],
                 ['Contract ends', $activeContract?->ends_on ? $activeContract->ends_on->format('j M Y').' ('.$activeContract->daysUntilExpiry().' days)' : '—'],
                 ['Packages', $performance['packages']],
+                ['Client rating', $p->ratingAverage() ? '★ '.number_format($p->ratingAverage(), 1).' ('.$p->reviews_count.' '.($p->reviews_count === 1 ? 'review' : 'reviews').')' : 'No reviews yet'],
                 ['Bookings sold', number_format($performance['bookings'])],
                 ['Last activity', $performance['lastActivity']?->diffForHumans() ?? '—'],
             ] as [$label, $value])
@@ -229,7 +230,7 @@
     </div>
 
     {{-- Performance --}}
-    <div x-show="tab === 'performance'" x-cloak class="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
+    <div x-show="tab === 'performance'" x-cloak class="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-5">
         <x-ui.stat label="Packages" :value="number_format($performance['packages'])" />
         <x-ui.stat label="Bookings sold" :value="number_format($performance['bookings'])" />
         <x-ui.stat label="Revenue" :value="$kes($performance['revenue'])" />
@@ -238,6 +239,9 @@
         <x-ui.stat label="Refunded" :value="$kes($performance['refunds'])" />
         <x-ui.stat label="Media files" :value="number_format($performance['media'])" />
         <x-ui.stat label="Open incidents" :value="number_format($performance['openIncidents'])" />
+        <x-ui.stat label="Client rating" :value="$p->ratingAverage() ? number_format($p->ratingAverage(), 1).' / 5' : '—'" :hint="$p->reviews_count.' '.($p->reviews_count === 1 ? 'review' : 'reviews')">
+            @if ($p->reviews_count)<a href="{{ route('travel.reviews.index', ['provider' => $p->id]) }}" wire:navigate class="text-xs font-medium text-brand-text hover:underline">See reviews</a>@endif
+        </x-ui.stat>
     </div>
 
     @include('livewire.travel.providers.partials.contract-modal')

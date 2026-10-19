@@ -42,6 +42,8 @@ class PackageResource extends JsonResource
             'provider' => $this->whenLoaded('provider', fn () => ['id' => $this->provider->id, 'name' => $this->provider->name]),
             'contract_id' => $this->provider_contract_id,
             'owner' => new UserSummaryResource($this->whenLoaded('owner')),
+            'reviews_count' => $this->whenCounted('reviews'),
+            'rating_average' => $this->when(array_key_exists('reviews_count', $this->resource->getAttributes()), fn () => $this->ratingAverage()),
             'created_by' => new UserSummaryResource($this->whenLoaded('creator')),
             'guide_required' => $this->guide_required,
             'published_at' => $this->published_at?->toIso8601String(),

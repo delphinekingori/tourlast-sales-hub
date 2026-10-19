@@ -108,6 +108,9 @@
                             <td class="max-w-56 text-ink-muted"><span class="line-clamp-2">{{ $row->reason }}</span></td>
                             <td><x-ui.pill :tone="$row->status->tone()">{{ $row->status->label() }}</x-ui.pill>
                                 @if ($row->failure_reason)<span class="mt-0.5 block text-xs text-ink-subtle">{{ $row->failure_reason }}</span>@endif
+                                @if ($row->status === \App\Enums\Travel\RefundStatus::Processing && $row->originator_conversation_id)
+                                    <span class="mt-0.5 block text-xs text-ink-subtle">{{ $row->payout_flagged_at ? 'No answer from M-Pesa for over '.$stuckMinutes.' min: check the M-Pesa portal' : 'Waiting for M-Pesa' }}</span>
+                                @endif
                             </td>
                             <td class="whitespace-nowrap text-ink-muted">{{ ($row->processed_at ?? $row->approved_at ?? $row->created_at)->format('j M Y') }}</td>
                             <td class="text-ink-muted">{{ $row->processor?->name ?? $row->approver?->name ?? '—' }}</td>
@@ -116,8 +119,15 @@
                                 @if ($row->status === \App\Enums\Travel\RefundStatus::Requested && $mayDecide($row->requested_by))
                                     <x-ui.button size="sm" wire:click="openDecision('refund', {{ $row->id }})">Review</x-ui.button>
                                 @endif
+                                @if ($canPayOut && $autoRefunds && in_array($row->status, [\App\Enums\Travel\RefundStatus::Approved, \App\Enums\Travel\RefundStatus::Failed], true))
+                                    <x-ui.button size="sm" wire:click="sendViaMpesa({{ $row->id }})" wire:loading.attr="disabled" wire:target="sendViaMpesa({{ $row->id }})" wire:confirm="Send KES {{ number_format((float) $row->amount) }} to the client by M-Pesa now?">{{ $row->status === \App\Enums\Travel\RefundStatus::Failed ? 'Retry via M-Pesa' : 'Send refund via M-Pesa' }}</x-ui.button>
+                                @endif
                                 @if ($canPayOut && in_array($row->status, [\App\Enums\Travel\RefundStatus::Approved, \App\Enums\Travel\RefundStatus::Processing], true))
                                     <x-ui.button size="sm" variant="secondary" wire:click="openPayout({{ $row->id }})">Pay out</x-ui.button>
+                                @endif
+                                @if ($canPayOut && $simulated && $row->status === \App\Enums\Travel\RefundStatus::Processing && $row->originator_conversation_id)
+                                    <x-ui.button size="sm" variant="ghost" wire:click="simulatePayout({{ $row->id }}, true)">Simulate paid</x-ui.button>
+                                    <x-ui.button size="sm" variant="ghost" wire:click="simulatePayout({{ $row->id }}, false)">Simulate failed</x-ui.button>
                                 @endif
                             </td>
                         </tr>

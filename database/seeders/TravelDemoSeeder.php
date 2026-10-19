@@ -22,6 +22,7 @@ class TravelDemoSeeder extends Seeder
         Travel\InfluencersSeeder::class,
         Travel\BookingsSeeder::class,
         Travel\PaymentsSeeder::class,
+        Travel\ReviewsSeeder::class,
         Travel\FlightsSeeder::class,
     ];
 

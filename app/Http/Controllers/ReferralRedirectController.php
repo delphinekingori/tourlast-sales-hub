@@ -15,8 +15,8 @@ class ReferralRedirectController extends Controller
      * Count the click on a salesperson's tracked link, then forward the
      * provider to tourlast.com with the code attached.
      *
-     * The optional target picks the product (Stays by default). Unknown codes
-     * still land on that product's registration page, just without a referral.
+     * The optional target picks the product (Stays by default). Unknown codes and codes
+     * of a fired salesperson (no clicks counted, no ref attached) still land on that product's registration page, just without a referral.
      * An optional ?l=<lead id> (added when a link is sent from a lead) records
      * which prospect clicked, but only if that lead belongs to the code's owner.
      */
@@ -25,7 +25,7 @@ class ReferralRedirectController extends Controller
         $target = ReferralTarget::tryFrom((string) $target) ?? ReferralTarget::Stays;
         $referralCode = ReferralCode::query()->where('code', strtoupper($code))->first();
 
-        if (! $referralCode) {
+        if (! $referralCode || $referralCode->ownerIsFired()) {
             return redirect()->away($target->registrationUrl());
         }
 

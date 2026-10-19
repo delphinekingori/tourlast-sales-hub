@@ -80,6 +80,7 @@ enum Role: string
                 Permission::ViewPartnerRegister,
                 Permission::ExportPartnerRegister,
                 Permission::ManageSettings,
+                Permission::ViewAccountHistory,
                 Permission::VerifyAccounts,
                 Permission::ViewTeamEarnings,
                 Permission::ManageAgreements,
@@ -108,6 +109,7 @@ enum Role: string
                 Permission::InviteSalespeople,
                 Permission::ViewTeamPerformance,
                 Permission::ViewPartnerRegister,
+                Permission::ViewAccountHistory,
                 Permission::ApproveClaimsManager,
                 Permission::PublishAnnouncements,
                 Permission::ReceiveSmartAlerts,
@@ -127,6 +129,7 @@ enum Role: string
             ],
             self::Hr => [
                 Permission::ViewPartnerRegister,
+                Permission::ViewAccountHistory,
                 Permission::ExportPartnerRegister,
                 Permission::ViewTeamEarnings,
                 Permission::ManageAgreements,
@@ -138,6 +141,7 @@ enum Role: string
             ],
             self::Accounts => [
                 Permission::ViewPartnerRegister,
+                Permission::ViewAccountHistory,
                 Permission::ExportPartnerRegister,
                 Permission::ViewTeamEarnings,
                 Permission::ManagePayouts,

@@ -16,6 +16,9 @@
                 <span>{{ $package->reference }} · {{ $package->typeLabel() }} · {{ $package->provider?->name }}</span>
                 <x-ui.pill :tone="$package->status->tone()">{{ $package->status->label() }}</x-ui.pill>
                 @include('livewire.travel.packages.partials.approval-pill', ['package' => $package])
+                @if ($package->reviews_count)
+                    <a href="{{ route('travel.reviews.index', ['package' => $package->id]) }}" wire:navigate class="hover:underline">@include('livewire.travel.reviews.partials.rating', ['average' => $package->ratingAverage(), 'count' => $package->reviews_count])</a>
+                @endif
             </span>
         </x-slot:description>
         <x-slot:actions>

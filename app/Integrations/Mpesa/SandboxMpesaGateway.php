@@ -41,6 +41,20 @@ class SandboxMpesaGateway implements MpesaGateway
         );
     }
 
+    /**
+     * Accepted with made-up ids; the result is simulated with
+     * `php artisan travel:mpesa-simulate-refund` (or the refunds screen).
+     */
+    public function b2cPayout(string $phone254, int $amount, string $originatorConversationId, string $remarks): B2cPayoutResult
+    {
+        return new B2cPayoutResult(
+            conversationId: 'AG_SANDBOX_'.Str::upper(Str::random(12)),
+            originatorConversationId: $originatorConversationId,
+            responseCode: '0',
+            description: 'Accept the service request successfully (test mode)',
+        );
+    }
+
     public function registerC2bUrls(): array
     {
         return [

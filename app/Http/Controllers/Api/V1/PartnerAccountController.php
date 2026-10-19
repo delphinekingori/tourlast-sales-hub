@@ -115,6 +115,6 @@ class PartnerAccountController extends ApiController
 
         return $user->can(Permission::VerifyAccounts->value)
             || $user->can(Permission::ViewTeamPerformance->value)
-            || $user->can(Permission::ViewTeamEarnings->value);
+            || $user->can(Permission::ViewAccountHistory->value);
     }
 }

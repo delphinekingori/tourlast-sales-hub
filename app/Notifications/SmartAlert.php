@@ -28,6 +28,7 @@ class SmartAlert extends Notification implements ShouldQueue
         'deal_lost' => ['label' => 'Deal lost', 'icon' => 'x', 'tone' => 'danger'],
         'contract_expiring' => ['label' => 'Contract expiring', 'icon' => 'clock', 'tone' => 'warning'],
         'follow_up_overdue' => ['label' => 'Follow-up overdue', 'icon' => 'alert', 'tone' => 'warning'],
+        'meeting_reminder' => ['label' => 'Starting soon', 'icon' => 'calendar', 'tone' => 'brand'],
         'property_inactive' => ['label' => 'Property inactive', 'icon' => 'alert', 'tone' => 'danger'],
         'property_deleted' => ['label' => 'Property deleted', 'icon' => 'x', 'tone' => 'danger'],
         'property_restored' => ['label' => 'Property restored', 'icon' => 'check-circle', 'tone' => 'success'],

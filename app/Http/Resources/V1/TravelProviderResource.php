@@ -44,6 +44,8 @@ class TravelProviderResource extends JsonResource
             'property_engagement_id' => $this->property_engagement_id,
             'partner_account_id' => $this->partner_account_id,
             'packages_count' => $this->whenCounted('packages'),
+            'reviews_count' => $this->whenCounted('reviews'),
+            'rating_average' => $this->when(array_key_exists('reviews_count', $this->resource->getAttributes()), fn () => $this->ratingAverage()),
             'contracts' => ProviderContractResource::collection($this->whenLoaded('contracts')),
             'archived' => $this->archived_at !== null,
             'created_at' => $this->created_at?->toIso8601String(),

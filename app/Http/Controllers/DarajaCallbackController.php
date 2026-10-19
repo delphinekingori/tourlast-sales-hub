@@ -32,6 +32,16 @@ class DarajaCallbackController extends Controller
         return $this->receive($request, $secret, ReceiveDarajaCallback::C2bConfirmation);
     }
 
+    public function b2cResult(Request $request, string $secret): JsonResponse
+    {
+        return $this->receive($request, $secret, ReceiveDarajaCallback::B2cResult);
+    }
+
+    public function b2cTimeout(Request $request, string $secret): JsonResponse
+    {
+        return $this->receive($request, $secret, ReceiveDarajaCallback::B2cTimeout);
+    }
+
     private function receive(Request $request, string $secret, string $type): JsonResponse
     {
         $this->guard($request, $secret);

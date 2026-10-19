@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Str;
 
@@ -174,6 +175,16 @@ class PackageBooking extends Model
     public function guests(): HasMany
     {
         return $this->hasMany(PackageBookingGuest::class)->orderBy('position');
+    }
+
+    /**
+     * The client's feedback on the trip (one per booking).
+     *
+     * @return HasOne<TripReview, $this>
+     */
+    public function review(): HasOne
+    {
+        return $this->hasOne(TripReview::class);
     }
 
     /**
