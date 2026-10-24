@@ -421,4 +421,16 @@ class PackageBookingsTest extends TestCase
             $this->assertArrayHasKey($field, $e->errors());
         }
     }
+
+    public function test_the_new_booking_form_marks_optional_fields_and_leaves_required_ones_unmarked(): void
+    {
+        $html = Livewire::actingAs($this->seller())->test(Create::class)
+            ->assertSee('Everything is required unless it says (optional).')
+            ->html();
+
+        $this->assertMatchesRegularExpression('/Email\s*<span[^>]*>\(optional\)/', $html);
+        $this->assertMatchesRegularExpression('/Special requirements\s*<span[^>]*>\(optional\)/', $html);
+        $this->assertDoesNotMatchRegularExpression('/Full name\s*<span[^>]*>\(optional\)/', $html);
+        $this->assertDoesNotMatchRegularExpression('/>\s*Adults\s*<span[^>]*>\(optional\)/', $html);
+    }
 }

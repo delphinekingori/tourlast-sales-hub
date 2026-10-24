@@ -49,7 +49,7 @@
                     <span @class(['absolute top-3 right-1/2 left-[-50%] h-0.5', 'bg-success' => $live, 'bg-brand' => ! $live && $done, 'bg-danger/50' => $failed, 'bg-line' => ! $done && ! $failed])></span>
                 @endunless
                 <span @class([
-                    'relative z-10 grid size-6 place-items-center rounded-full text-[11px] font-bold',
+                    'relative z-10 grid size-6 place-items-center rounded-full text-xs font-bold',
                     'bg-success text-white' => $done && $live,
                     'bg-brand text-white' => $done && ! $live,
                     'bg-danger text-white' => $failed,
@@ -67,7 +67,7 @@
                 <span class="grid min-w-0 leading-tight">
                     <span @class(['text-xs font-medium', 'text-danger' => $failed, 'text-ink' => ($done || $current) && ! $failed, 'text-ink-subtle' => ! $done && ! $current])>{{ $label }}</span>
                     @if ($meta && ($done || $current))
-                        <span class="truncate text-[11px] text-ink-subtle">{{ $meta }}</span>
+                        <span class="truncate text-xs text-ink-subtle">{{ $meta }}</span>
                     @endif
                 </span>
             </li>

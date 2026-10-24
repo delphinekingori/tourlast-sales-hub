@@ -63,7 +63,7 @@
                             <td class="max-w-md">
                                 <details>
                                     <summary class="cursor-pointer text-xs text-brand-text">Show</summary>
-                                    <pre class="mt-1 max-h-60 overflow-auto rounded bg-surface-muted p-2 text-[11px] text-ink-muted">{{ json_encode($callback->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                                    <pre class="mt-1 max-h-60 overflow-auto rounded bg-surface-muted p-2 text-xs text-ink-muted">{{ json_encode($callback->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
                                 </details>
                             </td>
                         </tr>

@@ -29,7 +29,7 @@
             <x-ui.card title="Itinerary" :description="ucfirst(str_replace('_', ' ', (string) $booking->trip_type)).' · '.ucfirst((string) $booking->cabin)" :padding="false">
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[640px] text-sm [&_td]:px-4 [&_td]:py-2.5 [&_th]:px-4 [&_th]:py-2">
-                        <thead class="bg-sidebar text-left text-[11px] font-medium tracking-[0.06em] text-sidebar-ink uppercase">
+                        <thead class="bg-sidebar text-left text-xs font-medium tracking-[0.06em] text-sidebar-ink uppercase">
                             <tr><th>Flight</th><th>From</th><th>To</th><th>Departs</th><th>Arrives</th><th>Cabin</th></tr>
                         </thead>
                         <tbody class="divide-y divide-line">

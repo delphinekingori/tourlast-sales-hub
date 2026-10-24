@@ -10,6 +10,7 @@
     </x-ui.page-header>
 
     <form wire:submit="save" class="grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <p class="text-[13px] text-ink-subtle xl:col-span-2">Everything is required unless it says (optional).</p>
         <div class="grid gap-4">
             <x-ui.card title="1. Package and departure">
                 <div class="grid gap-3 md:grid-cols-2">
@@ -58,9 +59,9 @@
                         @endif
                         <div class="grid gap-3 md:grid-cols-2">
                             <x-ui.input label="Full name" wire:model.blur="form.client_name" id="nb-client-name" />
-                            <x-ui.input label="Phone" wire:model.blur="form.client_phone" id="nb-client-phone" />
-                            <x-ui.input label="Email" type="email" wire:model.blur="form.client_email" id="nb-client-email" />
-                            <x-ui.input label="Country" wire:model.blur="form.client_country" id="nb-client-country" />
+                            <x-ui.input label="Phone" optional wire:model.blur="form.client_phone" id="nb-client-phone" />
+                            <x-ui.input label="Email" optional type="email" wire:model.blur="form.client_email" id="nb-client-email" />
+                            <x-ui.input label="Country" optional wire:model.blur="form.client_country" id="nb-client-country" />
                         </div>
                     </div>
                 @endif
@@ -70,23 +71,23 @@
                 <div class="grid gap-3">
                     <div class="grid grid-cols-3 gap-3">
                         <x-ui.input label="Adults" type="number" min="1" wire:model.live.debounce.300ms="form.adults" id="nb-adults" />
-                        <x-ui.input label="Children" type="number" min="0" wire:model.live.debounce.300ms="form.children" id="nb-children" />
-                        <x-ui.input label="Infants" type="number" min="0" wire:model.live.debounce.300ms="form.infants" id="nb-infants" />
+                        <x-ui.input label="Children" optional type="number" min="0" wire:model.live.debounce.300ms="form.children" id="nb-children" />
+                        <x-ui.input label="Infants" optional type="number" min="0" wire:model.live.debounce.300ms="form.infants" id="nb-infants" />
                     </div>
                     <div class="grid gap-3 md:grid-cols-2">
                         <div class="grid gap-1">
-                            <label for="nb-special" class="text-xs font-medium text-ink-muted">Special requirements</label>
+                            <label for="nb-special" class="text-xs font-medium text-ink-muted">Special requirements <span class="font-normal text-ink-subtle">(optional)</span></label>
                             <textarea id="nb-special" wire:model="form.special_requirements" rows="2" class="{{ $textarea }}"></textarea>
                         </div>
                         <div class="grid gap-1">
-                            <label for="nb-diet" class="text-xs font-medium text-ink-muted">Dietary requirements</label>
+                            <label for="nb-diet" class="text-xs font-medium text-ink-muted">Dietary requirements <span class="font-normal text-ink-subtle">(optional)</span></label>
                             <textarea id="nb-diet" wire:model="form.dietary_requirements" rows="2" class="{{ $textarea }}"></textarea>
                         </div>
-                        <x-ui.input label="Emergency contact (if needed for this trip)" wire:model="form.emergency_contact_name" id="nb-emergency-name" />
-                        <x-ui.input label="Emergency contact phone" wire:model="form.emergency_contact_phone" id="nb-emergency-phone" />
+                        <x-ui.input label="Emergency contact (if needed for this trip)" optional wire:model="form.emergency_contact_name" id="nb-emergency-name" />
+                        <x-ui.input label="Emergency contact phone" optional wire:model="form.emergency_contact_phone" id="nb-emergency-phone" />
                     </div>
                     <div class="grid gap-1">
-                        <label for="nb-notes" class="text-xs font-medium text-ink-muted">Notes</label>
+                        <label for="nb-notes" class="text-xs font-medium text-ink-muted">Notes <span class="font-normal text-ink-subtle">(optional)</span></label>
                         <textarea id="nb-notes" wire:model="form.notes" rows="2" class="{{ $textarea }}"></textarea>
                     </div>
                 </div>
@@ -117,13 +118,13 @@
 
             <x-ui.card title="Attribution">
                 <div class="grid gap-3">
-                    <x-ui.input label="Influencer code (optional)" wire:model="form.influencer_code" id="nb-code" hint="The code the client booked with, if any." />
+                    <x-ui.input label="Influencer code" optional wire:model="form.influencer_code" id="nb-code" hint="The code the client booked with, if any." />
                     @if ($managesAll)
-                        <x-ui.select label="Salesperson" wire:model="form.salesperson_id" id="nb-salesperson">
+                        <x-ui.select label="Salesperson" optional wire:model="form.salesperson_id" id="nb-salesperson">
                             <option value="">Me</option>
                             @foreach ($salespeople as $option)<option value="{{ $option->id }}">{{ $option->name }}</option>@endforeach
                         </x-ui.select>
-                        <x-ui.input label="Override price (optional)" type="number" min="0" step="0.01" wire:model="form.amount_override" id="nb-override" />
+                        <x-ui.input label="Override price" optional type="number" min="0" step="0.01" wire:model="form.amount_override" id="nb-override" />
                         <x-ui.input label="Reason for the price change" wire:model="form.override_reason" id="nb-override-reason" />
                     @endif
                 </div>

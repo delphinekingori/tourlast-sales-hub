@@ -174,7 +174,7 @@
                             $active = $sort === $key;
                             $arrow = $active ? ($dir === 'asc' ? '↑' : '↓') : '';
 
-                            return '<button type="button" wire:click="sortBy(\''.$key.'\')" class="inline-flex items-center gap-1 uppercase hover:text-white'.($active ? ' text-white' : '').'">'.e($label).'<span class="text-[10px]">'.$arrow.'</span></button>';
+                            return '<button type="button" wire:click="sortBy(\''.$key.'\')" class="inline-flex items-center gap-1 uppercase hover:text-white'.($active ? ' text-white' : '').'">'.e($label).'<span class="text-xs">'.$arrow.'</span></button>';
                         };
                     @endphp
                     <th class="text-left">{!! $sortable('name', 'Property / business') !!}</th>

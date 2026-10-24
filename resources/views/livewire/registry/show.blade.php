@@ -72,7 +72,7 @@
                 <dt class="text-xs font-medium text-ink-subtle">Current sales representative</dt>
                 <dd>
                     @if ($e->salesRep)
-                        <span class="flex items-center gap-2"><x-ui.avatar :user="$e->salesRep" size="sm" /><span class="grid leading-tight"><span class="text-[13px] font-semibold text-ink">{{ $e->salesRep->name }}</span>@if ($currentPeriod)<span class="text-[11px] text-ink-subtle">since {{ $currentPeriod->started_on->format('j M Y') }}</span>@endif</span></span>
+                        <span class="flex items-center gap-2"><x-ui.avatar :user="$e->salesRep" size="sm" /><span class="grid leading-tight"><span class="text-[13px] font-semibold text-ink">{{ $e->salesRep->name }}</span>@if ($currentPeriod)<span class="text-xs text-ink-subtle">since {{ $currentPeriod->started_on->format('j M Y') }}</span>@endif</span></span>
                     @else
                         <span class="text-[13px] text-ink-subtle">Unassigned</span>
                     @endif
@@ -118,7 +118,7 @@
 
                 @if ($upcoming->isNotEmpty())
                     <div class="grid gap-1.5 border-b border-line bg-brand-soft/30 px-4 py-3">
-                        <p class="text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Upcoming</p>
+                        <p class="text-xs font-semibold tracking-wide text-ink-subtle uppercase">Upcoming</p>
                         @foreach ($upcoming as $next)
                             <div wire:key="up-{{ $next->id }}" class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px]">
                                 <x-ui.icon :name="$next->type->icon()" class="size-3.5 text-brand-text" />
@@ -145,7 +145,7 @@
                                         <span class="text-[13px] font-semibold text-ink">{{ $activity->happened_at->format('j M Y') }}</span>
                                         <span class="text-[13px] text-ink-muted">{{ $activity->user?->name }}</span>
                                         <span class="text-[13px] font-medium text-ink">· {{ $activity->type->label() }}</span>
-                                        <span class="text-[11px] text-ink-subtle">via lead</span>
+                                        <span class="text-xs text-ink-subtle">via lead</span>
                                     </div>
                                     @if ($activity->notes)
                                         <p class="text-[13px] whitespace-pre-line text-ink-muted">“{{ $activity->notes }}”</p>
@@ -198,7 +198,7 @@
                                         <p class="text-xs text-warning">Added after confirming it differs from {{ count($event->changes['duplicate_override']) }} similar registry {{ \Illuminate\Support\Str::plural('record', count($event->changes['duplicate_override'])) }}.</p>
                                     @endif
                                     @if ($event->recorder && $event->recorder->id !== $event->sales_rep_id)
-                                        <p class="text-[11px] text-ink-subtle">Recorded by {{ $event->recorder->name }} · {{ $event->created_at->format('j M Y, H:i') }}</p>
+                                        <p class="text-xs text-ink-subtle">Recorded by {{ $event->recorder->name }} · {{ $event->created_at->format('j M Y, H:i') }}</p>
                                     @endif
                                 </div>
                             </li>
@@ -282,7 +282,7 @@
                             <span class="truncate text-[13px] font-medium text-ink">{{ $rep->user->name }}</span>
                             <span class="text-xs text-ink-subtle">{{ $rep->started_on->format('j M Y') }} – {{ $rep->ended_on?->format('j M Y') ?? 'now' }}</span>
                             @if ($rep->reason || $rep->assigner)
-                                <span class="text-[11px] text-ink-subtle">{{ collect([$rep->reasonLabel(), $rep->assigner ? 'by '.$rep->assigner->name : null])->filter()->implode(' · ') }}</span>
+                                <span class="text-xs text-ink-subtle">{{ collect([$rep->reasonLabel(), $rep->assigner ? 'by '.$rep->assigner->name : null])->filter()->implode(' · ') }}</span>
                             @endif
                         </div>
                         @if ($rep->isCurrent())<x-ui.pill tone="brand" :dot="false">Current</x-ui.pill>@else<x-ui.pill tone="neutral" :dot="false">Previous</x-ui.pill>@endif
@@ -309,7 +309,7 @@
                 @endforelse
                 @if ($canManage && $suggestedOnboardings->isNotEmpty())
                     <div class="grid gap-1.5 border-t border-line bg-surface-muted/50 px-4 py-2.5">
-                        <p class="text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Possible tourlast.com signups</p>
+                        <p class="text-xs font-semibold tracking-wide text-ink-subtle uppercase">Possible tourlast.com signups</p>
                         @foreach ($suggestedOnboardings as $candidate)
                             <div wire:key="so-{{ $candidate->id }}" class="flex items-center justify-between gap-2 text-xs">
                                 <span class="min-w-0 truncate text-ink">{{ $candidate->property_name }} <span class="text-ink-subtle">· {{ $candidate->status->label() }} · {{ $candidate->user?->name ?? 'Unattributed' }}</span></span>
@@ -334,7 +334,7 @@
                 @endforelse
                 @if ($canManage && $suggestedLeads->isNotEmpty())
                     <div class="grid gap-1.5 border-t border-line bg-surface-muted/50 px-4 py-2.5">
-                        <p class="text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Possible matching leads</p>
+                        <p class="text-xs font-semibold tracking-wide text-ink-subtle uppercase">Possible matching leads</p>
                         @foreach ($suggestedLeads as $candidate)
                             <div wire:key="sl-{{ $candidate->id }}" class="flex items-center justify-between gap-2 text-xs">
                                 <span class="min-w-0 truncate text-ink">{{ $candidate->business_name }} <span class="text-ink-subtle">· {{ $candidate->user->name }} · {{ $candidate->status->label() }}</span></span>
@@ -345,7 +345,7 @@
                 @endif
             </x-ui.card>
 
-            <p class="px-1 text-[11px] text-ink-subtle">
+            <p class="px-1 text-xs text-ink-subtle">
                 Added by {{ $e->creator?->name ?? 'Tourlast' }} on {{ $e->created_at->format('j M Y') }}@if ($e->editor) · last changed by {{ $e->editor->name }} {{ $e->updated_at->diffForHumans() }}@endif.
             </p>
         </div>

@@ -28,6 +28,6 @@
 </div>
 <p class="-mt-2 text-[13px] text-ink-subtle">Use the same phone or email the provider will sign up with; that's how their tourlast.com signup gets linked to this lead.</p>
 <div class="grid gap-1.5">
-    <label for="lead-notes" class="text-xs font-medium text-ink-muted">Notes</label>
+    <label for="lead-notes" class="text-xs font-medium text-ink-muted">Notes <span class="font-normal text-ink-subtle">(optional)</span></label>
     <textarea id="lead-notes" wire:model="form.notes" rows="4" class="w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink focus:border-brand focus:ring-3 focus:ring-brand-soft focus:outline-none" placeholder="e.g. Interested in Tourlast distribution. Currently using another OTA."></textarea>
 </div>

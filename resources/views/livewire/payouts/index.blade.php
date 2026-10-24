@@ -42,16 +42,16 @@
             <tbody class="divide-y divide-line">
                 @forelse ($statements as $statement)
                     <tr wire:key="st-{{ $statement->id }}" wire:click="view({{ $statement->id }})" class="cursor-pointer hover:bg-surface-muted/60">
-                        <td><div class="flex items-center gap-3"><x-ui.avatar :user="$statement->user" size="sm" /><span class="font-semibold whitespace-nowrap text-ink">{{ $statement->user->name }}</span></div></td>
+                        <td><div class="flex items-center gap-3"><x-ui.avatar :user="$statement->user" size="sm" /><button type="button" wire:click.stop="view({{ $statement->id }})" aria-label="Open statement: {{ $statement->user->name }}" class="whitespace-nowrap text-left font-semibold text-brand-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">{{ $statement->user->name }}</button></div></td>
                         <td class="tabular text-right text-ink">{{ $pts($statement->points) }}</td>
-                        <td class="tabular text-right text-ink-muted">{{ number_format($statement->retainer) }}@unless ($statement->isCompliant())<span class="block text-[11px] text-warning">conditions?</span>@endunless</td>
+                        <td class="tabular text-right text-ink-muted">{{ number_format($statement->retainer) }}@unless ($statement->isCompliant())<span class="block text-xs text-warning">conditions?</span>@endunless</td>
                         <td class="tabular text-right text-ink-muted">{{ number_format($statement->weekly_bonus) }}</td>
                         <td class="tabular text-right text-ink-muted">{{ number_format($statement->monthly_bonus) }}</td>
                         <td class="tabular text-right text-ink-muted">{{ number_format($statement->exceptional) }}</td>
                         <td class="tabular text-right text-ink-muted">{{ number_format($statement->airtime + $statement->transport) }}</td>
                         <td @class(['tabular text-right', 'text-danger' => $statement->adjustments < 0, 'text-success' => $statement->adjustments > 0, 'text-ink-muted' => $statement->adjustments == 0])>{{ number_format($statement->adjustments) }}</td>
                         <td class="tabular text-right font-bold text-ink">{{ number_format($statement->total) }}</td>
-                        <td><x-ui.pill :tone="$statement->statusTone()">{{ ucfirst($statement->status) }}</x-ui.pill></td>
+                        <td><div class="flex items-center justify-between gap-2"><x-ui.pill :tone="$statement->statusTone()">{{ ucfirst($statement->status) }}</x-ui.pill><x-ui.icon name="arrow-right" class="size-4 text-ink-subtle" /></div></td>
                     </tr>
                 @empty
                     <tr><td colspan="10"><x-ui.empty-state icon="register" title="No statements for this month" description="Press Refresh drafts to create one for every salesperson with an incentive agreement. Drafts are also created automatically on the 1st." /></td></tr>

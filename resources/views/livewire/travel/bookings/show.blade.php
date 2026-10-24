@@ -234,7 +234,7 @@
                         <li class="flex items-center justify-between gap-3 px-4 py-2" wire:key="chk-{{ $item['key'] }}">
                             <span class="flex min-w-0 items-center gap-2">
                                 @if ($item['automatic'] || ! $canWork || ! in_array($status, [\App\Enums\Travel\TravelBookingStatus::Confirmed, \App\Enums\Travel\TravelBookingStatus::Completed], true))
-                                    <span @class(['grid size-4 place-items-center rounded border text-[10px]', 'border-success bg-success text-white' => $item['done'], 'border-line-strong' => ! $item['done']])>@if ($item['done'])✓@endif</span>
+                                    <span @class(['grid size-4 place-items-center rounded border text-xs', 'border-success bg-success text-white' => $item['done'], 'border-line-strong' => ! $item['done']])>@if ($item['done'])✓@endif</span>
                                 @else
                                     <input type="checkbox" @checked($item['done']) wire:click="toggleItem('{{ $item['key'] }}')" class="size-4 accent-[var(--tl-brand)]" aria-label="{{ $item['label'] }}">
                                 @endif

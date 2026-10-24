@@ -25,7 +25,7 @@
     </dl>
 
     <div class="grid gap-3">
-        <h3 class="text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Status history</h3>
+        <h3 class="text-xs font-semibold tracking-wide text-ink-subtle uppercase">Status history</h3>
         <ol class="grid gap-0">
             @forelse ($onboarding->statusChanges as $change)
                 <li wire:key="sc-{{ $change->id }}" class="relative grid grid-cols-[20px_1fr] gap-3 pb-4 last:pb-0">
@@ -44,7 +44,7 @@
 
     @if ($onboarding->attributionChanges->isNotEmpty())
         <div class="grid gap-3">
-            <h3 class="text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Credit changes</h3>
+            <h3 class="text-xs font-semibold tracking-wide text-ink-subtle uppercase">Credit changes</h3>
             @foreach ($onboarding->attributionChanges as $change)
                 <div wire:key="ac-{{ $change->id }}" class="rounded-lg bg-surface-muted p-3 text-[13px]">
                     <p class="text-ink">Assigned by {{ $change->changedBy->name }} on {{ $change->created_at->format('j M Y') }}</p>

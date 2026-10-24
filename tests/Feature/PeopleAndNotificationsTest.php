@@ -139,6 +139,14 @@ class PeopleAndNotificationsTest extends TestCase
         Storage::disk('public')->assertExists($manager->avatar_path);
     }
 
+    public function test_removing_the_profile_photo_asks_first(): void
+    {
+        $manager = User::factory()->withRole(Role::SalesManager)->create(['avatar_path' => 'avatars/me.jpg']);
+
+        Livewire::actingAs($manager)->test(Profile::class)
+            ->assertSeeHtml('wire:confirm="Remove your profile photo?"');
+    }
+
     public function test_activity_marks_people_online_and_signing_out_clears_it(): void
     {
         $this->actingAs($this->john)->get('/')->assertSee('Online');

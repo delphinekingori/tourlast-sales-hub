@@ -106,7 +106,7 @@
                         <x-ui.avatar :user="$user" size="sm" />
                         <span class="hidden min-w-0 text-left leading-tight md:grid">
                             <span class="max-w-40 truncate text-[13px] font-medium text-ink">{{ $user->name }}</span>
-                            <span class="max-w-40 truncate text-[11px] text-ink-subtle">{{ $user->role()?->label() }}{{ $user->region ? ' · '.$user->region : '' }}</span>
+                            <span class="max-w-40 truncate text-xs text-ink-subtle">{{ $user->role()?->label() }}{{ $user->region ? ' · '.$user->region : '' }}</span>
                         </span>
                         <svg class="hidden size-4 text-ink-subtle md:block" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
                     </button>

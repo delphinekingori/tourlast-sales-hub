@@ -46,7 +46,7 @@
             <div class="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
                 <div class="grid grid-cols-7 bg-sidebar text-sidebar-ink">
                     @foreach (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $weekday)
-                        <div class="px-2 py-2 text-[11px] font-medium tracking-[0.06em] uppercase">{{ $weekday }}</div>
+                        <div class="px-2 py-2 text-xs font-medium tracking-[0.06em] uppercase">{{ $weekday }}</div>
                     @endforeach
                 </div>
                 <div class="grid grid-cols-7 gap-px bg-line">
@@ -68,7 +68,7 @@
                                 @include('livewire.calendar.partials.item', ['item' => $item, 'compact' => true, 'showOwner' => $showOwner])
                             @endforeach
                             @if ($dayItems->count() > 3)
-                                <button type="button" wire:click="showDay('{{ $day->toDateString() }}')" class="justify-self-start px-1 text-[11px] font-semibold text-brand-text hover:underline">+{{ $dayItems->count() - 3 }} more</button>
+                                <button type="button" wire:click="showDay('{{ $day->toDateString() }}')" class="justify-self-start px-1 text-xs font-semibold text-brand-text hover:underline">+{{ $dayItems->count() - 3 }} more</button>
                             @endif
                         </div>
                     @endforeach
@@ -85,9 +85,9 @@
                             'flex items-baseline gap-1.5 rounded-md px-1.5 py-1 text-left hover:bg-surface-muted',
                             'bg-brand-soft' => $day->isToday(),
                         ])>
-                            <span class="text-[11px] font-medium text-ink-subtle uppercase">{{ $day->format('D') }}</span>
+                            <span class="text-xs font-medium text-ink-subtle uppercase">{{ $day->format('D') }}</span>
                             <span @class(['text-sm font-bold', 'text-brand-text' => $day->isToday(), 'text-ink' => ! $day->isToday()])>{{ $day->format('j') }}</span>
-                            @if ($dayItems->isNotEmpty())<span class="ml-auto text-[11px] text-ink-subtle">{{ $dayItems->count() }}</span>@endif
+                            @if ($dayItems->isNotEmpty())<span class="ml-auto text-xs text-ink-subtle">{{ $dayItems->count() }}</span>@endif
                         </button>
                         @foreach ($departuresByDay->get($day->toDateString(), collect()) as $departure)
                             @include('livewire.calendar.partials.departure', ['departure' => $departure])
@@ -96,7 +96,7 @@
                             @include('livewire.calendar.partials.item', ['item' => $item, 'showOwner' => $showOwner])
                         @empty
                             @if (($sells || $travels) && ($day->isToday() || $day->isFuture()))
-                                <button type="button" x-on:click="$dispatch('open-schedule', { date: '{{ $day->toDateString() }}' })" class="rounded-md border border-dashed border-line px-2 py-2 text-[11px] text-ink-subtle hover:border-brand/40 hover:text-brand-text">+ Schedule</button>
+                                <button type="button" x-on:click="$dispatch('open-schedule', { date: '{{ $day->toDateString() }}' })" class="rounded-md border border-dashed border-line px-2 py-2 text-xs text-ink-subtle hover:border-brand/40 hover:text-brand-text">+ Schedule</button>
                             @endif
                         @endforelse
                     </div>

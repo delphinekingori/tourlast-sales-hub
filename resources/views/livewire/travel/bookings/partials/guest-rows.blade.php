@@ -26,13 +26,13 @@
             </legend>
             <div class="grid gap-3 md:grid-cols-3">
                 <x-ui.input label="Full name (as on ID / passport)" wire:model="{{ $model }}.{{ $i }}.full_name" id="{{ $id }}-name" required />
-                <x-ui.input label="Nationality" wire:model="{{ $model }}.{{ $i }}.nationality" id="{{ $id }}-nationality" />
-                <x-ui.input label="ID / passport number" wire:model="{{ $model }}.{{ $i }}.id_number" id="{{ $id }}-id-number" autocomplete="off" />
-                <x-ui.input label="Date of birth" type="date" wire:model="{{ $model }}.{{ $i }}.date_of_birth" id="{{ $id }}-dob" max="{{ now()->toDateString() }}" />
-                <x-ui.input label="Phone" wire:model="{{ $model }}.{{ $i }}.phone" id="{{ $id }}-phone" />
-                <x-ui.input label="Email" type="email" wire:model="{{ $model }}.{{ $i }}.email" id="{{ $id }}-email" />
+                <x-ui.input label="Nationality" optional wire:model="{{ $model }}.{{ $i }}.nationality" id="{{ $id }}-nationality" />
+                <x-ui.input label="ID / passport number" optional wire:model="{{ $model }}.{{ $i }}.id_number" id="{{ $id }}-id-number" autocomplete="off" />
+                <x-ui.input label="Date of birth" optional type="date" wire:model="{{ $model }}.{{ $i }}.date_of_birth" id="{{ $id }}-dob" max="{{ now()->toDateString() }}" />
+                <x-ui.input label="Phone" optional wire:model="{{ $model }}.{{ $i }}.phone" id="{{ $id }}-phone" />
+                <x-ui.input label="Email" optional type="email" wire:model="{{ $model }}.{{ $i }}.email" id="{{ $id }}-email" />
             </div>
-            <x-ui.input label="Dietary / medical needs" wire:model="{{ $model }}.{{ $i }}.special_requirements" id="{{ $id }}-needs" placeholder="e.g. vegetarian, nut allergy, uses a wheelchair" />
+            <x-ui.input label="Dietary / medical needs" optional wire:model="{{ $model }}.{{ $i }}.special_requirements" id="{{ $id }}-needs" placeholder="e.g. vegetarian, nut allergy, uses a wheelchair" />
         </fieldset>
     @endforeach
 </div>

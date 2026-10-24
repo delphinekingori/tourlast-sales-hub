@@ -56,6 +56,14 @@ class PackageFormButtonsTest extends TestCase
         $this->assertSame(0, Package::query()->count());
     }
 
+    public function test_removing_an_itinerary_day_asks_first(): void
+    {
+        $me = User::factory()->withRole(Role::TravelSalesperson)->create();
+
+        Livewire::actingAs($me)->test(Form::class)
+            ->assertSeeHtml('wire:confirm="Remove day 1 from the itinerary?"');
+    }
+
     public function test_submit_explains_what_is_missing_instead_of_doing_nothing(): void
     {
         $me = User::factory()->withRole(Role::TravelSalesperson)->create();

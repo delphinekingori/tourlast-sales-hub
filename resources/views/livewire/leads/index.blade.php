@@ -80,6 +80,7 @@
     @if ($canSell)
         <x-ui.slide-over wire:model="showCreate" title="Add lead" description="A provider you're prospecting. Only you and your managers can see it.">
             <form id="lead-form" wire:submit="create" class="grid gap-4">
+                <p class="text-[13px] text-ink-subtle">Everything is required unless it says (optional).</p>
                 @include('livewire.leads.partials.fields')
 
                 <p class="-mt-1 text-xs text-ink-subtle">The Hub checks the Property Engagement Registry, every salesperson's leads and tourlast.com signups as you type.</p>

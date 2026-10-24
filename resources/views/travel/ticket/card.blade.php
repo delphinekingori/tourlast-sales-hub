@@ -45,7 +45,7 @@
                 <span class="hidden text-[9.5px] font-medium tracking-[0.14em] text-[#6b7a90] uppercase sm:block">Tours · Experiences · Travel</span>
             </span>
             <span class="grid justify-items-end gap-0.5 text-right">
-                <span class="inline-flex items-center gap-1 text-[11px] font-bold tracking-[0.08em] whitespace-nowrap uppercase {{ $tone[$state['tone']]['text'] }}">
+                <span class="inline-flex items-center gap-1 text-xs font-bold tracking-[0.08em] whitespace-nowrap uppercase {{ $tone[$state['tone']]['text'] }}">
                     {{ $state['label'] }}
                     @if ($confirmed)
                         <svg class="size-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/></svg>
@@ -65,7 +65,7 @@
                 <div class="flex min-w-0 gap-2">
                     <svg class="mt-px size-4 shrink-0 text-[#0c5295]" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $icons[$icon] }}"/></svg>
                     <div class="grid min-w-0 leading-tight">
-                        <dt class="text-[10px] text-[#6b7a90]">{{ $name }}</dt>
+                        <dt class="text-xs text-[#6b7a90]">{{ $name }}</dt>
                         <dd class="line-clamp-2 text-[12.5px] font-semibold" title="{{ $value }}">{{ $value }}</dd>
                         @if ($sub)<dd class="truncate text-[10.5px] text-[#6b7a90]">{{ $sub }}</dd>@endif
                     </div>
@@ -78,7 +78,7 @@
                 <div class="flex min-w-0 gap-2" x-data="{ copied: false }">
                     <svg class="mt-px size-4 shrink-0 text-[#0c5295]" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $icons['reference'] }}"/></svg>
                     <div class="grid min-w-0 leading-tight">
-                        <span class="text-[10px] text-[#6b7a90]">Booking reference</span>
+                        <span class="text-xs text-[#6b7a90]">Booking reference</span>
                         <span class="flex items-center gap-1">
                             <span class="font-mono text-[13.5px] font-bold tracking-wide">{{ $ticket->reference() }}</span>
                             <button type="button" class="ticket-control grid size-5 place-items-center rounded text-[#6b7a90] hover:bg-[#eef2f6] hover:text-[#0c5295]"
@@ -93,7 +93,7 @@
                 <div class="flex min-w-0 gap-2">
                     <svg class="mt-px size-4 shrink-0 text-[#0c5295]" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $icons['booker'] }}"/></svg>
                     <div class="grid min-w-0 leading-tight">
-                        <span class="text-[10px] text-[#6b7a90]">Booked by</span>
+                        <span class="text-xs text-[#6b7a90]">Booked by</span>
                         <span class="truncate text-[12.5px] font-semibold">{{ $ticket->leadGuest() }}</span>
                         @if ($ticket->guestEmail() ?? $ticket->guestPhone())
                             <span class="truncate text-[10.5px] text-[#6b7a90]">{{ $ticket->guestEmail() ?? $ticket->guestPhone() }}</span>
@@ -131,7 +131,7 @@
         @endif
 
         <p class="text-[12px] font-bold">Package details</p>
-        <dl class="grid gap-1.5 text-[11px]">
+        <dl class="grid gap-1.5 text-xs">
             @foreach (array_filter([
                 'Booking ID' => $ticket->reference(),
                 'Provider' => $ticket->providerName(),
@@ -157,7 +157,7 @@
 
         <div class="grid justify-items-center gap-0.5 pt-1">
             <img src="{{ $ticket->barcodeDataUri() }}" alt="" class="h-9 w-full max-w-[180px] [image-rendering:pixelated]">
-            <span class="font-mono text-[10px] tracking-[0.12em] text-[#44546a]">{{ $ticket->reference() }}</span>
+            <span class="font-mono text-xs tracking-[0.12em] text-[#44546a]">{{ $ticket->reference() }}</span>
         </div>
     </aside>
 </article>

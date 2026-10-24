@@ -21,7 +21,7 @@
             <button type="button" wire:click="submitPackage({{ $package->id }})" x-on:click="open = false" class="px-3 py-1.5 text-left text-[13px] text-ink hover:bg-surface-muted">Submit for approval</button>
         @endif
         @if ($canWithdraw)
-            <button type="button" wire:click="withdrawPackage({{ $package->id }})" x-on:click="open = false" class="px-3 py-1.5 text-left text-[13px] text-ink hover:bg-surface-muted">Withdraw from review</button>
+            <button type="button" wire:click="withdrawPackage({{ $package->id }})" wire:confirm="Withdraw {{ $package->name }} from review? You can edit it and submit it again." x-on:click="open = false" class="px-3 py-1.5 text-left text-[13px] text-ink hover:bg-surface-muted">Withdraw from review</button>
         @endif
         <a href="{{ route('travel.packages.show', ['package' => $package, 'tab' => 'approvals']) }}" wire:navigate class="px-3 py-1.5 text-[13px] text-ink hover:bg-surface-muted">Approval history</a>
         @if ($canPublish)

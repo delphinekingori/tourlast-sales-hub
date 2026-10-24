@@ -71,19 +71,20 @@
 
     <x-ui.slide-over wire:model="showForm" :title="($editingId ? 'Edit ' : 'Add ').($isDrivers ? 'driver' : 'guide')">
         <form wire:submit="save" id="resource-form" class="grid gap-3">
+            <p class="text-[13px] text-ink-subtle">Everything is required unless it says (optional).</p>
             <x-ui.input label="Name" wire:model="form.name" id="res-name" />
-            <x-ui.input label="Phone" wire:model="form.phone" id="res-phone" />
+            <x-ui.input label="Phone" optional wire:model="form.phone" id="res-phone" />
             @if ($isDrivers)
-                <x-ui.input label="Vehicle" wire:model="form.vehicle" id="res-vehicle" placeholder="Toyota Land Cruiser" />
+                <x-ui.input label="Vehicle" optional wire:model="form.vehicle" id="res-vehicle" placeholder="Toyota Land Cruiser" />
                 <div class="grid grid-cols-2 gap-3">
-                    <x-ui.input label="Registration" wire:model="form.vehicle_registration" id="res-reg" />
-                    <x-ui.input label="Licence number" wire:model="form.license_number" id="res-licence" />
+                    <x-ui.input label="Registration" optional wire:model="form.vehicle_registration" id="res-reg" />
+                    <x-ui.input label="Licence number" optional wire:model="form.license_number" id="res-licence" />
                 </div>
             @else
-                <x-ui.input label="Languages" wire:model="form.languages" id="res-languages" hint="Separate with commas." />
-                <x-ui.input label="Specialization" wire:model="form.specialization" id="res-spec" placeholder="Birding, Big Five…" />
+                <x-ui.input label="Languages" optional wire:model="form.languages" id="res-languages" hint="Separate with commas." />
+                <x-ui.input label="Specialization" optional wire:model="form.specialization" id="res-spec" placeholder="Birding, Big Five…" />
             @endif
-            <x-ui.select label="Provider" wire:model="form.travel_provider_id" id="res-provider">
+            <x-ui.select label="Provider" optional wire:model="form.travel_provider_id" id="res-provider">
                 <option value="">Independent</option>
                 @foreach ($providers as $option)<option value="{{ $option->id }}">{{ $option->name }}</option>@endforeach
             </x-ui.select>
@@ -91,7 +92,7 @@
                 @foreach (\App\Enums\Travel\ResourceStatus::cases() as $option)<option value="{{ $option->value }}">{{ $option->label() }}</option>@endforeach
             </x-ui.select>
             <div class="grid gap-1">
-                <label for="res-notes" class="text-xs font-medium text-ink-muted">Notes</label>
+                <label for="res-notes" class="text-xs font-medium text-ink-muted">Notes <span class="font-normal text-ink-subtle">(optional)</span></label>
                 <textarea id="res-notes" wire:model="form.notes" rows="3" class="w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink shadow-xs focus:border-brand focus:ring-3 focus:ring-brand-soft focus:outline-none"></textarea>
             </div>
         </form>

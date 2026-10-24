@@ -27,7 +27,7 @@
                 <x-ui.button variant="secondary" :href="route('travel.packages.edit', $package)" wire:navigate>Edit</x-ui.button>
             @endif
             @if ($canWithdraw)
-                <x-ui.button variant="secondary" wire:click="withdrawPackage({{ $package->id }})">Withdraw from review</x-ui.button>
+                <x-ui.button variant="secondary" wire:click="withdrawPackage({{ $package->id }})" wire:confirm="Withdraw this package from review? You can edit it and submit it again.">Withdraw from review</x-ui.button>
             @endif
             @if ($canChange && $working && $live && $working->isEditable())
                 <x-ui.button variant="ghost" wire:click="discardChanges({{ $package->id }})" wire:confirm="Discard the draft changes? The live version stays as it is.">Discard changes</x-ui.button>

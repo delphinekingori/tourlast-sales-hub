@@ -138,4 +138,14 @@ class EarningsAndPayoutsTest extends TestCase
         $this->actingAs($manager)->get(route('team.performance'))->assertOk()->assertDontSee('Expected pay');
         $this->actingAs($hr)->get(route('earnings.member', $this->john))->assertOk()->assertSee('John Doe');
     }
+
+    public function test_each_statement_row_has_a_real_button_that_opens_the_detail(): void
+    {
+        $statement = app(Statements::class)->draft($this->john, CarbonImmutable::parse('2026-08-01'));
+        $accounts = User::factory()->withRole(Role::Accounts)->create();
+
+        Livewire::actingAs($accounts)->test(Payouts::class)
+            ->set('month', '2026-08')
+            ->assertSeeHtml('wire:click.stop="view('.$statement->id.')"');
+    }
 }

@@ -25,7 +25,7 @@
                 >
                     {{ $label }}
                     @if ($key === 'invitations' && $pendingCount)
-                        <span class="rounded-full bg-warning-soft px-1.5 text-[11px] font-bold text-warning">{{ $pendingCount }}</span>
+                        <span class="rounded-full bg-warning-soft px-1.5 text-xs font-bold text-warning">{{ $pendingCount }}</span>
                     @endif
                 </button>
             @endforeach
@@ -320,7 +320,7 @@
 
                 @if ($accountUser->statusChanges->isNotEmpty())
                     <div class="grid gap-1 border-t border-line pt-3">
-                        <p class="text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Account history</p>
+                        <p class="text-xs font-semibold tracking-wide text-ink-subtle uppercase">Account history</p>
                         @foreach ($accountUser->statusChanges->take(5) as $change)
                             <p class="text-xs text-ink-muted"><span class="font-medium text-ink">{{ $change->to_status->label() }}</span> · {{ $change->created_at->format('j M Y') }}{{ $change->reasonLabel() ? ' · '.$change->reasonLabel() : '' }}{{ $change->changer ? ' · by '.$change->changer->name : ' · automatically' }}</p>
                         @endforeach

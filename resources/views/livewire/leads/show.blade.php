@@ -83,7 +83,7 @@
                         @if ($transfer->notes)<span class="text-ink-subtle">“{{ $transfer->notes }}”</span>@endif
                     </div>
                 @endforeach
-                <p class="px-4 py-2 text-[11px] text-ink-subtle">Added {{ $lead->created_at->format('j M Y') }}{{ $lead->transfers->last() ? ' by '.$lead->transfers->last()->fromUser->name : '' }}. Logged activity stays with whoever did it.</p>
+                <p class="px-4 py-2 text-xs text-ink-subtle">Added {{ $lead->created_at->format('j M Y') }}{{ $lead->transfers->last() ? ' by '.$lead->transfers->last()->fromUser->name : '' }}. Logged activity stays with whoever did it.</p>
             </x-ui.card>
 
             <x-ui.card title="Contact">                <dl class="grid gap-3 text-sm">

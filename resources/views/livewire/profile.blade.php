@@ -14,7 +14,7 @@
                     </label>
                     <input type="file" id="profile-photo" wire:model="photo" accept="image/png,image/jpeg,image/webp" class="sr-only">
                     @if ($user->avatar_path)
-                        <x-ui.button size="sm" variant="ghost" wire:click="removePhoto">Remove</x-ui.button>
+                        <x-ui.button size="sm" variant="ghost" wire:click="removePhoto" wire:confirm="Remove your profile photo?">Remove</x-ui.button>
                     @endif
                     <span wire:loading wire:target="photo" class="text-[13px] text-brand-text">Uploading…</span>
                 </div>

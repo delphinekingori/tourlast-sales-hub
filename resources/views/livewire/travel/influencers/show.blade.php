@@ -84,7 +84,7 @@
             @else
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[760px] text-sm">
-                        <thead class="bg-sidebar text-left text-[11px] tracking-[0.06em] text-sidebar-ink uppercase">
+                        <thead class="bg-sidebar text-left text-xs tracking-[0.06em] text-sidebar-ink uppercase">
                             <tr>
                                 <th class="px-4 py-2 font-medium">Code</th>
                                 <th class="px-4 py-2 font-medium">Terms</th>
@@ -140,7 +140,7 @@
 
         <div class="overflow-x-auto" wire:loading.delay.class="opacity-60">
             <table class="w-full min-w-[980px] text-sm">
-                <thead class="bg-sidebar text-left text-[11px] tracking-[0.06em] text-sidebar-ink uppercase">
+                <thead class="bg-sidebar text-left text-xs tracking-[0.06em] text-sidebar-ink uppercase">
                     <tr>
                         @if ($canPay)<th class="w-8 px-4 py-2"><span class="sr-only">Select</span></th>@endif
                         <th class="px-4 py-2 font-medium">Booking</th>

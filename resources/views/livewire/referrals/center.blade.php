@@ -25,7 +25,7 @@
                     <div class="grid grid-cols-3 gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-5">
                         @foreach ($funnel as [$label, $value])
                             <div class="grid min-w-0 gap-0.5 bg-surface px-3 py-2 last:col-span-2 sm:last:col-span-1">
-                                <span class="text-[11px] leading-tight font-medium text-ink-subtle">{{ $label }}</span>
+                                <span class="text-xs leading-tight font-medium text-ink-subtle">{{ $label }}</span>
                                 <span class="tabular text-xl leading-tight font-bold text-ink">{{ $value }}</span>
                             </div>
                         @endforeach

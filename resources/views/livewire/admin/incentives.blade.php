@@ -42,37 +42,37 @@
     <x-ui.card :title="$policyModel->name" :description="'In force since '.$policyModel->effective_from->format('j M Y').'. A new version never changes months that are already paid.'">
         <div class="grid gap-4 lg:grid-cols-3">
             <div class="grid content-start gap-2">
-                <h3 class="text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Stay points (rooms/units)</h3>
+                <h3 class="text-xs font-semibold tracking-wide text-ink-subtle uppercase">Stay points (rooms/units)</h3>
                 @foreach ($rules['stay_bands'] as [$min, $max, $points])
                     <div class="flex justify-between border-b border-line py-1.5 text-sm"><span class="text-ink-muted">{{ $min }}{{ $max ? '–'.$max : '+' }}</span><span class="font-bold text-ink">{{ $points }}</span></div>
                 @endforeach
-                <h3 class="mt-3 text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Experience points (services)</h3>
+                <h3 class="mt-3 text-xs font-semibold tracking-wide text-ink-subtle uppercase">Experience points (services)</h3>
                 @foreach ($rules['experience_bands'] as [$min, $max, $points])
                     <div class="flex justify-between border-b border-line py-1.5 text-sm"><span class="text-ink-muted">{{ $min }}{{ $max ? '–'.$max : '+' }}</span><span class="font-bold text-ink">{{ $points }}</span></div>
                 @endforeach
             </div>
             <div class="grid content-start gap-2">
-                <h3 class="text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Performance Retainer</h3>
+                <h3 class="text-xs font-semibold tracking-wide text-ink-subtle uppercase">Performance Retainer</h3>
                 <div class="flex justify-between border-b border-line py-1.5 text-sm"><span class="text-ink-muted">Under {{ $rules['retainer'][0][0] }} points</span><span class="font-bold text-ink">0</span></div>
                 @foreach ($rules['retainer'] as [$threshold, $amount])
                     <div class="flex justify-between border-b border-line py-1.5 text-sm"><span class="text-ink-muted">{{ $threshold }}+ points</span><span class="font-bold text-ink">KES {{ number_format($amount) }}</span></div>
                 @endforeach
-                <h3 class="mt-3 text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Weekly bonus</h3>
+                <h3 class="mt-3 text-xs font-semibold tracking-wide text-ink-subtle uppercase">Weekly bonus</h3>
                 <div class="flex justify-between border-b border-line py-1.5 text-sm"><span class="text-ink-muted">{{ $rules['weekly_bonus']['threshold'] }}+ points in a bonus week</span><span class="font-bold text-ink">KES {{ number_format($rules['weekly_bonus']['amount']) }}</span></div>
                 <p class="text-xs text-ink-subtle">Weeks: {{ collect($rules['bonus_weeks'])->map(fn ($w) => $w[0].'–'.($w[1] >= 28 ? 'end' : $w[1]))->implode(', ') }}</p>
-                <h3 class="mt-3 text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Allowances</h3>
+                <h3 class="mt-3 text-xs font-semibold tracking-wide text-ink-subtle uppercase">Allowances</h3>
                 <div class="flex justify-between border-b border-line py-1.5 text-sm"><span class="text-ink-muted">Airtime per month</span><span class="font-bold text-ink">KES {{ number_format($rules['airtime_cap']) }}</span></div>
                 <div class="flex justify-between border-b border-line py-1.5 text-sm"><span class="text-ink-muted">Transport</span><span class="font-bold text-ink">Approved claims</span></div>
             </div>
             <div class="grid content-start gap-2">
-                <h3 class="text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Monthly Performance Bonus</h3>
+                <h3 class="text-xs font-semibold tracking-wide text-ink-subtle uppercase">Monthly Performance Bonus</h3>
                 <div class="flex justify-between border-b border-line py-1.5 text-sm"><span class="text-ink-muted">Above 0 points</span><span class="font-bold text-ink">KES {{ number_format($rules['monthly_bonus']['above_zero']) }}</span></div>
                 @foreach ($rules['monthly_bonus']['bands'] as [$threshold, $amount])
                     <div class="flex justify-between border-b border-line py-1.5 text-sm"><span class="text-ink-muted">{{ $threshold }}+ points</span><span class="font-bold text-ink">KES {{ number_format($amount) }}</span></div>
                 @endforeach
-                <h3 class="mt-3 text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Exceptional-Performance</h3>
+                <h3 class="mt-3 text-xs font-semibold tracking-wide text-ink-subtle uppercase">Exceptional-Performance</h3>
                 <p class="text-sm text-ink-muted">KES {{ $rules['exceptional']['per_point'] }} per point above {{ $rules['exceptional']['above'] }}, capped at KES {{ number_format($rules['exceptional']['cap']) }}.</p>
-                <h3 class="mt-3 text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Windows</h3>
+                <h3 class="mt-3 text-xs font-semibold tracking-wide text-ink-subtle uppercase">Windows</h3>
                 <p class="text-sm text-ink-muted">Quality review {{ $rules['review_days'] }} days · expansion {{ $rules['expansion_days'] }} days · paid by day {{ $rules['payment_day'] }}.</p>
             </div>
         </div>

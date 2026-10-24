@@ -43,7 +43,7 @@
                         <td class="max-w-96">
                             <div class="flex flex-wrap gap-1">
                                 @foreach ($token->scopes() as $scope)
-                                    <span class="rounded bg-surface-muted px-1.5 py-px font-mono text-[11px] text-ink-muted">{{ $scope }}</span>
+                                    <span class="rounded bg-surface-muted px-1.5 py-px font-mono text-xs text-ink-muted">{{ $scope }}</span>
                                 @endforeach
                             </div>
                         </td>

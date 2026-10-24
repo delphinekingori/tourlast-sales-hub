@@ -30,7 +30,7 @@
             <div wire:key="dup-{{ $match['key'] }}" class="grid gap-1.5 rounded-md border border-line bg-surface p-2.5">
                 <div class="flex flex-wrap items-baseline justify-between gap-x-2">
                     <span class="text-[13px] font-semibold text-ink">{{ $match['name'] }}{{ $match['location'] ? ' — '.$match['location'] : '' }}</span>
-                    <span class="text-[11px] font-medium text-ink-subtle uppercase">{{ ['registry' => 'Registry', 'lead' => 'Lead', 'onboarding' => 'tourlast.com'][$match['kind']] }}{{ $match['archived'] ? ' · archived' : '' }}</span>
+                    <span class="text-xs font-medium text-ink-subtle uppercase">{{ ['registry' => 'Registry', 'lead' => 'Lead', 'onboarding' => 'tourlast.com'][$match['kind']] }}{{ $match['archived'] ? ' · archived' : '' }}</span>
                 </div>
                 <dl class="grid gap-0.5 text-xs">
                     <div @class(['font-medium', 'text-danger' => $match['active'] && ! $match['ownerIsViewer'] && $match['owner'], 'text-ink' => ! ($match['active'] && ! $match['ownerIsViewer'] && $match['owner'])])>{{ $ownerLine }}</div>

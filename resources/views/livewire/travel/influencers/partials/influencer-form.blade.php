@@ -1,5 +1,6 @@
 <x-ui.modal wire:model="{{ $model }}" :title="$title" description="Payout details are only visible to you, Travel managers and Accounts." maxWidth="max-w-lg">
     <form wire:submit="{{ $action }}" id="influencer-form" class="grid gap-3">
+        <p class="text-[13px] text-ink-subtle">Everything is required unless it says (optional).</p>
         <x-ui.input label="Name" wire:model="influencerForm.name" id="inf-name" />
 
         <fieldset class="grid gap-2">
@@ -33,19 +34,19 @@
         </fieldset>
 
         <div class="grid grid-cols-2 gap-3">
-            <x-ui.input label="Phone" wire:model="influencerForm.phone" id="inf-phone" />
-            <x-ui.input label="Email" type="email" wire:model="influencerForm.email" id="inf-email" />
+            <x-ui.input label="Phone" optional wire:model="influencerForm.phone" id="inf-phone" />
+            <x-ui.input label="Email" optional type="email" wire:model="influencerForm.email" id="inf-email" />
         </div>
         <div class="grid grid-cols-[10rem_1fr] gap-3">
-            <x-ui.select label="Payout method" wire:model="influencerForm.payout_method" id="inf-payout-method">
+            <x-ui.select label="Payout method" optional wire:model="influencerForm.payout_method" id="inf-payout-method">
                 <option value="">Not set</option>
                 <option value="mpesa">M-Pesa</option>
                 <option value="bank">Bank</option>
             </x-ui.select>
-            <x-ui.input label="Payout details" wire:model="influencerForm.payout_details" id="inf-payout-details" placeholder="M-Pesa number and name, or bank and account" />
+            <x-ui.input label="Payout details" optional wire:model="influencerForm.payout_details" id="inf-payout-details" placeholder="M-Pesa number and name, or bank and account" />
         </div>
         <div class="grid gap-1">
-            <label for="inf-notes" class="text-xs font-medium text-ink-muted">Notes</label>
+            <label for="inf-notes" class="text-xs font-medium text-ink-muted">Notes <span class="font-normal text-ink-subtle">(optional)</span></label>
             <textarea id="inf-notes" wire:model="influencerForm.notes" rows="2" class="w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink shadow-xs focus:border-brand focus:ring-3 focus:ring-brand-soft focus:outline-none"></textarea>
         </div>
         <label class="flex items-center gap-2 text-[13px] text-ink-muted">

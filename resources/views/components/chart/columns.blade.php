@@ -49,7 +49,7 @@
             {{-- Y axis --}}
             <div class="relative w-12" style="height: {{ $height }}px">
                 @foreach ($ticks as $tick)
-                    <span class="tabular absolute right-0 translate-y-1/2 text-[11px] leading-none text-ink-subtle" style="bottom: {{ $tick / $top * 100 }}%">{{ $compact((float) $tick) }}</span>
+                    <span class="tabular absolute right-0 translate-y-1/2 text-xs leading-none text-ink-subtle" style="bottom: {{ $tick / $top * 100 }}%">{{ $compact((float) $tick) }}</span>
                 @endforeach
             </div>
 
@@ -97,7 +97,7 @@
             <span></span>
             <div class="flex pt-1.5">
                 @foreach ($points as $index => $point)
-                    <span class="min-w-0 flex-1 truncate text-center text-[11px] text-ink-subtle">{{ $index % $labelEvery === 0 ? $point['label'] : '' }}</span>
+                    <span class="min-w-0 flex-1 truncate text-center text-xs text-ink-subtle">{{ $index % $labelEvery === 0 ? $point['label'] : '' }}</span>
                 @endforeach
             </div>
         </div>

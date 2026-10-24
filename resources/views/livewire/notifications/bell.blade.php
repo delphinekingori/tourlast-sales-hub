@@ -2,7 +2,7 @@
     <button type="button" x-on:click="open = ! open" class="relative rounded-lg p-2 text-ink-muted hover:bg-surface-muted hover:text-ink" aria-label="Notifications{{ $unread ? ', '.$unread.' unread' : '' }}">
         <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
         @if ($unread)
-            <span class="absolute -top-0.5 -right-0.5 grid min-w-[18px] place-items-center rounded-full bg-danger px-1 text-[10px] leading-[18px] font-bold text-white">{{ $unread > 99 ? '99+' : $unread }}</span>
+            <span class="absolute -top-0.5 -right-0.5 grid min-w-[18px] place-items-center rounded-full bg-danger px-1 text-xs leading-[18px] font-bold text-white">{{ $unread > 99 ? '99+' : $unread }}</span>
         @endif
     </button>
 
@@ -25,10 +25,10 @@
                     <span class="grid min-w-0 flex-1 gap-0.5 leading-tight">
                         <span class="flex items-center gap-2">
                             <span @class(['truncate text-[13px]', 'font-bold text-ink' => $item['unread'], 'font-semibold text-ink-muted' => ! $item['unread']])>{{ $item['title'] }}</span>
-                            @if ($item['importance'] === 'important')<x-ui.pill tone="danger" :dot="false" class="px-1.5 text-[10px]">Important</x-ui.pill>@endif
+                            @if ($item['importance'] === 'important')<x-ui.pill tone="danger" :dot="false" class="px-1.5 text-xs">Important</x-ui.pill>@endif
                         </span>
                         <span class="line-clamp-2 text-xs text-ink-subtle">{{ $item['body'] }}</span>
-                        <span class="text-[11px] text-ink-subtle">{{ $item['kind'] === 'announcement' ? 'From '.$item['author']?->name.' · ' : '' }}{{ $item['at']->diffForHumans() }}</span>
+                        <span class="text-xs text-ink-subtle">{{ $item['kind'] === 'announcement' ? 'From '.$item['author']?->name.' · ' : '' }}{{ $item['at']->diffForHumans() }}</span>
                     </span>
                     @if ($item['unread'])<span class="mt-1.5 size-2 shrink-0 rounded-full bg-brand"></span>@endif
                 </button>

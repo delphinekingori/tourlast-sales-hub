@@ -177,7 +177,7 @@
                                     <div class="flex items-center gap-1">
                                         <button type="button" wire:click="moveDay({{ $index }}, -1)" @disabled($index === 0) class="rounded px-1.5 text-ink-subtle hover:text-ink disabled:opacity-30" aria-label="Move up">↑</button>
                                         <button type="button" wire:click="moveDay({{ $index }}, 1)" @disabled($index === count($itinerary) - 1) class="rounded px-1.5 text-ink-subtle hover:text-ink disabled:opacity-30" aria-label="Move down">↓</button>
-                                        <x-ui.button size="sm" variant="danger-ghost" wire:click="removeDay({{ $index }})">Remove</x-ui.button>
+                                        <x-ui.button size="sm" variant="danger-ghost" wire:click="removeDay({{ $index }})" wire:confirm="Remove day {{ $index + 1 }} from the itinerary?">Remove</x-ui.button>
                                     </div>
                                 </div>
                                 <div class="grid gap-3 md:grid-cols-2">
@@ -263,7 +263,7 @@
                                         @if ($primaryMedia !== $asset->id)
                                             <button type="button" wire:click="makePrimary({{ $asset->id }})" class="text-brand-text hover:underline">Make primary</button>
                                         @endif
-                                        <button type="button" wire:click="removeMedia({{ $asset->id }})" class="ml-auto text-danger hover:underline">Remove</button>
+                                        <button type="button" wire:click="removeMedia({{ $asset->id }})" wire:confirm="Remove this image from the package? It stays in the media library." class="ml-auto text-danger hover:underline">Remove</button>
                                     </div>
                                 </li>
                             @endforeach
@@ -347,7 +347,7 @@
                             @endif
                         </span>
                         <span class="truncate text-xs font-medium text-ink">{{ $asset->title }}</span>
-                        <span class="truncate text-[11px] text-ink-subtle">{{ $asset->provider?->name ?? 'No provider' }} · {{ $asset->category->label() }}</span>
+                        <span class="truncate text-xs text-ink-subtle">{{ $asset->provider?->name ?? 'No provider' }} · {{ $asset->category->label() }}</span>
                     </button>
                 @empty
                     <div class="col-span-full"><x-ui.empty-state icon="photo" title="No images match" description="Change the filters, or upload in the Media Gallery." /></div>

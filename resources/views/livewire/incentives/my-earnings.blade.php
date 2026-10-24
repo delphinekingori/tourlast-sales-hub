@@ -153,7 +153,7 @@
     {{-- Points ladder --}}
     <x-ui.card title="Points ladder" description="Combined stays, experiences and expansion. Solid: approved. Striped: waiting for approval.">
         <div class="grid gap-1">
-            <div class="relative h-9 text-[11px] text-ink-subtle">
+            <div class="relative h-9 text-xs text-ink-subtle">
                 @foreach ($policy->rules['retainer'] as [$threshold, $amount])
                     <span class="absolute bottom-0 -translate-x-1/2 text-center leading-tight whitespace-nowrap" style="left: {{ $pos($threshold) }}%">Retainer {{ rtrim(rtrim(number_format($amount / 1000, 1), '0'), '.') }}k<b class="block text-xs text-ink">{{ $threshold }}</b></span>
                 @endforeach
@@ -166,7 +166,7 @@
                     <span class="absolute inset-y-0 w-px bg-surface" style="left: {{ $pos($mark) }}%"></span>
                 @endforeach
             </div>
-            <div class="relative h-9 text-[11px] text-ink-subtle">
+            <div class="relative h-9 text-xs text-ink-subtle">
                 @foreach ($policy->rules['monthly_bonus']['bands'] as [$threshold, $amount])
                     <span class="absolute top-0 -translate-x-1/2 text-center leading-tight whitespace-nowrap" style="left: {{ $pos($threshold) }}%"><b class="block text-xs text-ink">{{ $threshold }}</b>{{ rtrim(rtrim(number_format($amount / 1000, 1), '0'), '.') }}k</span>
                 @endforeach

@@ -33,7 +33,7 @@
                     <tr wire:key="ob-{{ $onboarding->id }}" wire:click="view({{ $onboarding->id }})" class="cursor-pointer hover:bg-surface-muted/60">
                         <td>
                             <div class="grid leading-tight">
-                                <span class="font-semibold text-ink">{{ $onboarding->property_name }}</span>
+                                <button type="button" wire:click.stop="view({{ $onboarding->id }})" aria-label="Open onboarding: {{ $onboarding->property_name }}" class="text-left font-semibold text-brand-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">{{ $onboarding->property_name }}</button>
                                 <span class="text-[13px] text-ink-subtle">{{ $onboarding->location ?? '—' }}</span>
                             </div>
                         </td>
@@ -46,6 +46,7 @@
                                 <x-ui.pill :tone="$onboarding->status->tone()">{{ $onboarding->status->label() }}</x-ui.pill>
                                 @if ($onboarding->trashed())<x-ui.pill tone="warning" :dot="false">Deleted</x-ui.pill>@endif
                                 @if ($onboarding->isStalled())<x-ui.pill tone="danger" :dot="false">Stalled</x-ui.pill>@endif
+                                <x-ui.icon name="arrow-right" class="size-4 text-ink-subtle" />
                             </div>
                         </td>
                     </tr>

@@ -9,54 +9,55 @@
     <x-ui.page-header :title="$isEdit ? 'Edit provider' : 'Add provider'" :description="$seesRegistry ? 'Tour, safari and experience partners. The Hub checks existing providers and the Property Engagement Registry as you type.' : 'Tour, safari and experience partners. The Hub checks existing providers as you type.'" />
 
     <form wire:submit="save" class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <p class="text-[13px] text-ink-subtle xl:col-span-2">Everything is required unless it says (optional).</p>
         <div class="grid gap-5">
             <x-ui.card title="Business">
                 <div class="grid gap-3 sm:grid-cols-2">
-                    <x-ui.input label="Provider name *" wire:model.live.debounce.500ms="form.name" />
-                    <x-ui.select label="Provider type *" wire:model="form.provider_type">
+                    <x-ui.input label="Provider name" wire:model.live.debounce.500ms="form.name" />
+                    <x-ui.select label="Provider type" wire:model="form.provider_type">
                         @foreach (\App\Enums\Travel\TravelProviderType::cases() as $option)
                             <option value="{{ $option->value }}">{{ $option->label() }}</option>
                         @endforeach
                     </x-ui.select>
-                    <x-ui.input label="Business (registered) name" wire:model="form.business_name" />
-                    <x-ui.input label="Trading name" wire:model.live.debounce.500ms="form.trading_name" />
-                    <x-ui.input label="Registration number" wire:model.live.debounce.500ms="form.registration_number" />
-                    <x-ui.input label="KRA PIN" wire:model.live.debounce.500ms="form.kra_pin" hint="Kenyan businesses, e.g. P051234567X" />
+                    <x-ui.input label="Business (registered) name" optional wire:model="form.business_name" />
+                    <x-ui.input label="Trading name" optional wire:model.live.debounce.500ms="form.trading_name" />
+                    <x-ui.input label="Registration number" optional wire:model.live.debounce.500ms="form.registration_number" />
+                    <x-ui.input label="KRA PIN" optional wire:model.live.debounce.500ms="form.kra_pin" hint="Kenyan businesses, e.g. P051234567X" />
                 </div>
             </x-ui.card>
 
             <x-ui.card title="Location">
                 <div class="grid gap-3 sm:grid-cols-3">
-                    <x-ui.input label="Country *" wire:model="form.country" />
-                    <x-ui.input label="County / region" wire:model="form.region" />
-                    <x-ui.input label="City / town" wire:model.live.debounce.500ms="form.city" />
-                    <div class="sm:col-span-3"><x-ui.input label="Physical address" wire:model="form.address" /></div>
+                    <x-ui.input label="Country" wire:model="form.country" />
+                    <x-ui.input label="County / region" optional wire:model="form.region" />
+                    <x-ui.input label="City / town" optional wire:model.live.debounce.500ms="form.city" />
+                    <div class="sm:col-span-3"><x-ui.input label="Physical address" optional wire:model="form.address" /></div>
                 </div>
             </x-ui.card>
 
             <x-ui.card title="Contact">
                 <div class="grid gap-3 sm:grid-cols-2">
-                    <x-ui.input label="Email" type="email" wire:model.live.debounce.500ms="form.email" />
-                    <x-ui.input label="Phone" wire:model.live.debounce.500ms="form.phone" />
-                    <x-ui.input label="WhatsApp" wire:model="form.whatsapp" />
-                    <x-ui.input label="Website" wire:model.live.debounce.500ms="form.website" />
-                    <x-ui.input label="Primary contact" wire:model="form.primary_contact_name" />
-                    <x-ui.input label="Primary contact phone" wire:model.live.debounce.500ms="form.primary_contact_phone" />
-                    <x-ui.input label="Primary contact email" type="email" wire:model.live.debounce.500ms="form.primary_contact_email" />
+                    <x-ui.input label="Email" optional type="email" wire:model.live.debounce.500ms="form.email" />
+                    <x-ui.input label="Phone" optional wire:model.live.debounce.500ms="form.phone" />
+                    <x-ui.input label="WhatsApp" optional wire:model="form.whatsapp" />
+                    <x-ui.input label="Website" optional wire:model.live.debounce.500ms="form.website" />
+                    <x-ui.input label="Primary contact" optional wire:model="form.primary_contact_name" />
+                    <x-ui.input label="Primary contact phone" optional wire:model.live.debounce.500ms="form.primary_contact_phone" />
+                    <x-ui.input label="Primary contact email" optional type="email" wire:model.live.debounce.500ms="form.primary_contact_email" />
                     <div></div>
-                    <x-ui.input label="Decision maker" wire:model="form.decision_maker_name" />
-                    <x-ui.input label="Decision maker phone" wire:model="form.decision_maker_phone" />
+                    <x-ui.input label="Decision maker" optional wire:model="form.decision_maker_name" />
+                    <x-ui.input label="Decision maker phone" optional wire:model="form.decision_maker_phone" />
                 </div>
             </x-ui.card>
 
             <x-ui.card title="About">
                 <div class="grid gap-3">
                     <div class="grid gap-1">
-                        <label for="provider-description" class="text-xs font-medium text-ink-muted">Description</label>
+                        <label for="provider-description" class="text-xs font-medium text-ink-muted">Description <span class="font-normal text-ink-subtle">(optional)</span></label>
                         <textarea id="provider-description" rows="4" wire:model="form.description" class="{{ $textarea }}" placeholder="What they offer, where they operate, fleet size..."></textarea>
                     </div>
                     <div class="grid gap-1">
-                        <label for="provider-notes" class="text-xs font-medium text-ink-muted">Internal notes</label>
+                        <label for="provider-notes" class="text-xs font-medium text-ink-muted">Internal notes <span class="font-normal text-ink-subtle">(optional)</span></label>
                         <textarea id="provider-notes" rows="3" wire:model="form.notes" class="{{ $textarea }}"></textarea>
                     </div>
                 </div>
@@ -66,13 +67,13 @@
         <div class="grid gap-5 xl:sticky xl:top-4">
             <x-ui.card title="Status">
                 <div class="grid gap-3">
-                    <x-ui.select label="Status *" wire:model="form.status">
+                    <x-ui.select label="Status" wire:model="form.status">
                         @foreach (\App\Enums\Travel\TravelProviderStatus::cases() as $option)
                             <option value="{{ $option->value }}">{{ $option->label() }}</option>
                         @endforeach
                     </x-ui.select>
                     @if ($canManageAll)
-                        <x-ui.select label="Salesperson" wire:model="form.owner_id">
+                        <x-ui.select label="Salesperson" optional wire:model="form.owner_id">
                             @foreach ($owners as $person)
                                 <option value="{{ $person->id }}">{{ $person->name }}</option>
                             @endforeach
@@ -87,7 +88,7 @@
                         @if ($linked)
                             <span class="flex items-center justify-between gap-2">
                                 <span class="truncate text-ink">Linked to {{ $linked->name }}</span>
-                                <button type="button" wire:click="unlinkRegistry" class="text-xs font-medium text-danger hover:underline">Unlink</button>
+                                <button type="button" wire:click="unlinkRegistry" wire:confirm="Unlink this registry entry from the provider? Nothing is deleted." class="text-xs font-medium text-danger hover:underline">Unlink</button>
                             </span>
                         @else
                             <span class="text-ink-subtle">Not linked. Matching Registry records appear below.</span>

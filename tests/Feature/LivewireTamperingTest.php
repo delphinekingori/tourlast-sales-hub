@@ -108,4 +108,12 @@ class LivewireTamperingTest extends TestCase
         $component->call('$refresh');
         $this->assertNull($component->viewData('viewing'));
     }
+
+    public function test_each_onboarding_row_has_a_real_button_that_opens_the_detail(): void
+    {
+        $onboarding = Onboarding::factory()->forSalesperson($this->mary)->create();
+
+        Livewire::actingAs($this->mary)->test(Mine::class)
+            ->assertSeeHtml('wire:click.stop="view('.$onboarding->id.')"');
+    }
 }

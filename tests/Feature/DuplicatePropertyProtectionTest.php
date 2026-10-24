@@ -184,4 +184,19 @@ class DuplicatePropertyProtectionTest extends TestCase
             ->assertSee('Sarah Achieng')
             ->assertSee('Matching leads or signups are shown for information');
     }
+
+    public function test_the_add_lead_form_marks_optional_fields_and_leaves_required_ones_unmarked(): void
+    {
+        $john = User::factory()->withRole(Role::Salesperson)->create();
+
+        $html = Livewire::actingAs($john)->test(LeadsIndex::class)
+            ->call('openCreate')
+            ->assertSee('Everything is required unless it says (optional).')
+            ->html();
+
+        $this->assertMatchesRegularExpression('/Location\s*<span[^>]*>\(optional\)/', $html);
+        $this->assertMatchesRegularExpression('/Notes\s*<span[^>]*>\(optional\)/', $html);
+        $this->assertDoesNotMatchRegularExpression('/Business name\s*<span[^>]*>\(optional\)/', $html);
+        $this->assertDoesNotMatchRegularExpression('/>\s*Type\s*<span[^>]*>\(optional\)/', $html);
+    }
 }
