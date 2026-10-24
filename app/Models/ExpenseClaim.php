@@ -16,7 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 #[Fillable([
     'user_id', 'type', 'month', 'amount', 'approved_amount', 'description', 'travel_date', 'ride_provider',
-    'trip_reference', 'pickup', 'dropoff', 'distance_km', 'partner_account_id', 'lead_id', 'status',
+    'trip_reference', 'pickup', 'pickup_lat', 'pickup_lng', 'dropoff', 'dropoff_lat', 'dropoff_lng', 'distance_km',
+    'partner_account_id', 'lead_id', 'status',
     'current_step', 'paid_at', 'paid_by', 'payment_reference',
 ])]
 class ExpenseClaim extends Model
@@ -43,6 +44,9 @@ class ExpenseClaim extends Model
     /** Ride-hailing apps whose trip ID and ride details are required. */
     public const AppProviders = ['bolt', 'uber'];
 
+    /** Ways of travelling that usually give no receipt, so none is demanded. */
+    public const NoReceiptProviders = ['matatu', 'boda', 'own_vehicle', 'other'];
+
     public const StepLabels = ['manager' => 'Sales Manager', 'hr' => 'HR', 'finance' => 'Finance'];
 
     /**
@@ -55,6 +59,10 @@ class ExpenseClaim extends Model
             'amount' => 'float',
             'approved_amount' => 'float',
             'distance_km' => 'float',
+            'pickup_lat' => 'float',
+            'pickup_lng' => 'float',
+            'dropoff_lat' => 'float',
+            'dropoff_lng' => 'float',
             'paid_at' => 'immutable_datetime',
         ];
     }
@@ -150,6 +158,26 @@ class ExpenseClaim extends Model
     public function payableAmount(): float
     {
         return (float) ($this->approved_amount ?? $this->amount);
+    }
+
+    /**
+     * A Google Maps directions link for the trip, so approvers can see the route.
+     * It uses the picked coordinates when there are any, otherwise the typed places.
+     */
+    public function routeUrl(): ?string
+    {
+        if (! $this->isTransport() || blank($this->pickup) || blank($this->dropoff)) {
+            return null;
+        }
+
+        $place = fn (string $text, ?float $lat, ?float $lng): string => $lat !== null && $lng !== null ? $lat.','.$lng : $text;
+
+        return 'https://www.google.com/maps/dir/?'.http_build_query([
+            'api' => 1,
+            'origin' => $place($this->pickup, $this->pickup_lat, $this->pickup_lng),
+            'destination' => $place($this->dropoff, $this->dropoff_lat, $this->dropoff_lng),
+            'travelmode' => 'driving',
+        ]);
     }
 
     public function statusLabel(): string

@@ -125,6 +125,131 @@ class ClaimsTest extends TestCase
         $this->assertTrue(app(Claims::class)->canDecide(User::factory()->withRole(Role::SalesAdmin)->create(), $managerClaim));
     }
 
+    public function test_the_page_offers_three_plain_choices_and_counts_every_claim_not_just_the_page(): void
+    {
+        ExpenseClaim::factory()->count(16)->create(['user_id' => $this->john->id, 'status' => 'pending']);
+
+        Livewire::actingAs($this->john)->test(Index::class)
+            ->assertSee('What do you need?')
+            ->assertSee('Get my trip money back')
+            ->assertSee('Ask for transport money')
+            ->assertSee('Claim airtime')
+            ->assertViewHas('pendingCount', 16);
+    }
+
+    public function test_each_form_says_who_approves_and_what_is_required(): void
+    {
+        $page = Livewire::actingAs($this->john)->test(Index::class);
+
+        $page->call('open', 'airtime')
+            ->assertSee('1. Finance')
+            ->assertDontSee('The trip')
+            ->assertSee('Airtime receipt or M-Pesa message');
+
+        $page->call('open', 'transport_request')
+            ->assertSee('1. Sales Manager')
+            ->assertSee('3. Finance')
+            ->assertSee('Quote or supporting document');
+
+        $page->call('open', 'transport_reimbursement')
+            ->set('form.ride_provider', 'bolt')
+            ->assertSee('Trip receipt from the app')
+            ->assertViewHas('rideDetailsRequired', true)
+            ->assertViewHas('receiptRequired', false)
+            ->set('form.ride_provider', 'taxi')
+            ->assertViewHas('receiptRequired', true)
+            ->set('form.ride_provider', 'matatu')
+            ->assertViewHas('receiptRequired', false)
+            ->assertSee('optional for this kind of trip');
+    }
+
+    public function test_trips_that_give_no_receipt_can_still_be_sent_including_other(): void
+    {
+        foreach (['other', 'boda', 'own_vehicle', 'matatu'] as $provider) {
+            Livewire::actingAs($this->john)->test(Index::class)
+                ->call('open', 'transport_reimbursement')
+                ->set('form.ride_provider', $provider)
+                ->set('form.pickup', 'Westlands')->set('form.dropoff', 'Kilimani')
+                ->set('form.amount', '300')->set('form.description', 'Partner visit by '.$provider)
+                ->call('submit')
+                ->assertHasNoErrors()
+                ->assertSet('showForm', false);
+        }
+
+        $this->assertSame(4, ExpenseClaim::where('user_id', $this->john->id)->count());
+    }
+
+    public function test_a_failed_send_lists_what_to_fix_at_the_top_of_the_form(): void
+    {
+        Livewire::actingAs($this->john)->test(Index::class)
+            ->call('open', 'transport_reimbursement')
+            ->call('submit')
+            ->assertSee('Fix these')
+            ->assertSee('Enter the amount in KES.')
+            ->assertSee('Enter where the trip started.')
+            ->assertSee('Say what the money was for, in a sentence.');
+    }
+
+    public function test_places_picked_on_the_map_are_saved_with_their_coordinates(): void
+    {
+        Livewire::actingAs($this->john)->test(Index::class)
+            ->call('open', 'transport_reimbursement')
+            ->set('form.ride_provider', 'other')
+            ->set('form.pickup', 'Westlands, Nairobi')->set('form.pickup_lat', '-1.2673000')->set('form.pickup_lng', '36.8110000')
+            ->set('form.dropoff', 'Diani Beach')->set('form.dropoff_lat', '-4.2800000')->set('form.dropoff_lng', '39.5900000')
+            ->set('form.amount', '1200')->set('form.description', 'Partner visit')
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        $claim = ExpenseClaim::sole();
+        $this->assertSame(-1.2673, $claim->pickup_lat);
+        $this->assertSame(39.59, $claim->dropoff_lng);
+        $this->assertStringContainsString('origin=-1.2673%2C36.811', $claim->routeUrl());
+    }
+
+    public function test_coordinates_must_be_real_and_typed_places_still_work_without_them(): void
+    {
+        Livewire::actingAs($this->john)->test(Index::class)
+            ->call('open', 'transport_reimbursement')
+            ->set('form.ride_provider', 'other')
+            ->set('form.pickup', 'Westlands')->set('form.pickup_lat', '95')
+            ->set('form.dropoff', 'Kilimani')->set('form.dropoff_lng', '-181')
+            ->set('form.amount', '300')->set('form.description', 'Visit')
+            ->call('submit')
+            ->assertHasErrors(['form.pickup_lat', 'form.dropoff_lng'])
+            ->set('form.pickup_lat', '')->set('form.dropoff_lng', '')
+            ->call('submit')
+            ->assertHasNoErrors();
+
+        $claim = ExpenseClaim::sole();
+        $this->assertNull($claim->pickup_lat);
+        $this->assertStringContainsString('origin=Westlands', $claim->routeUrl());
+    }
+
+    public function test_the_form_has_place_search_boxes_and_the_detail_links_to_the_route(): void
+    {
+        $claim = ExpenseClaim::factory()->for($this->john)->create();
+
+        Livewire::actingAs($this->john)->test(Index::class)
+            ->call('open', 'transport_reimbursement')
+            ->assertSeeHtml('id="claim-pickup"')
+            ->assertSeeHtml('id="claim-dropoff"')
+            ->assertSee('Search a place')
+            ->call('view', $claim->id)
+            ->assertSee('See the route on Google Maps');
+    }
+
+    public function test_airtime_shows_how_much_is_left_this_month(): void
+    {
+        $claims = app(Claims::class);
+        $claim = $claims->submit($this->john, ['type' => 'airtime', 'amount' => 300, 'description' => 'Calls']);
+        $claims->approve($claim, $this->finance);
+
+        Livewire::actingAs($this->john)->test(Index::class)
+            ->assertViewHas('airtimeLeft', 100)
+            ->assertSee('KES 100 left this month');
+    }
+
     public function test_airtime_goes_straight_to_finance_and_is_capped_at_400_a_month(): void
     {
         $claims = app(Claims::class);
@@ -167,5 +292,22 @@ class ClaimsTest extends TestCase
         $this->actingAs($this->john)->get(route('claims.approvals'))->assertForbidden();
         $this->actingAs($this->hr)->get(route('claims.approvals'))->assertOk();
         $this->actingAs($this->hr)->get(route('claims.index'))->assertForbidden();
+    }
+
+    public function test_each_claim_row_has_a_real_button_that_opens_the_detail(): void
+    {
+        $claim = ExpenseClaim::factory()->create(['user_id' => $this->john->id]);
+
+        Livewire::actingAs($this->john)->test(Index::class)
+            ->assertSeeHtml('wire:click.stop="view('.$claim->id.')"')
+            ->assertSeeHtml('aria-label="Open claim: ');
+    }
+
+    public function test_each_approval_row_has_a_real_button_that_opens_the_detail(): void
+    {
+        $claim = app(Claims::class)->submit($this->john, ['type' => 'airtime', 'amount' => 100, 'description' => 'Calls'], ['receipt' => [UploadedFile::fake()->image('receipt.png')]]);
+
+        Livewire::actingAs($this->manager)->test(Approvals::class)
+            ->assertSeeHtml('wire:click.stop="view('.$claim->id.')"');
     }
 }

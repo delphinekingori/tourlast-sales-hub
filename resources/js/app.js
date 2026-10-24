@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import './echo';
+import './places';
 
 document.addEventListener('alpine:init', () => {
     /**

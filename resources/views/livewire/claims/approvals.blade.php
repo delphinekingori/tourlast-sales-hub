@@ -10,8 +10,8 @@
             <button type="button" wire:click="$set('tab', '{{ $key }}')" wire:key="appr-tab-{{ $key }}"
                 @class(['flex items-center gap-2 rounded px-2.5 py-1 text-xs font-medium', 'bg-brand-soft text-brand-text' => $tab === $key, 'text-ink-subtle hover:text-ink' => $tab !== $key])>
                 {{ $label }}
-                @if ($key === 'mine' && $waitingCount)<span class="rounded-full bg-warning-soft px-1.5 text-[11px] font-bold text-warning">{{ $waitingCount }}</span>@endif
-                @if ($key === 'disburse' && $disburseCount)<span class="rounded-full bg-warning-soft px-1.5 text-[11px] font-bold text-warning">{{ $disburseCount }}</span>@endif
+                @if ($key === 'mine' && $waitingCount)<span class="rounded-full bg-warning-soft px-1.5 text-xs font-bold text-warning">{{ $waitingCount }}</span>@endif
+                @if ($key === 'disburse' && $disburseCount)<span class="rounded-full bg-warning-soft px-1.5 text-xs font-bold text-warning">{{ $disburseCount }}</span>@endif
             </button>
         @endforeach
     </div>
@@ -34,7 +34,7 @@
                         <td>
                             <div class="flex items-center gap-3"><x-ui.avatar :user="$claim->user" size="sm" /><span class="font-semibold whitespace-nowrap text-ink">{{ $claim->user->name }}</span></div>
                         </td>
-                        <td><div class="grid leading-tight"><span class="font-semibold text-ink">{{ $claim->typeLabel() }}</span><span class="text-[13px] text-ink-subtle">{{ $claim->created_at->format('j M Y') }}</span></div></td>
+                        <td><div class="grid leading-tight"><button type="button" wire:click.stop="view({{ $claim->id }})" aria-label="Open claim: {{ $claim->typeLabel() }} from {{ $claim->user->name }}" class="text-left font-semibold text-brand-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">{{ $claim->typeLabel() }}</button><span class="text-[13px] text-ink-subtle">{{ $claim->created_at->format('j M Y') }}</span></div></td>
                         <td class="text-ink-muted">
                             @if ($claim->isTransport())
                                 <div class="grid leading-tight"><span>{{ $claim->pickup }} → {{ $claim->dropoff }}</span><span class="text-[13px] text-ink-subtle">{{ $claim->rideProviderLabel() }} · {{ $claim->travel_date?->format('j M') }}</span></div>
@@ -42,7 +42,7 @@
                         </td>
                         <td class="tabular text-right font-bold text-ink">{{ number_format($claim->payableAmount(), 2) }}</td>
                         <td class="text-ink-muted">{{ $claim->attachments->count() }}</td>
-                        <td><x-ui.pill :tone="$claim->statusTone()">{{ $claim->statusLabel() }}</x-ui.pill></td>
+                        <td><div class="flex items-center justify-between gap-2"><x-ui.pill :tone="$claim->statusTone()">{{ $claim->statusLabel() }}</x-ui.pill><x-ui.icon name="arrow-right" class="size-4 text-ink-subtle" /></div></td>
                     </tr>
                 @empty
                     <tr><td colspan="6"><x-ui.empty-state icon="check-circle" title="Nothing waiting for you" description="Claims appear here when they reach your step." /></td></tr>

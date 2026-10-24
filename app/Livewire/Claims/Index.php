@@ -80,7 +80,11 @@ class Index extends Component
                 'ride_provider' => $this->form['ride_provider'],
                 'trip_reference' => $this->form['trip_reference'] ?: null,
                 'pickup' => $this->form['pickup'],
+                'pickup_lat' => $this->coordinate('pickup_lat'),
+                'pickup_lng' => $this->coordinate('pickup_lng'),
                 'dropoff' => $this->form['dropoff'],
+                'dropoff_lat' => $this->coordinate('dropoff_lat'),
+                'dropoff_lng' => $this->coordinate('dropoff_lng'),
                 'distance_km' => $this->form['distance_km'] !== '' ? (float) $this->form['distance_km'] : null,
                 'partner_account_id' => $this->form['partner_account_id'] ?: null,
                 'lead_id' => $this->form['lead_id'] ?: null,
@@ -126,14 +130,23 @@ class Index extends Component
         $month = now()->startOfMonth();
         $airtimeUsed = ExpenseClaim::query()->where('user_id', $user->id)->where('type', 'airtime')->whereDate('month', $month->toDateString())->whereIn('status', ['approved', 'paid'])->get()->sum(fn (ExpenseClaim $claim): float => $claim->payableAmount());
 
+        $mine = ExpenseClaim::query()->where('user_id', $user->id);
+        $airtimeCap = IncentivePolicy::for($month)->policy()->airtimeCap();
+
         return view('livewire.claims.index', [
-            'claims' => ExpenseClaim::query()->where('user_id', $user->id)->with('attachments')->latest()->paginate(15),
+            'claims' => (clone $mine)->with('attachments')->latest()->paginate(15),
+            'pendingCount' => (clone $mine)->where('status', 'pending')->count(),
+            'approvedCount' => (clone $mine)->where('status', 'approved')->count(),
+            'approvalSteps' => config('incentives.approval_steps.'.$this->type, ['finance']),
+            'receiptRequired' => $this->needsReceipt(),
+            'rideDetailsRequired' => $this->needsRideDetails(),
+            'airtimeLeft' => max(0, $airtimeCap - (int) $airtimeUsed),
             'viewing' => $this->viewingId ? ExpenseClaim::with(['attachments', 'approvals.user', 'partnerAccount', 'lead'])->where('user_id', Auth::id())->find($this->viewingId) : null,
-            'airtimeCap' => IncentivePolicy::for($month)->policy()->airtimeCap(),
+            'airtimeCap' => $airtimeCap,
             'airtimeUsed' => $airtimeUsed,
             'accounts' => PartnerAccount::query()->current()->where('user_id', $user->id)->orderBy('legal_name')->get(['id', 'legal_name']),
             'leads' => Lead::query()->where('user_id', $user->id)->open()->orderBy('business_name')->get(['id', 'business_name']),
-            'usesRideApp' => in_array($this->form['ride_provider'] ?? '', ExpenseClaim::AppProviders, true),
+            'usesRideApp' => $this->usesRideApp(),
         ]);
     }
 
@@ -154,20 +167,50 @@ class Index extends Component
         }
 
         $isRequest = $this->type === 'transport_request';
-        $rideApp = in_array($this->form['ride_provider'] ?? '', ExpenseClaim::AppProviders, true);
+        $rideApp = $this->usesRideApp();
 
         return $rules + [
             'form.travel_date' => ['required', 'date', $isRequest ? 'after_or_equal:today' : 'before_or_equal:today'],
             'form.ride_provider' => ['required', Rule::in(array_keys(ExpenseClaim::RideProviders))],
             'form.pickup' => ['required', 'string', 'max:190'],
             'form.dropoff' => ['required', 'string', 'max:190'],
+            'form.pickup_lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'form.dropoff_lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'form.pickup_lng' => ['nullable', 'numeric', 'between:-180,180'],
+            'form.dropoff_lng' => ['nullable', 'numeric', 'between:-180,180'],
             'form.distance_km' => ['nullable', 'numeric', 'min:0', 'max:5000'],
             'form.trip_reference' => [! $isRequest && $rideApp ? 'required' : 'nullable', 'string', 'max:100'],
             'form.partner_account_id' => ['nullable', Rule::exists('partner_accounts', 'id')->where('user_id', Auth::id())],
             'form.lead_id' => ['nullable', Rule::exists('leads', 'id')->where('user_id', Auth::id())],
-            'receipts' => [! $isRequest && ! $rideApp && ($this->form['ride_provider'] ?? '') !== 'matatu' ? 'required' : 'nullable', 'array'],
-            'rideDetails' => [! $isRequest && $rideApp ? 'required' : 'nullable', 'array'],
+            'receipts' => [$this->needsReceipt() ? 'required' : 'nullable', 'array'],
+            'rideDetails' => [$this->needsRideDetails() ? 'required' : 'nullable', 'array'],
         ];
+    }
+
+    private function coordinate(string $key): ?float
+    {
+        return ($this->form[$key] ?? '') === '' ? null : round((float) $this->form[$key], 7);
+    }
+
+    /**
+     * A reimbursement needs a receipt unless the ride app's own details stand in for one, or the trip
+     * (matatu, boda boda, own vehicle, other) usually gives none.
+     */
+    private function needsReceipt(): bool
+    {
+        return $this->type === 'transport_reimbursement'
+            && ! $this->usesRideApp()
+            && ! in_array($this->form['ride_provider'] ?? '', ExpenseClaim::NoReceiptProviders, true);
+    }
+
+    private function needsRideDetails(): bool
+    {
+        return $this->type === 'transport_reimbursement' && $this->usesRideApp();
+    }
+
+    private function usesRideApp(): bool
+    {
+        return in_array($this->form['ride_provider'] ?? '', ExpenseClaim::AppProviders, true);
     }
 
     /**
@@ -176,6 +219,13 @@ class Index extends Component
     private function messages(): array
     {
         return [
+            'form.amount.required' => 'Enter the amount in KES.',
+            'form.amount.min' => 'The amount must be at least KES 1.',
+            'form.amount.max' => 'The amount cannot be more than KES 100,000. Split it into separate claims if needed.',
+            'form.description.required' => 'Say what the money was for, in a sentence.',
+            'form.pickup.required' => 'Enter where the trip started.',
+            'form.dropoff.required' => 'Enter where the trip ended.',
+            'form.travel_date.required' => 'Pick the travel date.',
             'form.trip_reference.required' => 'Enter the trip ID shown in the Bolt or Uber app.',
             'rideDetails.required' => 'Upload the ride details from the Bolt or Uber app (trip receipt screenshot or the emailed PDF).',
             'receipts.required' => 'Upload a receipt for this trip.',
@@ -208,7 +258,8 @@ class Index extends Component
     {
         $this->form = [
             'amount' => '', 'description' => '', 'travel_date' => now()->toDateString(), 'ride_provider' => 'bolt',
-            'trip_reference' => '', 'pickup' => '', 'dropoff' => '', 'distance_km' => '', 'partner_account_id' => '', 'lead_id' => '',
+            'trip_reference' => '', 'pickup' => '', 'pickup_lat' => '', 'pickup_lng' => '', 'dropoff' => '', 'dropoff_lat' => '', 'dropoff_lng' => '',
+            'distance_km' => '', 'partner_account_id' => '', 'lead_id' => '',
         ];
         $this->receipts = [];
         $this->rideDetails = [];

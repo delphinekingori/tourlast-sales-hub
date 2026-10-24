@@ -11,7 +11,7 @@
         <div class="flex justify-between gap-4"><dt class="text-ink-subtle">Salesperson</dt><dd class="text-ink">{{ $claim->user->name }}</dd></div>
         @if ($claim->isTransport())
             <div class="flex justify-between gap-4"><dt class="text-ink-subtle">{{ $claim->isRequest() ? 'Planned date' : 'Travel date' }}</dt><dd class="text-ink">{{ $claim->travel_date?->format('D j M Y') }}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="text-ink-subtle">Route</dt><dd class="text-right text-ink">{{ $claim->pickup }} → {{ $claim->dropoff }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-ink-subtle">Route</dt><dd class="grid justify-items-end gap-1 text-right text-ink"><span>{{ $claim->pickup }} → {{ $claim->dropoff }}</span>@if ($claim->routeUrl())<a href="{{ $claim->routeUrl() }}" target="_blank" rel="noopener" class="text-[13px] font-semibold text-brand-text hover:underline">See the route on Google Maps</a>@endif</dd></div>
             <div class="flex justify-between gap-4"><dt class="text-ink-subtle">Travelled by</dt><dd class="text-ink">{{ $claim->rideProviderLabel() }}</dd></div>
             @if ($claim->trip_reference)
                 <div class="flex justify-between gap-4"><dt class="text-ink-subtle">Trip ID</dt><dd class="font-mono text-[13px] text-ink select-all">{{ $claim->trip_reference }}</dd></div>
@@ -30,7 +30,7 @@
     </dl>
 
     <div class="grid gap-2">
-        <h3 class="text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Files</h3>
+        <h3 class="text-xs font-semibold tracking-wide text-ink-subtle uppercase">Files</h3>
         @forelse ($claim->attachments as $file)
             <a wire:key="file-{{ $file->id }}" href="{{ route('downloads.claim-attachment', $file) }}" target="_blank" class="flex items-center justify-between gap-3 rounded-lg border border-line px-3 py-2 text-sm hover:bg-surface-muted/60">
                 <span class="grid min-w-0 leading-tight"><span class="truncate font-semibold text-ink">{{ $file->original_name }}</span><span class="text-xs text-ink-subtle">{{ $file->kindLabel() }}</span></span>
@@ -45,7 +45,7 @@
     </div>
 
     <div class="grid gap-3">
-        <h3 class="text-[11px] font-semibold tracking-wide text-ink-subtle uppercase">Approvals</h3>
+        <h3 class="text-xs font-semibold tracking-wide text-ink-subtle uppercase">Approvals</h3>
         <ol class="grid gap-3">
             @foreach ($claim->steps() as $step)
                 @php($decision = $claim->approvals->where('step', $step)->last())

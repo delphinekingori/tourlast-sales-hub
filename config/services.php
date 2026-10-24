@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    /*
+    | Place search and the pick-on-a-map control in forms (the claim form). Without a key the
+    | fields stay plain text boxes. The country limits the search to one country (ISO code).
+    */
+    'google_maps' => [
+        'key' => env('GOOGLE_MAPS_API_KEY'),
+        'country' => env('GOOGLE_MAPS_COUNTRY', 'ke'),
+    ],
+
 ];
