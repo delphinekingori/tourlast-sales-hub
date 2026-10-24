@@ -86,6 +86,26 @@ class TravelApiTest extends TestCase
         $this->api($owner, ['travel:write'])->postJson("/api/v1/travel/packages/{$package->id}/publish", ['channel' => 'tourlast.com'])->assertUnprocessable();
     }
 
+    public function test_another_salesperson_cannot_submit_or_publish_a_package_they_do_not_own(): void
+    {
+        $package = Package::factory()->pendingApproval()->create();
+        $stranger = User::factory()->withRole(Role::TravelSalesperson)->create();
+
+        $this->api($stranger, ['travel:write'])->postJson("/api/v1/travel/packages/{$package->id}/submit")->assertForbidden();
+        $this->api($stranger, ['travel:write'])->postJson("/api/v1/travel/packages/{$package->id}/publish", ['channel' => 'tourlast.com'])->assertForbidden();
+        $this->api($stranger, ['travel:write'])->patchJson("/api/v1/travel/packages/{$package->id}", ['name' => 'Hijacked'])->assertForbidden();
+    }
+
+    public function test_publishing_through_the_api_refuses_a_script_link(): void
+    {
+        $package = Package::factory()->pendingApproval()->create();
+
+        $this->api($package->owner, ['travel:write'])
+            ->postJson("/api/v1/travel/packages/{$package->id}/publish", ['channel' => 'tourlast.com', 'url' => 'javascript://x.com/%0aalert(1)'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('url');
+    }
+
     public function test_reject_needs_a_reason(): void
     {
         $package = Package::factory()->pendingApproval()->create();

@@ -30,29 +30,12 @@ class PublishGate
 
         $provider = TravelProvider::query()->find($version->travel_provider_id);
         $contract = $version->provider_contract_id ? ProviderContract::query()->find($version->provider_contract_id) : null;
-        $missing = [];
 
         if (! $provider) {
             return ['Provider'];
         }
 
-        if (class_exists(ContractCheck::class)) {
-            $missing = array_values(ContractCheck::forPackage($contract, $provider));
-        } else {
-            if (! $provider->isActive()) {
-                $missing[] = 'Active provider';
-            }
-
-            if (! $contract || $contract->travel_provider_id !== $provider->id) {
-                $missing[] = 'Provider contract';
-            } elseif (! $contract->isInForce()) {
-                $missing[] = 'Active provider contract (not expired)';
-            }
-
-            if ($contract && blank($contract->cancellation_terms)) {
-                $missing[] = 'Cancellation terms on the contract';
-            }
-        }
+        $missing = array_values(ContractCheck::forPackage($contract, $provider));
 
         if (blank($provider->phone) && blank($provider->email) && blank($provider->primary_contact_phone)) {
             $missing[] = 'Provider contact details';

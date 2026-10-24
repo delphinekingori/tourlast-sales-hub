@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A tour or experience package: the product. Its content and prices live in
@@ -76,9 +78,43 @@ class Package extends Model
     public static function nextReference(): string
     {
         $prefix = 'PKG-'.now()->year.'-';
-        $last = static::query()->where('reference', 'like', $prefix.'%')->max('reference');
+        $last = static::query()
+            ->where('reference', 'like', $prefix.'%')
+            ->orderByRaw('LENGTH(reference) DESC')
+            ->orderByDesc('reference')
+            ->value('reference');
 
-        return $prefix.str_pad((string) ((int) substr((string) $last, -4) + 1), 4, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) ((int) substr((string) $last, strlen($prefix)) + 1), 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Creates the package under the next free reference, retrying when another
+     * request took the same reference first.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public static function createWithNextReference(array $attributes): static
+    {
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                return DB::transaction(fn (): static => static::query()->create([...$attributes, 'reference' => static::nextReference()]));
+            } catch (UniqueConstraintViolationException $exception) {
+                if ($attempt >= 3) {
+                    throw $exception;
+                }
+            }
+        }
+    }
+
+    /**
+     * Locks this package's row for the rest of the transaction and reloads it,
+     * so two requests changing the same package run one after the other.
+     */
+    public function refreshLocked(): static
+    {
+        static::query()->lockForUpdate()->whereKey($this->getKey())->value('id');
+
+        return $this->refresh();
     }
 
     /**

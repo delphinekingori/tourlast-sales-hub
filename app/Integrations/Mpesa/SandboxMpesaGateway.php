@@ -20,6 +20,8 @@ class SandboxMpesaGateway implements MpesaGateway
 
     public function stkPush(string $phone254, int $amount, string $accountReference, string $description): StkPushResult
     {
+        $this->refuseInProduction();
+
         return new StkPushResult(
             merchantRequestId: 'SANDBOX-'.Str::upper(Str::random(8)),
             checkoutRequestId: 'ws_CO_SANDBOX_'.now()->format('dmYHis').Str::upper(Str::random(6)),
@@ -33,6 +35,8 @@ class SandboxMpesaGateway implements MpesaGateway
      */
     public function stkQuery(string $checkoutRequestId): StkQueryResult
     {
+        $this->refuseInProduction();
+
         return new StkQueryResult(
             processing: false,
             resultCode: 1037,
@@ -47,6 +51,8 @@ class SandboxMpesaGateway implements MpesaGateway
      */
     public function b2cPayout(string $phone254, int $amount, string $originatorConversationId, string $remarks): B2cPayoutResult
     {
+        $this->refuseInProduction();
+
         return new B2cPayoutResult(
             conversationId: 'AG_SANDBOX_'.Str::upper(Str::random(12)),
             originatorConversationId: $originatorConversationId,
@@ -62,5 +68,16 @@ class SandboxMpesaGateway implements MpesaGateway
             'ConfirmationURL' => CallbackUrls::c2bConfirmation(),
             'ValidationURL' => CallbackUrls::c2bValidation(),
         ];
+    }
+
+    /**
+     * A live site left on the simulator would show payments as taken when no
+     * money moved, so it refuses instead.
+     */
+    private function refuseInProduction(): void
+    {
+        if (app()->isProduction()) {
+            throw new MpesaException('M-Pesa is in test mode on this live site. Set MPESA_DRIVER=daraja and the Daraja credentials.');
+        }
     }
 }

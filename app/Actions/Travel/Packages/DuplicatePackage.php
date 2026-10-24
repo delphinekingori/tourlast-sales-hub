@@ -37,8 +37,7 @@ class DuplicatePackage
         }
 
         return DB::transaction(function () use ($actor, $source, $from, $content): Package {
-            $package = Package::query()->create([
-                'reference' => Package::nextReference(),
+            $package = Package::createWithNextReference([
                 'name' => $content['name'],
                 'package_type' => $content['package_type'],
                 'destination' => $content['destination'],

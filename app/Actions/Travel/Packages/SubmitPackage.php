@@ -25,19 +25,20 @@ class SubmitPackage
     {
         TravelAccess::abortUnlessCanChange($actor, $package->owner_id);
 
-        $version = $package->workingVersion()->first();
+        $version = DB::transaction(function () use ($actor, $package): PackageVersion {
+            $package->refreshLocked();
+            $version = $package->workingVersion()->first();
 
-        if (! $version || ! $version->isEditable() || $package->archived_at) {
-            throw ValidationException::withMessages(['package' => 'There is no draft to submit.']);
-        }
+            if (! $version || ! $version->isEditable() || $package->archived_at) {
+                throw ValidationException::withMessages(['package' => 'There is no draft to submit.']);
+            }
 
-        $missing = PackageReadiness::missing($package, $version);
+            $missing = PackageReadiness::missing($package, $version);
 
-        if ($missing !== []) {
-            throw ValidationException::withMessages(['package' => 'Complete the package before submitting. Missing: '.implode(', ', $missing).'.']);
-        }
+            if ($missing !== []) {
+                throw ValidationException::withMessages(['package' => 'Complete the package before submitting. Missing: '.implode(', ', $missing).'.']);
+            }
 
-        DB::transaction(function () use ($actor, $package, $version): void {
             $version->forceFill([
                 'status' => PackageVersionStatus::Submitted,
                 'submitted_at' => now(),
@@ -49,6 +50,8 @@ class SubmitPackage
             }
 
             Audit::record($version, 'package.submitted', 'Submitted '.$package->reference.' '.$version->label().' for approval');
+
+            return $version;
         });
 
         Alerts::sendToTravelPermission(

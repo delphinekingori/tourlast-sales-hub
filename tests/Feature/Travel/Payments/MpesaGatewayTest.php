@@ -5,6 +5,7 @@ namespace Tests\Feature\Travel\Payments;
 use App\Actions\Travel\Payments\RequestMpesaPayment;
 use App\Enums\Travel\PaymentStatus;
 use App\Integrations\Mpesa\DarajaMpesaGateway;
+use App\Integrations\Mpesa\MpesaException;
 use App\Integrations\Mpesa\MpesaGateway;
 use App\Integrations\Mpesa\MpesaPhone;
 use App\Integrations\Mpesa\SandboxMpesaGateway;
@@ -39,6 +40,25 @@ class MpesaGatewayTest extends TestCase
 
         config(['travel.mpesa' => $this->config()]);
         $this->assertInstanceOf(DarajaMpesaGateway::class, app(MpesaGateway::class));
+    }
+
+    public function test_the_simulator_refuses_to_move_money_on_a_live_site(): void
+    {
+        $this->app->detectEnvironment(fn (): string => 'production');
+        $gateway = new SandboxMpesaGateway;
+
+        foreach ([
+            fn () => $gateway->stkPush('254712345678', 1000, 'PKG-1', 'Deposit'),
+            fn () => $gateway->stkQuery('ws_CO_1'),
+            fn () => $gateway->b2cPayout('254712345678', 1000, 'ORIG-1', 'Refund'),
+        ] as $call) {
+            try {
+                $call();
+                $this->fail('The simulator answered on a production site.');
+            } catch (MpesaException $e) {
+                $this->assertStringContainsString('MPESA_DRIVER=daraja', $e->getMessage());
+            }
+        }
     }
 
     public function test_daraja_stk_push_sends_the_documented_payload(): void

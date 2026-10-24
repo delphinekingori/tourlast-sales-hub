@@ -34,6 +34,20 @@ class SavePackage
     public function handle(User $actor, Package $package, array $input, array $itinerary, bool $acceptDuplicate = false): PackageVersion
     {
         TravelAccess::abortUnlessCanChange($actor, $package->owner_id);
+
+        return DB::transaction(function () use ($actor, $package, $input, $itinerary, $acceptDuplicate): PackageVersion {
+            $package->refreshLocked();
+
+            return $this->save($actor, $package, $input, $itinerary, $acceptDuplicate);
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @param  array<int, array<string, mixed>>  $itinerary
+     */
+    private function save(User $actor, Package $package, array $input, array $itinerary, bool $acceptDuplicate): PackageVersion
+    {
         abort_if($package->archived_at !== null, 422, 'Archived packages cannot be edited.');
 
         $package->loadMissing(['workingVersion', 'liveVersion']);

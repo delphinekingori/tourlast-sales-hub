@@ -35,29 +35,31 @@ class PublishPackage
             throw ValidationException::withMessages(['channel' => 'Say where the package is published.']);
         }
 
-        if ($url !== null && ! filter_var($url, FILTER_VALIDATE_URL)) {
+        if ($url !== null && (! filter_var($url, FILTER_VALIDATE_URL) || ! in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true))) {
             throw ValidationException::withMessages(['url' => 'Enter a full link, starting with https://.']);
         }
 
-        $live = $package->live_version_id ? PackageVersion::query()->find($package->live_version_id) : null;
+        DB::transaction(function () use ($actor, $package, $channel, $url, $overrideReason): void {
+            $package->refreshLocked();
 
-        if (! $live || $live->status !== PackageVersionStatus::Approved || $package->archived_at
-            || ! in_array($package->status, [PackageStatus::Approved, PackageStatus::Unpublished], true)) {
-            throw ValidationException::withMessages(['package' => 'Only an approved package that is not already published can be published. It needs Sales Admin and Super Admin approval first.']);
-        }
+            $live = $package->live_version_id ? PackageVersion::query()->find($package->live_version_id) : null;
 
-        $missing = PublishGate::missing($package);
-        $overriding = false;
-
-        if ($missing !== []) {
-            if ($overrideReason === null || ! $actor->can(Permission::OverridePackageContract->value)) {
-                throw ValidationException::withMessages(['package' => 'Cannot publish package. Missing: '.implode(', ', $missing).'.']);
+            if (! $live || $live->status !== PackageVersionStatus::Approved || $package->archived_at
+                || ! in_array($package->status, [PackageStatus::Approved, PackageStatus::Unpublished], true)) {
+                throw ValidationException::withMessages(['package' => 'Only an approved package that is not already published can be published. It needs Sales Admin and Super Admin approval first.']);
             }
 
-            $overriding = true;
-        }
+            $missing = PublishGate::missing($package);
+            $overriding = false;
 
-        DB::transaction(function () use ($actor, $package, $channel, $url, $overrideReason, $overriding, $missing): void {
+            if ($missing !== []) {
+                if ($overrideReason === null || ! $actor->can(Permission::OverridePackageContract->value)) {
+                    throw ValidationException::withMessages(['package' => 'Cannot publish package. Missing: '.implode(', ', $missing).'.']);
+                }
+
+                $overriding = true;
+            }
+
             $package->forceFill([
                 'status' => PackageStatus::Published,
                 'published_at' => now(),

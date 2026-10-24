@@ -353,6 +353,49 @@ class PackageWorkflowTest extends TestCase
         $this->assertSame(PackageStatus::Unpublished, $package->fresh()->status);
     }
 
+    public function test_a_published_link_must_be_http_or_https(): void
+    {
+        $package = $this->approvedPackage();
+
+        foreach (['javascript://x.com/%0aalert(1)', 'ftp://files.example.com/mara', 'data://text/html,hi'] as $url) {
+            try {
+                app(PublishPackage::class)->handle($this->seller, $package->fresh(), 'tourlast.com', $url);
+                $this->fail($url.' was accepted as a published link');
+            } catch (ValidationException $e) {
+                $this->assertArrayHasKey('url', $e->errors());
+            }
+        }
+
+        $this->assertSame(PackageStatus::Approved, $package->fresh()->status);
+    }
+
+    public function test_a_package_cannot_be_published_twice(): void
+    {
+        $package = $this->approvedPackage();
+        app(PublishPackage::class)->handle($this->seller, $package->fresh(), 'tourlast.com');
+
+        $this->expectException(ValidationException::class);
+        app(PublishPackage::class)->handle($this->seller, $package->fresh(), 'tourlast.com');
+    }
+
+    public function test_references_keep_counting_past_9999_and_skip_taken_numbers(): void
+    {
+        $prefix = 'PKG-'.now()->year.'-';
+        Package::factory()->create(['reference' => $prefix.'9999']);
+        $this->assertSame($prefix.'10000', Package::nextReference());
+
+        Package::factory()->create(['reference' => $prefix.'10000']);
+        $this->assertSame($prefix.'10001', Package::nextReference());
+    }
+
+    public function test_two_packages_created_in_a_row_get_different_references(): void
+    {
+        $first = app(CreatePackage::class)->handle($this->seller, $this->content(), []);
+        $second = app(CreatePackage::class)->handle($this->seller, $this->content(['name' => 'Another Safari']), []);
+
+        $this->assertNotSame($first->reference, $second->reference);
+    }
+
     public function test_an_expired_contract_blocks_publishing_unless_a_super_admin_overrides(): void
     {
         $package = $this->approvedPackage();
