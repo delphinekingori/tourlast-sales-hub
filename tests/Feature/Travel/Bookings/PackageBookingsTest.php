@@ -173,8 +173,10 @@ class PackageBookingsTest extends TestCase
     public function test_the_influencer_code_is_picked_from_a_search_by_name_or_code(): void
     {
         $seller = $this->seller();
-        $amina = Influencer::factory()->create(['name' => 'Amina Wanjiru']);
-        $brian = Influencer::factory()->create(['name' => 'Brian Otieno']);
+        $amina = Influencer::factory()->create(['name' => 'Amina Wanjiru', 'owner_id' => $seller->id]);
+        $brian = Influencer::factory()->create(['name' => 'Brian Otieno', 'owner_id' => $seller->id]);
+        $stranger = Influencer::factory()->create(['name' => 'Zawadi Hidden']);
+        InfluencerCode::factory()->create(['influencer_id' => $stranger->id, 'code' => 'ZAWADI20']);
         $aminaCode = InfluencerCode::factory()->create(['influencer_id' => $amina->id, 'code' => 'AMINA10']);
         InfluencerCode::factory()->create(['influencer_id' => $brian->id, 'code' => 'BRIAN15']);
         InfluencerCode::factory()->create(['influencer_id' => $amina->id, 'code' => 'AMINAFLY', 'applies_to' => 'flights']);
@@ -189,7 +191,12 @@ class PackageBookingsTest extends TestCase
             ->set('codeSearch', 'otieno')
             ->assertSee('BRIAN15')
             ->assertDontSee('AMINA10')
-            ->set('codeSearch', 'zzz')
+            ->set('codeSearch', 'zawadi20')
+            ->assertSee('ZAWADI20')
+            ->assertDontSee('Zawadi Hidden')
+            ->assertDontSee('% per booking', false)
+            ->set('codeSearch', 'zawadi')
+            ->assertDontSee('ZAWADI20')
             ->assertSee('No running code matches')
             ->call('pickCode', $aminaCode->id)
             ->assertSet('form.influencer_code', 'AMINA10')

@@ -15,6 +15,7 @@ use App\Models\Package;
 use App\Models\PackageDeparture;
 use App\Models\TravelClient;
 use App\Models\User;
+use App\Support\Travel\InfluencerAccess;
 use App\Support\Travel\InfluencerCodes;
 use App\Support\Travel\TravelAccess;
 use Illuminate\Database\Eloquent\Builder;
@@ -241,7 +242,9 @@ class Create extends Component
     }
 
     /**
-     * Running package codes whose code or influencer name contains the search.
+     * Running package codes whose code or influencer name contains the search,
+     * limited to the user's own influencers. Any running code can still be
+     * found by typing it in full.
      *
      * @return Collection<int, InfluencerCode>
      */
@@ -261,10 +264,29 @@ class Create extends Component
             ->whereIn('applies_to', [InfluencerCodeScope::Packages, InfluencerCodeScope::All])
             ->whereDate('starts_on', '<=', today())
             ->where(fn (Builder $query) => $query->whereNull('ends_on')->orWhereDate('ends_on', '>=', today()))
-            ->where(fn (Builder $query) => $query->where('code', 'like', $like)->orWhereHas('influencer', fn (Builder $influencer) => $influencer->where('name', 'like', $like)))
+            ->where(fn (Builder $query) => $query
+                ->whereHas('influencer', fn (Builder $influencer) => InfluencerAccess::scopeInfluencers($influencer, Auth::user())
+                    ->where(fn (Builder $match) => $match->where('name', 'like', $like)->orWhereHas('codes', fn (Builder $code) => $code->where('code', 'like', $like))))
+                ->orWhere('code', strtoupper($term)))
             ->orderBy('code')
             ->limit(8)
             ->get();
+    }
+
+    /**
+     * Which of these codes belong to influencers the user may see, so the
+     * influencer's name and the commission terms are shown for those only.
+     *
+     * @param  list<int>  $ids
+     * @return list<int>
+     */
+    private function visibleCodeIds(array $ids): array
+    {
+        return InfluencerCode::query()
+            ->whereIn('id', $ids)
+            ->whereHas('influencer', fn (Builder $influencer) => InfluencerAccess::scopeInfluencers($influencer, Auth::user()))
+            ->pluck('id')
+            ->all();
     }
 
     public function save(CreatePackageBooking $create): void
@@ -346,6 +368,7 @@ class Create extends Component
             : collect();
 
         $version = $package?->liveVersion;
+        $selectedCode = InfluencerCodes::resolve($this->form['influencer_code'], 'packages', today())?->load('influencer:id,name');
         $price = $version ? $version->priceFor((int) $this->form['adults'], (int) $this->form['children'], (int) $this->form['infants']) : null;
 
         return view('livewire.travel.bookings.create', [
@@ -358,8 +381,9 @@ class Create extends Component
             'clientMatches' => strlen(trim($this->clientSearch)) >= 2
                 ? TravelClient::query()->search($this->clientSearch)->orderBy('name')->limit(8)->get()
                 : collect(),
-            'codeMatches' => $this->codeMatches(),
-            'selectedCode' => InfluencerCodes::resolve($this->form['influencer_code'], 'packages', today())?->load('influencer:id,name'),
+            'codeMatches' => $codeMatches = $this->codeMatches(),
+            'codeDetailIds' => $this->visibleCodeIds($codeMatches->pluck('id')->push($selectedCode?->id)->filter()->all()),
+            'selectedCode' => $selectedCode,
             'managesAll' => TravelAccess::managesAll($user),
             'salespeople' => TravelAccess::managesAll($user)
                 ? User::query()->active()->permission(Permission::AccessTravelSales->value)->orderBy('name')->get(['id', 'name'])

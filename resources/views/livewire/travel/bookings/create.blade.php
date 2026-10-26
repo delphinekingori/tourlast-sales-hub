@@ -138,7 +138,9 @@
                             <div class="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface-muted/50 px-3 py-2">
                                 <span class="grid leading-tight">
                                     <span class="font-medium text-ink">{{ $selectedCode->code }}</span>
-                                    <span class="text-xs text-ink-subtle">{{ $selectedCode->influencer?->name }} · {{ $selectedCode->termsLabel() }}</span>
+                                    @if (in_array($selectedCode->id, $codeDetailIds, true))
+                                        <span class="text-xs text-ink-subtle">{{ $selectedCode->influencer?->name }} · {{ $selectedCode->termsLabel() }}</span>
+                                    @endif
                                 </span>
                                 <x-ui.button variant="ghost" size="sm" wire:click="clearCode">Remove</x-ui.button>
                             </div>
@@ -149,8 +151,12 @@
                                     @foreach ($codeMatches as $match)
                                         <li wire:key="code-{{ $match->id }}">
                                             <button type="button" wire:click="pickCode({{ $match->id }})" class="flex w-full flex-col px-3 py-2 text-left hover:bg-surface-muted/50">
-                                                <span class="font-medium text-ink">{{ $match->code }} · {{ $match->influencer?->name }}</span>
-                                                <span class="text-xs text-ink-subtle">{{ $match->termsLabel() }}</span>
+                                                @if (in_array($match->id, $codeDetailIds, true))
+                                                    <span class="font-medium text-ink">{{ $match->code }} · {{ $match->influencer?->name }}</span>
+                                                    <span class="text-xs text-ink-subtle">{{ $match->termsLabel() }}</span>
+                                                @else
+                                                    <span class="font-medium text-ink">{{ $match->code }}</span>
+                                                @endif
                                             </button>
                                         </li>
                                     @endforeach
