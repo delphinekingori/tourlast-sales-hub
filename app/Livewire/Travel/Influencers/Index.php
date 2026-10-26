@@ -233,7 +233,9 @@ class Index extends Component
     }
 
     /**
-     * @return array{active: int, bookings: int, revenue: float, payable: float, paidThisMonth: float}
+     * Money figures are listed per currency (flights are in USD, tours in KES) and never added across currencies.
+     *
+     * @return array{active: int, bookings: int, revenue: array<string, float>, payable: array<string, float>, paidThisMonth: array<string, float>}
      */
     private function summary(User $user): array
     {
@@ -251,9 +253,35 @@ class Index extends Component
         return [
             'active' => InfluencerCode::query()->whereIn('id', $visibleCodes)->where('status', InfluencerCodeStatus::Active)->count(),
             'bookings' => (clone $packages)->count() + (clone $flights)->count(),
-            'revenue' => (float) (clone $packages)->sum('amount_total') + (float) (clone $flights)->sum('total_amount'),
-            'payable' => (float) (clone $commissions)->where('status', CommissionEntryStatus::Payable)->sum('commission_amount'),
-            'paidThisMonth' => (float) (clone $commissions)->where('status', CommissionEntryStatus::Paid)->whereBetween('paid_at', $month)->sum('commission_amount'),
+            'revenue' => self::addPerCurrency(self::byCurrency(clone $packages, 'amount_total'), self::byCurrency(clone $flights, 'total_amount')),
+            'payable' => self::byCurrency((clone $commissions)->where('status', CommissionEntryStatus::Payable), 'commission_amount'),
+            'paidThisMonth' => self::byCurrency((clone $commissions)->where('status', CommissionEntryStatus::Paid)->whereBetween('paid_at', $month), 'commission_amount'),
         ];
+    }
+
+    /**
+     * Totals of a money column per currency, so KES and USD are never added.
+     *
+     * @param  Builder<*>  $query
+     * @return array<string, float>
+     */
+    private static function byCurrency(Builder $query, string $column): array
+    {
+        return $query->selectRaw("currency, sum({$column}) as total")->groupBy('currency')->pluck('total', 'currency')
+            ->map(fn ($total): float => (float) $total)->all();
+    }
+
+    /**
+     * @param  array<string, float>  $first
+     * @param  array<string, float>  $second
+     * @return array<string, float>
+     */
+    private static function addPerCurrency(array $first, array $second): array
+    {
+        foreach ($second as $currency => $amount) {
+            $first[$currency] = ($first[$currency] ?? 0.0) + $amount;
+        }
+
+        return $first;
     }
 }

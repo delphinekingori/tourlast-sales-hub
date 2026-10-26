@@ -46,6 +46,20 @@ class TravelDashboardTest extends TestCase
             ->assertSee('Package approvals');
     }
 
+    public function test_the_team_table_never_adds_flight_dollars_to_tour_shillings(): void
+    {
+        $travel = User::factory()->withRole(Role::TravelSalesperson)->create(['name' => 'Aisha Njeri']);
+        FlightBooking::factory()->create(['salesperson_id' => $travel->id, 'booked_at' => now(), 'total_amount' => 1000, 'currency' => 'USD']);
+        PackageBooking::factory()->create(['salesperson_id' => $travel->id, 'amount_total' => 50000, 'currency' => 'KES']);
+
+        $this->actingAs(User::factory()->withRole(Role::SalesAdmin)->create())
+            ->get(route('travel.dashboard', ['scope' => 'team']))
+            ->assertOk()
+            ->assertSee('Total bookings')
+            ->assertDontSee('Total travel sales')
+            ->assertDontSee('51,000');
+    }
+
     public function test_travel_salesperson_cannot_switch_to_the_team_view(): void
     {
         $travel = User::factory()->withRole(Role::TravelSalesperson)->create();

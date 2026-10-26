@@ -2,10 +2,29 @@
     Generic report table: $rows is a list of rows keyed by heading.
     Optional $chart draws bars above the table from the same rows (labelled by the first column):
     ['series' => [column heading => ['name' => legend name, 'slot' => 1|2, 'currency' => code]], 'money' => bool].
+    Phones get one card per row; tablets and up get the table. Money columns carry their
+    currency code in the heading (USD or KES) and are never added together.
 --}}
+@php
+    $cardLabel = fn (string $heading): string => trim(preg_replace('/\s*\((USD|KES)\)\s*$/', '', $heading));
+    $cardValue = function (string $heading, $value): string {
+        if ($value === '' || $value === null) {
+            return '—';
+        }
+
+        if (! is_numeric($value)) {
+            return (string) $value;
+        }
+
+        preg_match('/\((USD|KES)\)\s*$/', $heading, $currency);
+
+        return (isset($currency[1]) ? $currency[1].' ' : '').number_format((float) $value);
+    };
+@endphp
+
 <x-ui.card :title="$title" :description="$description ?? null" :padding="false">
     @if ($rows === [])
-        <p class="px-4 py-3 text-[13px] text-ink-muted">Nothing in this period.</p>
+        <p class="px-4 py-3 text-sm text-ink-muted">Nothing in this period.</p>
     @else
         @isset($chart)
             @php($labelColumn = array_key_first($rows[0]))
@@ -13,7 +32,28 @@
                 :series="collect($chart['series'])->map(fn ($s, $column) => ['key' => $column, 'name' => $s['name'], 'slot' => $s['slot'], 'currency' => $s['currency'] ?? 'KES'])->values()->all()"
                 :rows="array_map(fn ($row) => ['label' => (string) $row[$labelColumn], 'values' => array_intersect_key($row, $chart['series'])], $rows)" />
         @endisset
-        <x-ui.table-card :sticky="false" class="rounded-none border-0 shadow-none">
+
+        {{-- Phones: one card per row --}}
+        <ul class="divide-y divide-line sm:hidden">
+            @foreach ($rows as $row)
+                <li class="grid gap-2 px-4 py-3">
+                    @foreach ($row as $heading => $value)
+                        @if ($loop->first)
+                            <p class="font-semibold text-ink">{{ $value }}</p>
+                            <dl class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                        @else
+                            <div class="min-w-0"><dt class="text-ink-subtle">{{ $cardLabel($heading) }}</dt><dd @class(['tabular break-words', 'text-ink' => is_numeric($value), 'text-ink-muted' => ! is_numeric($value)])>{{ $cardValue($heading, $value) }}</dd></div>
+                        @endif
+                        @if ($loop->last)
+                            </dl>
+                        @endif
+                    @endforeach
+                </li>
+            @endforeach
+        </ul>
+
+        {{-- Tablets and up: the table --}}
+        <x-ui.table-card :sticky="false" class="hidden rounded-none border-0 shadow-none sm:block">
             <table class="w-full text-sm">
                 <thead class="text-left uppercase">
                     <tr>
@@ -29,7 +69,7 @@
                                 @if ($loop->first)
                                     <td class="font-semibold text-ink">{{ $value }}</td>
                                 @elseif (is_numeric($value))
-                                    <td class="tabular text-right">{{ str_contains($heading, 'KES') ? number_format((float) $value) : number_format((float) $value) }}</td>
+                                    <td class="tabular text-right">{{ number_format((float) $value) }}</td>
                                 @else
                                     <td class="text-ink-muted">{{ $value === '' ? '—' : $value }}</td>
                                 @endif

@@ -92,7 +92,7 @@ class TravelReportsTest extends TestCase
             ->assertOk()->assertSee('Tour revenue')->assertSee('Show as table')->assertSee('bg-series-2', false);
 
         $this->actingAs($booking->salesperson)->get(route('travel.dashboard'))
-            ->assertOk()->assertSee('My travel sales, last 6 months')->assertSee('KES 61,000');
+            ->assertOk()->assertSee('My tour revenue, last 6 months')->assertSee('KES 61,000');
     }
 
     public function test_every_tab_renders_and_the_export_downloads(): void

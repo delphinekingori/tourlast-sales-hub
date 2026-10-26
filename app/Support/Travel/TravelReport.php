@@ -282,9 +282,9 @@ class TravelReport
                 'Tour bookings' => (int) $figures['tour_bookings'],
                 'Tour target' => $target(TravelTargetMetric::TourBookings),
                 'Tour revenue (KES)' => $figures['tour_revenue'],
-                'Total travel sales' => $figures['flight_revenue'] + $figures['tour_revenue'],
+                'Total bookings' => (int) ($figures['flight_bookings'] + $figures['tour_bookings']),
             ];
-        })->sortByDesc('Total travel sales')->values()->all();
+        })->sortByDesc('Total bookings')->values()->all();
     }
 
     /**

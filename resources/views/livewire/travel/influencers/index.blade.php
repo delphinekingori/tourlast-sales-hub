@@ -1,6 +1,7 @@
 @php
     $selectClass = 'h-9 rounded-md border border-line-strong bg-surface px-3 text-[13px] text-ink focus:border-brand focus:ring-3 focus:ring-brand-soft focus:outline-none';
     $money = fn ($value) => 'KES '.number_format((float) $value);
+    $perCurrency = fn (array $totals): string => collect($totals)->filter()->map(fn ($amount, $currency) => $currency.' '.number_format((float) $amount))->implode(' · ') ?: 'KES 0';
     $hasFilters = $search !== '' || $salesperson !== '' || $status !== '' || $platform !== '' || $appliesTo !== '' || $activeFrom !== '' || $activeTo !== '';
 @endphp
 
@@ -20,9 +21,9 @@
         @foreach ([
             ['Active codes', number_format($summary['active']), 'text-ink'],
             ['Bookings via codes this month', number_format($summary['bookings']), 'text-brand-text'],
-            ['Revenue via codes this month', $money($summary['revenue']), 'text-ink'],
-            ['Commission payable', $money($summary['payable']), $summary['payable'] > 0 ? 'text-warning' : 'text-ink'],
-            ['Commission paid this month', $money($summary['paidThisMonth']), 'text-success'],
+            ['Revenue via codes this month', $perCurrency($summary['revenue']), 'text-ink'],
+            ['Commission payable', $perCurrency($summary['payable']), array_sum($summary['payable']) > 0 ? 'text-warning' : 'text-ink'],
+            ['Commission paid this month', $perCurrency($summary['paidThisMonth']), 'text-success'],
         ] as [$label, $value, $tone])
             <div class="grid gap-0.5 bg-surface px-4 py-3">
                 <dt class="text-xs font-medium text-ink-subtle">{{ $label }}</dt>

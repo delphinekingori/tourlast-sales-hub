@@ -279,7 +279,7 @@ class TravelDashboardData
     /**
      * Travel salespeople this month (managers' view).
      *
-     * @return Collection<int, array{user: User, flight_bookings: float, flight_revenue: float, tour_bookings: float, tour_revenue: float, total: float, packages_created: int}>
+     * @return Collection<int, array{user: User, flight_bookings: float, flight_revenue: float, tour_bookings: float, tour_revenue: float, bookings: float, packages_created: int}>
      */
     public static function salespeople(): Collection
     {
@@ -297,9 +297,9 @@ class TravelDashboardData
                 'flight_revenue' => $figures['flight_revenue'],
                 'tour_bookings' => $figures['tour_bookings'],
                 'tour_revenue' => $figures['tour_revenue'],
-                'total' => $figures['flight_revenue'] + $figures['tour_revenue'],
+                'bookings' => $figures['flight_bookings'] + $figures['tour_bookings'],
                 'packages_created' => (int) ($created[$user->id] ?? 0),
             ];
-        })->sortByDesc('total')->values();
+        })->sortByDesc('bookings')->values();
     }
 }

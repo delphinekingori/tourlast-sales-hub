@@ -10,6 +10,7 @@ use App\Enums\Travel\InfluencerCodeStatus;
 use App\Livewire\Travel\Influencers\Index;
 use App\Livewire\Travel\Influencers\Show;
 use App\Models\AuditEvent;
+use App\Models\FlightBooking;
 use App\Models\Influencer;
 use App\Models\InfluencerCode;
 use App\Models\InfluencerCommission;
@@ -135,6 +136,19 @@ class InfluencerCodesTest extends TestCase
 
         $this->expectException(HttpException::class);
         app(SaveInfluencerCode::class)->handle($mine, $theirs, $this->terms());
+    }
+
+    public function test_the_summary_lists_each_currency_instead_of_adding_them(): void
+    {
+        $seller = $this->travelSeller();
+        $code = InfluencerCode::factory()->create(['influencer_id' => Influencer::factory()->create(['owner_id' => $seller->id])->id]);
+        PackageBooking::factory()->create(['influencer_code_id' => $code->id, 'amount_total' => 50000, 'currency' => 'KES']);
+        FlightBooking::factory()->create(['influencer_code_id' => $code->id, 'booked_at' => now(), 'total_amount' => 1000, 'currency' => 'USD', 'cancellation_status' => null]);
+
+        Livewire::actingAs($seller)->test(Index::class)
+            ->assertSee('KES 50,000')
+            ->assertSee('USD 1,000')
+            ->assertDontSee('51,000');
     }
 
     public function test_travel_managers_see_everyone(): void
