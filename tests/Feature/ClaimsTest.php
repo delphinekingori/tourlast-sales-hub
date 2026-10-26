@@ -38,6 +38,18 @@ class ClaimsTest extends TestCase
         $this->finance = User::factory()->withRole(Role::Accounts)->create();
     }
 
+    public function test_the_home_page_tells_hr_how_many_claims_wait_for_them(): void
+    {
+        ExpenseClaim::factory()->for($this->john)->create(['status' => 'pending', 'current_step' => 'hr']);
+        ExpenseClaim::factory()->for($this->john)->create(['status' => 'pending', 'current_step' => 'finance']);
+
+        $this->actingAs($this->hr)->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Needs you now')
+            ->assertSee('claim waiting for your approval')
+            ->assertDontSee('claims waiting for your approval');
+    }
+
     public function test_a_bolt_reimbursement_needs_the_trip_id_and_the_ride_details_from_the_app(): void
     {
         $component = Livewire::actingAs($this->john)->test(Index::class)
@@ -307,7 +319,13 @@ class ClaimsTest extends TestCase
     {
         $claim = app(Claims::class)->submit($this->john, ['type' => 'airtime', 'amount' => 100, 'description' => 'Calls'], ['receipt' => [UploadedFile::fake()->image('receipt.png')]]);
 
-        Livewire::actingAs($this->manager)->test(Approvals::class)
+        $approver = match ($claim->current_step) {
+            'hr' => $this->hr,
+            'finance' => $this->finance,
+            default => $this->manager,
+        };
+
+        Livewire::actingAs($approver)->test(Approvals::class)
             ->assertSeeHtml('wire:click.stop="view('.$claim->id.')"');
     }
 }

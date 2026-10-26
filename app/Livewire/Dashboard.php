@@ -6,8 +6,10 @@ use App\Actions\IssueReferralCode;
 use App\Actions\SetTarget;
 use App\Enums\Permission;
 use App\Enums\Role;
+use App\Incentives\Claims;
 use App\Incentives\MonthlyEarnings;
 use App\Models\Activity;
+use App\Models\ExpenseClaim;
 use App\Models\Invitation;
 use App\Models\Lead;
 use App\Models\Onboarding;
@@ -181,6 +183,10 @@ class Dashboard extends Component
     private function home(User $viewer): View
     {
         $canSeeTeam = $viewer->can(Permission::InviteSalespeople->value);
+        $claimSteps = array_values(array_filter(
+            array_keys(Claims::StepPermissions),
+            fn (string $step): bool => $viewer->can(Claims::StepPermissions[$step]->value),
+        ));
 
         return view('livewire.dashboard', [
             'user' => $viewer,
@@ -189,6 +195,8 @@ class Dashboard extends Component
             'canSeePerformance' => $viewer->can(Permission::ViewTeamPerformance->value),
             'canSeePartnerRegister' => $viewer->can(Permission::ViewPartnerRegister->value),
             'teamCounts' => $canSeeTeam ? $this->teamCounts() : [],
+            'claimsWaiting' => $claimSteps === [] ? 0 : ExpenseClaim::query()->where('status', 'pending')->whereIn('current_step', $claimSteps)->where('user_id', '!=', $viewer->id)->count(),
+            'claimsToPay' => $viewer->can(Permission::ApproveClaimsFinance->value) ? ExpenseClaim::query()->where('type', 'transport_request')->where('status', 'approved')->count() : 0,
             'pendingInvitations' => $canSeeTeam ? Invitation::query()->pending()->count() : 0,
             'monthOnboarded' => Onboarding::query()->creditedBetween(now()->startOfMonth(), now()->endOfMonth())->count(),
             'awaiting' => Onboarding::query()->awaitingApproval()->count(),

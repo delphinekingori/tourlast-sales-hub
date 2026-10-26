@@ -4,16 +4,21 @@
     $scaleMax = max(110, ceil(($earnings->points + $earnings->provisionalPoints) / 10) * 10);
     $pos = fn ($value) => min(100, round($value / $scaleMax * 100, 2));
     $gain = $withPending->total() - $earnings->total();
+    $weeksHit = count(array_filter($earnings->weeklyBonuses));
+    $needsPayout = $isOwn && ! $paymentDetail?->isComplete();
+    $chip = 'inline-flex min-h-10 items-center gap-2 rounded-full border border-warning/40 bg-warning-soft/50 px-3.5 py-1.5 text-[13px] text-ink';
+    $chipLink = ' hover:bg-warning-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand';
+    $waitingCount = $needsVerification->count() + $inReview->count() + $expansionOpen->count();
 @endphp
 
-<div class="grid gap-6">
+<div class="grid gap-6" wire:loading.delay.class="opacity-60" wire:target="month">
     <x-ui.page-header
         :eyebrow="$isOwn ? 'My Earnings' : 'Earnings'"
         :title="$monthDate->format('F Y').($isCurrentMonth ? ' · expected earnings' : ' · earnings')"
         :description="($isOwn ? '' : $subject->name.' · ').'Paid by '.$paymentDue->format('j F').'. Points reset at the start of each month.'"
     >
         <x-slot:actions>
-            <select wire:model.live="month" id="earnings-month" aria-label="Month" class="h-9 rounded-md border border-line-strong bg-surface px-3 text-[13px] font-medium text-ink focus:border-brand focus:ring-3 focus:ring-brand-soft focus:outline-none">
+            <select wire:model.live="month" id="earnings-month" aria-label="Month" class="h-10 rounded-md border border-line-strong bg-surface px-3 text-[13px] font-medium text-ink focus:border-brand focus:ring-3 focus:ring-brand-soft focus:outline-none">
                 @foreach ($monthOptions as $value => $label)
                     <option value="{{ $value }}">{{ $label }}</option>
                 @endforeach
@@ -36,6 +41,51 @@
         </div>
     @endunless
 
+    {{-- Needs you now --}}
+    <section aria-labelledby="needs-you" class="grid gap-2">
+        <h2 id="needs-you" class="text-[13px] font-semibold text-ink">{{ $isOwn ? 'Needs you now' : 'Next step' }}</h2>
+        @if (! $needsPayout && $needsVerification->isEmpty() && ! $nextStep)
+            <p class="flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-3 text-[13px] text-ink-muted shadow-card">
+                <x-ui.icon name="check-circle" class="size-4 text-success" /> You are all caught up. Nothing is waiting on you.
+            </p>
+        @else
+            <ul class="flex flex-wrap gap-2">
+                @if ($needsPayout)
+                    <li>
+                        <button type="button" wire:click="openPayment('mpesa')" class="{{ $chip.$chipLink }}">
+                            <x-ui.icon name="alert" class="size-4 text-warning" />
+                            <span>Add your payout details</span>
+                        </button>
+                    </li>
+                @endif
+                @if ($needsVerification->isNotEmpty())
+                    <li>
+                        <a href="{{ route('accounts.index') }}" wire:navigate class="{{ $chip.$chipLink }}">
+                            <x-ui.icon name="clock" class="size-4 text-warning" />
+                            <span><strong class="tabular font-bold">{{ $needsVerification->count() }}</strong> {{ \Illuminate\Support\Str::plural('account', $needsVerification->count()) }} waiting for Sales Admin to verify</span>
+                        </a>
+                    </li>
+                @endif
+                @if ($nextStep && $isCurrentMonth)
+                    <li>
+                        <span class="{{ $chip }}">
+                            <x-ui.icon name="chart" class="size-4 text-brand-text" />
+                            <span><strong class="tabular font-bold">{{ $pts($nextStep['needed']) }}</strong> {{ $nextStep['needed'] == 1 ? 'point' : 'points' }} to unlock {{ $nextStep['label'] }}</span>
+                        </span>
+                    </li>
+                @endif
+            </ul>
+        @endif
+    </section>
+
+    {{-- Headline numbers --}}
+    <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line shadow-card md:grid-cols-4">
+        <x-ui.kpi size="lg" label="Approved points" :value="$pts($earnings->points)" />
+        <x-ui.kpi size="lg" label="Waiting for approval" :value="$pts($earnings->provisionalPoints)" :tone="$earnings->provisionalPoints > 0 ? 'text-warning' : 'text-ink'" hint="Points not yet approved" />
+        <x-ui.kpi size="lg" label="Bonus weeks won" :value="$weeksHit.' of '.count($weeks)" :tone="$weeksHit ? 'text-success' : 'text-ink'" />
+        <x-ui.kpi size="lg" label="Accounts waiting on others" :value="number_format($waitingCount)" :href="route('accounts.index')" />
+    </dl>
+
     {{-- How you get paid --}}
     @if ($isOwn || auth()->user()->can('view-payment-details'))
         <x-ui.card>
@@ -54,11 +104,11 @@
                     @endif
                 </div>
                 @if ($isOwn)
-                    <div class="inline-flex rounded-md border border-line bg-surface p-0.5" role="group" aria-label="Payout method">
+                    <div class="inline-flex max-w-full flex-wrap rounded-md border border-line bg-surface p-0.5" role="group" aria-label="Payout method">
                         @foreach (\App\Models\PaymentDetail::Methods as $key => $label)
                             <button type="button" wire:click="openPayment('{{ $key }}')" wire:key="pay-{{ $key }}"
                                 @class([
-                                    'flex items-center gap-2 rounded px-2.5 py-1 text-xs font-medium transition-colors',
+                                    'flex min-h-10 items-center gap-2 rounded px-3 py-1 text-xs font-medium transition-colors',
                                     'bg-brand text-brand-ink' => $paymentDetail?->method === $key,
                                     'text-ink-subtle hover:text-ink' => $paymentDetail?->method !== $key,
                                 ])>
@@ -140,26 +190,28 @@
                     ['In 14-day quality review', $inReview, 'must stay live and booking-ready'],
                     ['Expansion window open (90 days)', $expansionOpen, 'growth still earns points'],
                 ] as [$label, $list, $hint])
-                    <div class="flex items-center justify-between gap-4 border-b border-line px-4 py-2.5 last:border-b-0">
+                    <div class="flex min-h-12 items-center justify-between gap-4 border-b border-line px-4 py-2.5 last:border-b-0">
                         <div class="grid leading-tight"><span class="text-sm text-ink">{{ $label }}</span><span class="text-xs text-ink-subtle">{{ $hint }}</span></div>
                         <span class="tabular text-sm font-bold text-ink">{{ $list->count() }} {{ \Illuminate\Support\Str::plural('Account', $list->count()) }}</span>
                     </div>
                 @endforeach
-                <div class="px-4 py-2.5"><x-ui.button :href="route('accounts.index')" size="sm" variant="secondary" wire:navigate>Open my Accounts</x-ui.button></div>
+                <div class="px-4 py-2.5"><x-ui.button :href="route('accounts.index')" variant="secondary" wire:navigate>Open my Accounts</x-ui.button></div>
             </x-ui.card>
         </div>
     </div>
 
     {{-- Points ladder --}}
     <x-ui.card title="Points ladder" description="Combined stays, experiences and expansion. Solid: approved. Striped: waiting for approval.">
-        <div class="grid gap-1">
+        <p class="mb-2 text-[13px] text-ink"><span class="tabular font-bold">{{ $pts($earnings->points) }}</span> approved{{ $earnings->provisionalPoints > 0 ? ' · '.$pts($earnings->provisionalPoints).' waiting' : '' }} · {{ round($pos($earnings->points)) }}% of the scale</p>
+        <div class="overflow-x-auto pb-2">
+        <div class="grid min-w-[34rem] gap-1 px-6">
             <div class="relative h-9 text-xs text-ink-subtle">
                 @foreach ($policy->rules['retainer'] as [$threshold, $amount])
                     <span class="absolute bottom-0 -translate-x-1/2 text-center leading-tight whitespace-nowrap" style="left: {{ $pos($threshold) }}%">Retainer {{ rtrim(rtrim(number_format($amount / 1000, 1), '0'), '.') }}k<b class="block text-xs text-ink">{{ $threshold }}</b></span>
                 @endforeach
                 <span class="absolute bottom-0 -translate-x-1/2 text-center leading-tight whitespace-nowrap" style="left: {{ $pos($policy->rules['exceptional']['above']) }}%">Exceptional<b class="block text-xs text-ink">{{ $policy->rules['exceptional']['above'] }}</b></span>
             </div>
-            <div class="relative h-3 rounded-full bg-surface-muted">
+            <div class="relative h-3 rounded-full bg-surface-muted" role="progressbar" aria-label="Approved points on the ladder" aria-valuenow="{{ $pts($earnings->points) }}" aria-valuemin="0" aria-valuemax="{{ $scaleMax }}">
                 <div class="absolute inset-y-0 left-0 rounded-full bg-[repeating-linear-gradient(45deg,var(--tl-sky),var(--tl-sky)_4px,transparent_4px,transparent_8px)]" style="width: {{ $pos($earnings->points + $earnings->provisionalPoints) }}%"></div>
                 <div class="absolute inset-y-0 left-0 rounded-full bg-brand" style="width: {{ $pos($earnings->points) }}%"></div>
                 @foreach (array_merge($policy->retainerThresholds(), array_column($policy->rules['monthly_bonus']['bands'], 0)) as $mark)
@@ -172,6 +224,7 @@
                 @endforeach
             </div>
             <p class="text-xs text-ink-subtle">Above the bar: retainer thresholds. Below: Monthly Bonus bands (KES). Exceptional-Performance pays KES {{ $policy->rules['exceptional']['per_point'] }} per point above {{ $policy->rules['exceptional']['above'] }}, capped at KES {{ number_format($policy->rules['exceptional']['cap']) }}.</p>
+        </div>
         </div>
     </x-ui.card>
 
@@ -201,13 +254,13 @@
 
         <x-ui.card title="Points this month" :padding="false">
             @forelse ($entries as $entry)
-                <a wire:key="pe-{{ $entry->id }}" href="{{ $entry->partnerAccount ? route('accounts.show', $entry->partnerAccount) : '#' }}" wire:navigate class="grid grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-line px-4 py-2 last:border-b-0 hover:bg-surface-muted/60">
+                <a wire:key="pe-{{ $entry->id }}" href="{{ $entry->partnerAccount ? route('accounts.show', $entry->partnerAccount) : '#' }}" wire:navigate class="grid min-h-12 grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-line px-4 py-2 last:border-b-0 hover:bg-surface-muted/60">
                     <span class="grid min-w-0 leading-tight">
                         <span @class(['truncate text-sm font-semibold', 'text-ink' => $entry->status !== 'cancelled', 'text-ink-subtle line-through' => $entry->status === 'cancelled'])>{{ $entry->partnerAccount?->legal_name ?? 'Adjustment' }}</span>
                         <span class="truncate text-xs text-ink-subtle">{{ $entry->typeLabel() }} · {{ $entry->earned_on->format('j M') }} · week {{ $entry->bonus_week }}</span>
                     </span>
                     <x-ui.pill :tone="$entry->statusTone()">{{ $entry->statusLabel() }}</x-ui.pill>
-                    <span class="tabular w-10 text-right font-bold text-ink">{{ $entry->points > 0 ? '+' : '' }}{{ $pts($entry->points) }}</span>
+                    <span class="tabular w-12 text-right font-bold text-ink">{{ $entry->points > 0 ? '+' : '' }}{{ $pts($entry->points) }}</span>
                 </a>
             @empty
                 <x-ui.empty-state icon="chart" title="No points yet this month" description="Points appear when an Account you onboarded goes live on tourlast.com." />

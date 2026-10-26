@@ -10,6 +10,17 @@
     $daysLeft = (int) now()->diffInDays($range->to, false);
     $leadStatuses = \App\Enums\LeadStatus::cases();
     $pipelineMax = max(1, (int) collect($pipeline)->max());
+    $calendarUrl = route('calendar.index', $isOwn ? [] : ['rep' => $subject->id]);
+    $accountsUrl = $isOwn ? route('onboardings.mine') : null;
+
+    // The one or two things to do next. Hidden when the count is zero.
+    $attention = array_values(array_filter([
+        ['count' => $today['overdue'], 'one' => 'follow-up is overdue', 'many' => 'follow-ups are overdue', 'url' => $calendarUrl, 'icon' => 'alert'],
+        ['count' => $today['follow_ups'] + $today['meetings'], 'one' => 'follow-up or meeting today', 'many' => 'follow-ups and meetings today', 'url' => $calendarUrl, 'icon' => 'clock'],
+        ['count' => $metrics['stalled'], 'one' => 'signup has waited '.config('hub.stalled_after_days').'+ days', 'many' => 'signups have waited '.config('hub.stalled_after_days').'+ days', 'url' => $accountsUrl, 'icon' => 'alert'],
+        ['count' => $metrics['approvedNotLive'], 'one' => 'approved partner is not live yet', 'many' => 'approved partners are not live yet', 'url' => $accountsUrl, 'icon' => 'register'],
+        ['count' => $isOwn && $range->key === 'month' && ! $target && count($targetMonthOptions) ? 1 : 0, 'one' => 'Set your target for this month', 'many' => '', 'url' => null, 'icon' => 'chart', 'target' => true],
+    ], fn (array $item): bool => $item['count'] > 0));
 @endphp
 
 <div class="grid gap-5">
@@ -29,32 +40,46 @@
         </x-slot:actions>
     </x-ui.page-header>
 
-    {{-- Today --}}
-    <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line shadow-card md:grid-cols-4">
-        @foreach ([
-            ['Follow-ups due', $today['follow_ups'], 'clock', 'text-ink'],
-            ['Meetings & visits', $today['meetings'], 'users', 'text-brand-text'],
-            ['Overdue', $today['overdue'], 'alert', $today['overdue'] ? 'text-danger' : 'text-ink'],
-            ['Onboardings in progress', $today['onboardings'], 'register', 'text-ink'],
-        ] as [$label, $value, $icon, $tone])
-            <div class="flex items-center gap-3 bg-surface px-4 py-3">
-                <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-muted text-ink-muted"><x-ui.icon :name="$icon" class="size-4" /></span>
-                <div class="grid leading-tight">
-                    <dt class="text-xs font-medium text-ink-subtle">{{ $label }}</dt>
-                    <dd class="tabular text-xl font-bold {{ $tone }}">{{ $value }}</dd>
-                </div>
-            </div>
-        @endforeach
-    </dl>
+    {{-- Needs you now --}}
+    <section aria-labelledby="needs-you" class="grid gap-2">
+        <h2 id="needs-you" class="text-[13px] font-semibold text-ink">{{ $isOwn ? 'Needs you now' : 'Needs '.$subject->firstName().' now' }}</h2>
+        @if ($attention === [])
+            <p class="flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-3 text-[13px] text-ink-muted shadow-card">
+                <x-ui.icon name="check-circle" class="size-4 text-success" /> {{ $isOwn ? 'You are all caught up.' : 'All caught up.' }} No overdue follow-ups, stalled signups or missing target.
+            </p>
+        @else
+            <ul class="flex flex-wrap gap-2">
+                @foreach ($attention as $item)
+                    <li>
+                        @php
+                            $chip = 'inline-flex min-h-10 items-center gap-2 rounded-full border border-warning/40 bg-warning-soft/50 px-3.5 py-1.5 text-[13px] text-ink';
+                            $chipLink = ' hover:bg-warning-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand';
+                        @endphp
+                        @if (! empty($item['target']))
+                            <button type="button" wire:click="openTarget" class="{{ $chip.$chipLink }}">
+                                <x-ui.icon :name="$item['icon']" class="size-4 text-warning" />
+                                <span>{{ $item['one'] }}</span>
+                            </button>
+                        @else
+                            <{{ $item['url'] ? 'a' : 'span' }} @if ($item['url']) href="{{ $item['url'] }}" wire:navigate @endif class="{{ $chip.($item['url'] ? $chipLink : '') }}">
+                                <x-ui.icon :name="$item['icon']" class="size-4 text-warning" />
+                                <span><strong class="tabular font-bold">{{ $item['count'] }}</strong> {{ $item['count'] === 1 ? $item['one'] : $item['many'] }}</span>
+                            </{{ $item['url'] ? 'a' : 'span' }}>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+    </section>
 
     <div class="grid items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         {{-- Today's schedule --}}
         <x-ui.card :title="$isOwn ? 'Today\'s schedule' : 'Schedule today'" :description="now()->format('D j M')" :padding="false">
             <x-slot:actions>
-                <x-ui.button :href="route('calendar.index', $isOwn ? [] : ['rep' => $subject->id])" variant="ghost" size="sm" icon="calendar" wire:navigate>Calendar</x-ui.button>
+                <x-ui.button :href="route('calendar.index', $isOwn ? [] : ['rep' => $subject->id])" variant="ghost" icon="calendar" wire:navigate>Calendar</x-ui.button>
             </x-slot:actions>
             @forelse ($schedule as $item)
-                <div wire:key="sch-{{ $item->id }}" @class(['grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 border-b border-line px-4 py-2.5 last:border-b-0', 'opacity-60' => $item->isDone()])>
+                <div wire:key="sch-{{ $item->id }}" @class(['grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 min-h-14 border-b border-line px-4 py-2.5 last:border-b-0', 'opacity-60' => $item->isDone()])>
                     <span @class(['tabular text-[13px] font-bold', 'text-danger' => $item->isOverdue(), 'text-ink' => ! $item->isOverdue()])>
                         {{ $item->isOverdue() ? $item->due_at->format('j M') : ($item->has_time ? $item->due_at->format('H:i') : 'Anytime') }}
                     </span>
@@ -70,14 +95,14 @@
                         @if ($item->isDone())
                             <x-ui.pill tone="success">Done</x-ui.pill>
                         @elseif ($isOwn)
-                            <x-ui.button size="sm" variant="secondary" icon="check" x-on:click="$dispatch('open-schedule', { itemId: {{ $item->id }}, complete: true })">Done</x-ui.button>
+                            <x-ui.button variant="secondary" icon="check" x-on:click="$dispatch('open-schedule', { itemId: {{ $item->id }}, complete: true })">Done</x-ui.button>
                         @endif
                     </span>
                 </div>
             @empty
                 <x-ui.empty-state icon="calendar" title="Nothing scheduled today" :description="$isOwn ? 'Book a call, meeting or site visit with a property.' : null" />
                 @if ($isOwn)
-                    <div class="-mt-4 pb-6 text-center"><x-ui.button size="sm" icon="plus" x-on:click="$dispatch('open-schedule')">Schedule</x-ui.button></div>
+                    <div class="-mt-4 pb-6 text-center"><x-ui.button icon="plus" x-on:click="$dispatch('open-schedule')">Schedule</x-ui.button></div>
                 @endif
             @endforelse
         </x-ui.card>
@@ -85,16 +110,16 @@
         {{-- Sales pipeline --}}
         <x-ui.card :title="$isOwn ? 'My sales pipeline' : 'Sales pipeline'" :padding="false">
             <x-slot:actions>
-                <x-ui.button :href="route('leads.index')" variant="ghost" size="sm" wire:navigate>Leads</x-ui.button>
+                <x-ui.button :href="route('leads.index')" variant="ghost" wire:navigate>Leads</x-ui.button>
             </x-slot:actions>
             <dl class="grid gap-2 p-4">
                 @foreach ($leadStatuses as $status)
                     @php
                         $count = (int) ($pipeline[$status->value] ?? 0);
                     @endphp
-                    <div class="grid grid-cols-[96px_1fr_32px] items-center gap-2 text-[13px]">
+                    <div class="grid grid-cols-[96px_1fr_32px] items-center gap-2 text-[13px] min-h-8">
                         <dt><x-ui.pill :tone="$status->tone()">{{ $status->label() }}</x-ui.pill></dt>
-                        <div class="h-1.5 overflow-hidden rounded-full bg-surface-muted"><div @class(['h-full rounded-full', 'bg-success' => $status === \App\Enums\LeadStatus::Onboarded, 'bg-danger/60' => $status === \App\Enums\LeadStatus::Lost, 'bg-brand' => ! in_array($status, [\App\Enums\LeadStatus::Onboarded, \App\Enums\LeadStatus::Lost], true)]) style="width: {{ round($count / $pipelineMax * 100) }}%"></div></div>
+                        <div class="h-1.5 overflow-hidden rounded-full bg-surface-muted" role="progressbar" aria-label="{{ $status->label() }}" aria-valuenow="{{ $count }}" aria-valuemin="0" aria-valuemax="{{ $pipelineMax }}"><div @class(['h-full rounded-full', 'bg-success' => $status === \App\Enums\LeadStatus::Onboarded, 'bg-danger/60' => $status === \App\Enums\LeadStatus::Lost, 'bg-brand' => ! in_array($status, [\App\Enums\LeadStatus::Onboarded, \App\Enums\LeadStatus::Lost], true)]) style="width: {{ round($count / $pipelineMax * 100) }}%"></div></div>
                         <dd class="tabular text-right font-medium text-ink">{{ $count }}</dd>
                     </div>
                 @endforeach
@@ -107,11 +132,11 @@
         <x-ui.segmented wire:model.live="period" :options="\App\Support\Period::options()" />
     </div>
 
-    <div class="grid gap-5 transition-opacity" wire:loading.delay.class="pointer-events-none opacity-50" wire:target="period">
-        {{-- KPIs --}}
-        <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-            <section class="col-span-2 flex items-center gap-4 rounded-xl border border-line bg-surface px-4 py-3 shadow-card md:col-span-1">
-                <svg viewBox="0 0 100 100" class="size-14 shrink-0" role="img" aria-label="{{ $target ? round($ratio * 100).'% of target' : 'No target set' }}">
+    <div class="grid gap-5 transition-opacity" wire:loading.delay.class="pointer-events-none opacity-60" wire:target="period">
+        {{-- Headline numbers --}}
+        <div class="grid gap-3">
+            <section class="flex items-center gap-4 rounded-xl border border-line bg-surface px-4 py-3 shadow-card">
+                <svg viewBox="0 0 100 100" class="size-16 shrink-0" role="progressbar" aria-valuenow="{{ $target ? round($ratio * 100) : 0 }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ $target ? round($ratio * 100).'% of target' : 'No target set' }}">
                     <circle cx="50" cy="50" r="42" fill="none" stroke="var(--tl-surface-muted)" stroke-width="11" />
                     @if ($target)
                         <circle cx="50" cy="50" r="42" fill="none" stroke="var(--tl-brand)" stroke-width="11" stroke-linecap="round"
@@ -128,36 +153,40 @@
                         <p class="text-sm font-semibold text-ink">No target set</p>
                     @endif
                     @if ($isOwn && $range->key === 'month' && count($targetMonthOptions))
-                        <button type="button" wire:click="openTarget" class="justify-self-start text-xs font-medium text-brand-text hover:underline" title="{{ $targetLocked ? 'Locked since '.$lockDate->format('j M') : 'You can change it until '.$lockDate->format('j M') }}">
+                        <button type="button" wire:click="openTarget" class="inline-flex min-h-10 items-center justify-self-start text-xs font-medium text-brand-text hover:underline" title="{{ $targetLocked ? 'Locked since '.$lockDate->format('j M') : 'You can change it until '.$lockDate->format('j M') }}">
                             {{ $currentTarget ? 'Change target' : 'Set target' }}
                         </button>
                     @endif
                 </div>
             </section>
 
-            <x-ui.stat label="Points this period" :value="$pts($points)" :hint="$pts($metrics['approvedPoints']).' approved'">
-                <span @class(['text-xs font-medium', 'text-success' => $delta > 0, 'text-danger' => $delta < 0, 'text-ink-subtle' => $delta == 0])>
-                    {{ $delta > 0 ? '▲ '.$pts($delta) : ($delta < 0 ? '▼ '.$pts(abs($delta)) : 'Same') }} vs previous
-                </span>
-            </x-ui.stat>
-
-            <x-ui.stat label="Partners gone live" :value="$onboarded" :hint="$range->label()" />
-
-            <x-ui.stat label="Not live yet" :value="$metrics['awaiting']" :hint="$metrics['approvedNotLive'].' approved, going live'">
-                @if ($metrics['stalled'])
-                    <span class="text-xs font-medium text-danger">{{ $metrics['stalled'] }} waiting {{ config('hub.stalled_after_days') }}+ days</span>
+            <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line shadow-card md:grid-cols-4">
+                <x-ui.kpi size="lg" label="Points this period" :value="$pts($points)" :hint="$pts($metrics['approvedPoints']).' approved · '.($delta > 0 ? '▲ '.$pts($delta) : ($delta < 0 ? '▼ '.$pts(abs($delta)) : 'Same')).' vs previous'" :tone="$delta < 0 ? 'text-danger' : 'text-ink'" />
+                <x-ui.kpi size="lg" label="Partners gone live" :value="number_format($onboarded)" :hint="$range->label()" :href="$accountsUrl" />
+                <x-ui.kpi size="lg" label="Not live yet" :value="number_format($metrics['awaiting'])" :hint="$metrics['approvedNotLive'].' approved, going live'.($metrics['stalled'] ? ' · '.$metrics['stalled'].' waiting '.config('hub.stalled_after_days').'+ days' : '')" :tone="$metrics['stalled'] ? 'text-warning' : 'text-ink'" :href="$accountsUrl" />
+                @if ($expected !== null)
+                    <x-ui.kpi size="lg" :label="'Expected pay · '.now()->format('F')" :value="'KES '.number_format($expected)" hint="Open My Earnings →" :href="$isOwn ? route('earnings.mine') : route('earnings.member', $subject)" />
+                @else
+                    <x-ui.kpi size="lg" label="Link clicks" :value="number_format($metrics['clicks'])" :hint="$metrics['conversion'] !== null ? $metrics['conversion'].'% became live partners' : 'Share your link to start counting'" />
                 @endif
-            </x-ui.stat>
+            </dl>
 
-            @if ($expected !== null)
-                <a href="{{ $isOwn ? route('earnings.mine') : route('earnings.member', $subject) }}" wire:navigate class="grid min-w-0 content-start gap-1 rounded-xl border border-brand/25 bg-brand-soft/50 px-4 py-3 shadow-card transition-colors hover:border-brand/60">
-                    <p class="truncate text-xs font-medium text-brand-text">Expected pay · {{ now()->format('F') }}</p>
-                    <p class="tabular truncate text-2xl leading-tight font-bold tracking-tight text-ink">KES {{ number_format($expected) }}</p>
-                    <p class="text-xs text-ink-muted">Open My Earnings →</p>
-                </a>
-            @else
-                <x-ui.stat label="Link clicks" :value="$metrics['clicks']" :hint="$metrics['conversion'] !== null ? $metrics['conversion'].'% became live partners' : 'Share your link to start counting'" />
-            @endif
+            <details class="group rounded-xl border border-line bg-surface shadow-card">
+                <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-4 py-2 text-[13px] font-medium text-ink select-none">
+                    More numbers
+                    <svg class="size-4 text-ink-subtle transition-transform group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                </summary>
+                <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-b-xl border-t border-line bg-line md:grid-cols-3 xl:grid-cols-6">
+                    <x-ui.kpi label="Follow-ups due today" :value="number_format($today['follow_ups'])" :href="$calendarUrl" />
+                    <x-ui.kpi label="Meetings & visits today" :value="number_format($today['meetings'])" tone="text-brand-text" :href="$calendarUrl" />
+                    <x-ui.kpi label="Overdue" :value="number_format($today['overdue'])" :tone="$today['overdue'] ? 'text-danger' : 'text-ink'" :href="$calendarUrl" />
+                    <x-ui.kpi label="Onboardings in progress" :value="number_format($today['onboardings'])" :href="$accountsUrl" />
+                    <x-ui.kpi label="Approved this period" :value="number_format($approvedInPeriod)" :href="$accountsUrl" />
+                    @if ($expected !== null)
+                        <x-ui.kpi label="Link clicks" :value="number_format($metrics['clicks'])" :hint="$metrics['conversion'] !== null ? $metrics['conversion'].'% became live partners' : null" />
+                    @endif
+                </dl>
+            </details>
         </div>
 
         <div class="grid items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -192,9 +221,9 @@
                                 </div>
                                 <div class="grid gap-1.5" aria-label="Conversion funnel">
                                     @foreach ($funnel as [$label, $value])
-                                        <div class="grid grid-cols-[88px_1fr_28px] items-center gap-2 text-xs">
+                                        <div class="grid grid-cols-[88px_1fr_36px] items-center gap-2 text-xs">
                                             <span class="text-ink-muted">{{ $label }}</span>
-                                            <div class="h-1.5 overflow-hidden rounded-full bg-surface-muted"><div class="h-full rounded-full bg-brand" style="width: {{ round($value / $funnelTop * 100) }}%"></div></div>
+                                            <div class="h-1.5 overflow-hidden rounded-full bg-surface-muted" role="progressbar" aria-label="{{ $label }}" aria-valuenow="{{ $value }}" aria-valuemin="0" aria-valuemax="{{ $funnelTop }}"><div class="h-full rounded-full bg-brand" style="width: {{ round($value / $funnelTop * 100) }}%"></div></div>
                                             <span class="tabular text-right font-medium text-ink">{{ $value }}</span>
                                         </div>
                                     @endforeach
@@ -253,7 +282,7 @@
             <div class="grid min-w-0 gap-4">
                 <x-ui.card title="Needs follow-up" description="Signups waiting too long, and approved partners not live yet" :padding="false">
                     @forelse ($needsAttention as $onboarding)
-                        <div wire:key="attention-{{ $onboarding->id }}" class="flex items-center justify-between gap-3 border-b border-line px-4 py-2 last:border-b-0">
+                        <div wire:key="attention-{{ $onboarding->id }}" class="flex min-h-12 items-center justify-between gap-3 border-b border-line px-4 py-2 last:border-b-0">
                             <div class="grid min-w-0 leading-tight">
                                 <span class="truncate text-[13px] font-medium text-ink">{{ $onboarding->property_name }}</span>
                                 <span class="truncate text-xs text-ink-subtle">
@@ -274,7 +303,7 @@
     
                 <x-ui.card title="Recent activity" :padding="false">
                     @forelse ($recentActivities as $activity)
-                        <a wire:key="ra-{{ $activity->id }}" href="{{ route('leads.show', $activity->lead) }}" wire:navigate class="flex items-center gap-3 border-b border-line px-4 py-2 last:border-b-0 hover:bg-surface-muted/50">
+                        <a wire:key="ra-{{ $activity->id }}" href="{{ route('leads.show', $activity->lead) }}" wire:navigate class="flex min-h-12 items-center gap-3 border-b border-line px-4 py-2 last:border-b-0 hover:bg-surface-muted/50">
                             <span class="grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-brand-text"><x-ui.icon :name="$activity->type->icon()" class="size-3.5" /></span>
                             <span class="grid min-w-0 flex-1 leading-tight">
                                 <span class="truncate text-[13px] text-ink"><span class="font-medium">{{ $activity->type->label() }}</span> · {{ $activity->lead->business_name }}</span>

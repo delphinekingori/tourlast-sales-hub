@@ -129,6 +129,15 @@ class ProgressAndTargetsTest extends TestCase
             ->assertSee('3 points to go');
     }
 
+    public function test_the_progress_page_leads_with_what_needs_doing_and_offers_more_numbers(): void
+    {
+        $this->actingAs($this->john)->get('/')
+            ->assertOk()
+            ->assertSee('Needs you now')
+            ->assertSee('More numbers')
+            ->assertSeeHtml('role="progressbar"');
+    }
+
     public function test_team_performance_flags_inactive_and_behind_salespeople(): void
     {
         $manager = User::factory()->withRole(Role::SalesManager)->create();

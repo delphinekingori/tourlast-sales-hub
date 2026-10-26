@@ -61,6 +61,7 @@ class PackageFormButtonsTest extends TestCase
         $me = User::factory()->withRole(Role::TravelSalesperson)->create();
 
         Livewire::actingAs($me)->test(Form::class)
+            ->set('tab', 'itinerary')
             ->assertSeeHtml('wire:confirm="Remove day 1 from the itinerary?"');
     }
 
