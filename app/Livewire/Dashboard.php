@@ -15,6 +15,7 @@ use App\Models\Lead;
 use App\Models\Onboarding;
 use App\Models\Target;
 use App\Models\User;
+use App\Support\HubOverview;
 use App\Support\Period;
 use App\Support\SalesMetrics;
 use App\Support\TodayOverview;
@@ -183,6 +184,9 @@ class Dashboard extends Component
     private function home(User $viewer): View
     {
         $canSeeTeam = $viewer->can(Permission::InviteSalespeople->value);
+        $overview = new HubOverview;
+        $seesMoney = $viewer->can(Permission::ManagePayouts->value) || $viewer->can(Permission::ViewTeamEarnings->value);
+        $seesTravel = $viewer->can(Permission::AccessTravelSales->value) || $viewer->can(Permission::ManageTravelSales->value);
         $claimSteps = array_values(array_filter(
             array_keys(Claims::StepPermissions),
             fn (string $step): bool => $viewer->can(Claims::StepPermissions[$step]->value),
@@ -198,6 +202,10 @@ class Dashboard extends Component
             'claimsWaiting' => $claimSteps === [] ? 0 : ExpenseClaim::query()->where('status', 'pending')->whereIn('current_step', $claimSteps)->where('user_id', '!=', $viewer->id)->count(),
             'claimsToPay' => $viewer->can(Permission::ApproveClaimsFinance->value) ? ExpenseClaim::query()->where('type', 'transport_request')->where('status', 'approved')->count() : 0,
             'pendingInvitations' => $canSeeTeam ? Invitation::query()->pending()->count() : 0,
+            'overview' => $overview->onboarding(),
+            'topSalespeople' => $overview->topSalespeople(),
+            'money' => $seesMoney ? $overview->money() : null,
+            'travel' => $seesTravel ? $overview->travel() : null,
             'monthOnboarded' => Onboarding::query()->creditedBetween(now()->startOfMonth(), now()->endOfMonth())->count(),
             'awaiting' => Onboarding::query()->awaitingApproval()->count(),
             'unattributed' => Onboarding::query()->unattributed()->count(),
