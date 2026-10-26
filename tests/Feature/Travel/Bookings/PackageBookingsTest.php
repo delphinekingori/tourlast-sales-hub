@@ -170,6 +170,35 @@ class PackageBookingsTest extends TestCase
         $this->assertValidationFails(fn () => $this->book($seller, $departure, 1, ['influencer_code' => 'SAFARI10']), 'influencer_code');
     }
 
+    public function test_the_influencer_code_is_picked_from_a_search_by_name_or_code(): void
+    {
+        $seller = $this->seller();
+        $amina = Influencer::factory()->create(['name' => 'Amina Wanjiru']);
+        $brian = Influencer::factory()->create(['name' => 'Brian Otieno']);
+        $aminaCode = InfluencerCode::factory()->create(['influencer_id' => $amina->id, 'code' => 'AMINA10']);
+        InfluencerCode::factory()->create(['influencer_id' => $brian->id, 'code' => 'BRIAN15']);
+        InfluencerCode::factory()->create(['influencer_id' => $amina->id, 'code' => 'AMINAFLY', 'applies_to' => 'flights']);
+        InfluencerCode::factory()->create(['influencer_id' => $amina->id, 'code' => 'AMINAOLD', 'status' => 'paused']);
+
+        Livewire::actingAs($seller)->test(Create::class)
+            ->set('codeSearch', 'amina')
+            ->assertSee('AMINA10')
+            ->assertDontSee('BRIAN15')
+            ->assertDontSee('AMINAFLY')
+            ->assertDontSee('AMINAOLD')
+            ->set('codeSearch', 'otieno')
+            ->assertSee('BRIAN15')
+            ->assertDontSee('AMINA10')
+            ->set('codeSearch', 'zzz')
+            ->assertSee('No running code matches')
+            ->call('pickCode', $aminaCode->id)
+            ->assertSet('form.influencer_code', 'AMINA10')
+            ->assertSet('codeSearch', '')
+            ->assertSee('Amina Wanjiru')
+            ->call('clearCode')
+            ->assertSet('form.influencer_code', '');
+    }
+
     public function test_only_managers_override_price_or_book_for_others(): void
     {
         $seller = $this->seller();
@@ -428,9 +457,11 @@ class PackageBookingsTest extends TestCase
             ->assertSee('Everything is required unless it says (optional).')
             ->html();
 
-        $this->assertMatchesRegularExpression('/Email\s*<span[^>]*>\(optional\)/', $html);
-        $this->assertMatchesRegularExpression('/Special requirements\s*<span[^>]*>\(optional\)/', $html);
-        $this->assertDoesNotMatchRegularExpression('/Full name\s*<span[^>]*>\(optional\)/', $html);
-        $this->assertDoesNotMatchRegularExpression('/>\s*Adults\s*<span[^>]*>\(optional\)/', $html);
+        $gap = '(?:<!--\[if [A-Z]+\]><!\[endif\]-->|\s)*';
+
+        $this->assertMatchesRegularExpression("/Email{$gap}<span[^>]*>\\(optional\\)/s", $html);
+        $this->assertMatchesRegularExpression("/Special requirements{$gap}<span[^>]*>\\(optional\\)/s", $html);
+        $this->assertDoesNotMatchRegularExpression("/Full name{$gap}<span[^>]*>\\(optional\\)/s", $html);
+        $this->assertDoesNotMatchRegularExpression("/>\\s*Adults{$gap}<span[^>]*>\\(optional\\)/s", $html);
     }
 }

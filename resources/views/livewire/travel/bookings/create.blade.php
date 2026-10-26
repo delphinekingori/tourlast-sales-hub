@@ -132,7 +132,37 @@
 
             <x-ui.card title="Attribution">
                 <div class="grid gap-3">
-                    <x-ui.input label="Influencer code" optional wire:model="form.influencer_code" id="nb-code" hint="The code the client booked with, if any." />
+                    <div class="grid gap-1.5">
+                        <span class="text-[13px] font-medium text-ink">Influencer code <span class="font-normal text-ink-subtle">(optional)</span></span>
+                        @if ($selectedCode)
+                            <div class="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface-muted/50 px-3 py-2">
+                                <span class="grid leading-tight">
+                                    <span class="font-medium text-ink">{{ $selectedCode->code }}</span>
+                                    <span class="text-xs text-ink-subtle">{{ $selectedCode->influencer?->name }} · {{ $selectedCode->termsLabel() }}</span>
+                                </span>
+                                <x-ui.button variant="ghost" size="sm" wire:click="clearCode">Remove</x-ui.button>
+                            </div>
+                        @else
+                            <x-ui.search wire:model.live.debounce.300ms="codeSearch" placeholder="Type the influencer's name or code" wide id="nb-code" />
+                            @if ($codeMatches->isNotEmpty())
+                                <ul class="divide-y divide-line rounded-lg border border-line text-[13px]" aria-label="Matching influencer codes">
+                                    @foreach ($codeMatches as $match)
+                                        <li wire:key="code-{{ $match->id }}">
+                                            <button type="button" wire:click="pickCode({{ $match->id }})" class="flex w-full flex-col px-3 py-2 text-left hover:bg-surface-muted/50">
+                                                <span class="font-medium text-ink">{{ $match->code }} · {{ $match->influencer?->name }}</span>
+                                                <span class="text-xs text-ink-subtle">{{ $match->termsLabel() }}</span>
+                                            </button>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @elseif (trim($codeSearch) !== '')
+                                <p class="text-xs text-ink-subtle">No running code matches. Check the spelling, or leave this empty.</p>
+                            @else
+                                <p class="text-xs text-ink-subtle">Only if the client booked with a code. Leave empty if not.</p>
+                            @endif
+                        @endif
+                        @error('influencer_code')<p class="text-[13px] text-danger">{{ $message }}</p>@enderror
+                    </div>
                     @if ($managesAll)
                         <x-ui.select label="Salesperson" optional wire:model="form.salesperson_id" id="nb-salesperson">
                             <option value="">Me</option>

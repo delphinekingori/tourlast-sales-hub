@@ -5,14 +5,20 @@ namespace App\Livewire\Travel\Bookings;
 use App\Actions\Travel\Bookings\CreatePackageBooking;
 use App\Enums\Permission;
 use App\Enums\Travel\DepartureStatus;
+use App\Enums\Travel\InfluencerCodeScope;
+use App\Enums\Travel\InfluencerCodeStatus;
 use App\Enums\Travel\PackageStatus;
 use App\Livewire\Travel\Bookings\Concerns\CapturesActionErrors;
 use App\Livewire\Travel\Bookings\Concerns\EditsGuestRows;
+use App\Models\InfluencerCode;
 use App\Models\Package;
 use App\Models\PackageDeparture;
 use App\Models\TravelClient;
 use App\Models\User;
+use App\Support\Travel\InfluencerCodes;
 use App\Support\Travel\TravelAccess;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Livewire\Attributes\Title;
@@ -37,6 +43,8 @@ class Create extends Component
     public string $departureId = '';
 
     public string $clientSearch = '';
+
+    public string $codeSearch = '';
 
     /** @var array<string, mixed> */
     public array $form = [];
@@ -213,6 +221,52 @@ class Create extends Component
         $this->applyBooker();
     }
 
+    public function pickCode(int $id): void
+    {
+        $code = InfluencerCode::query()->find($id);
+        $running = $code ? InfluencerCodes::resolve($code->code, 'packages', today()) : null;
+
+        if (! $running) {
+            return;
+        }
+
+        $this->form['influencer_code'] = $running->code;
+        $this->codeSearch = '';
+    }
+
+    public function clearCode(): void
+    {
+        $this->form['influencer_code'] = '';
+        $this->codeSearch = '';
+    }
+
+    /**
+     * Running package codes whose code or influencer name contains the search.
+     *
+     * @return Collection<int, InfluencerCode>
+     */
+    private function codeMatches(): Collection
+    {
+        $term = trim($this->codeSearch);
+
+        if ($term === '') {
+            return collect();
+        }
+
+        $like = '%'.addcslashes($term, '\\%_').'%';
+
+        return InfluencerCode::query()
+            ->with('influencer:id,name')
+            ->where('status', InfluencerCodeStatus::Active)
+            ->whereIn('applies_to', [InfluencerCodeScope::Packages, InfluencerCodeScope::All])
+            ->whereDate('starts_on', '<=', today())
+            ->where(fn (Builder $query) => $query->whereNull('ends_on')->orWhereDate('ends_on', '>=', today()))
+            ->where(fn (Builder $query) => $query->where('code', 'like', $like)->orWhereHas('influencer', fn (Builder $influencer) => $influencer->where('name', 'like', $like)))
+            ->orderBy('code')
+            ->limit(8)
+            ->get();
+    }
+
     public function save(CreatePackageBooking $create): void
     {
         $this->resetErrorBag();
@@ -304,6 +358,8 @@ class Create extends Component
             'clientMatches' => strlen(trim($this->clientSearch)) >= 2
                 ? TravelClient::query()->search($this->clientSearch)->orderBy('name')->limit(8)->get()
                 : collect(),
+            'codeMatches' => $this->codeMatches(),
+            'selectedCode' => InfluencerCodes::resolve($this->form['influencer_code'], 'packages', today())?->load('influencer:id,name'),
             'managesAll' => TravelAccess::managesAll($user),
             'salespeople' => TravelAccess::managesAll($user)
                 ? User::query()->active()->permission(Permission::AccessTravelSales->value)->orderBy('name')->get(['id', 'name'])
