@@ -95,11 +95,25 @@
 
             <x-ui.card title="4. Guests" description="Who is travelling: one row per traveler. A name is needed for everyone; the rest helps the driver, guide and lodges.">
                 <div class="grid gap-3">
-                    <label class="flex items-center gap-2 text-[13px] text-ink">
-                        <input type="checkbox" wire:model.live="bookerTravelling" class="size-4 accent-[var(--tl-brand)]" id="nb-booker-travelling">
-                        The client (booker) is travelling — use their details for guest 1
-                    </label>
-                    @include('livewire.travel.bookings.partials.guest-rows', ['model' => 'form.guests', 'rows' => $form['guests'], 'idPrefix' => 'nb-guest'])
+                    <fieldset class="grid gap-2">
+                        <legend class="text-[13px] font-medium text-ink">Who is this booking for?</legend>
+                        <div class="grid gap-2 sm:grid-cols-3">
+                            @foreach (['alone' => ['Just me', 'The client travels alone.'], 'group' => ['Me and others', 'The client travels with other people.'], 'others' => ['Someone else', 'The client books but does not travel.']] as $choice => [$choiceLabel, $choiceHint])
+                                <label class="flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-[13px] has-[:checked]:border-brand has-[:checked]:bg-brand-soft {{ $travellingFor === $choice ? 'border-brand bg-brand-soft' : 'border-line' }}">
+                                    <input type="radio" wire:model.live="travellingFor" value="{{ $choice }}" class="mt-0.5 size-4 accent-[var(--tl-brand)]" id="nb-for-{{ $choice }}">
+                                    <span class="grid"><span class="font-medium text-ink">{{ $choiceLabel }}</span><span class="text-xs text-ink-subtle">{{ $choiceHint }}</span></span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </fieldset>
+                    @include('livewire.travel.bookings.partials.guest-rows', ['model' => 'form.guests', 'rows' => $form['guests'], 'idPrefix' => 'nb-guest', 'canRemove' => true])
+                    <div class="flex flex-wrap items-end gap-2">
+                        <x-ui.select label="Add a" wire:model="newGuestType" id="nb-new-guest-type">
+                            @foreach (\App\Enums\Travel\GuestType::options() as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                        </x-ui.select>
+                        <x-ui.button type="button" variant="secondary" icon="plus" wire:click="addGuest">Add another guest</x-ui.button>
+                    </div>
+                    <p class="text-xs text-ink-subtle">Adults, children and infants above update as you add or remove guests.</p>
                 </div>
             </x-ui.card>
         </div>

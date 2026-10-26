@@ -120,7 +120,7 @@ class BookingGuestsTest extends TestCase
         $component = Livewire::actingAs($seller)->test(Create::class)
             ->set('packageId', (string) $departure->package_id)
             ->set('departureId', (string) $departure->id)
-            ->assertCount('form.guests', 2)
+            ->assertCount('form.guests', 1)
             ->set('form.client_name', 'Peter Doe')
             ->set('form.client_phone', '0700111222')
             ->assertSet('form.guests.0.full_name', 'Peter Doe')
@@ -154,6 +154,58 @@ class BookingGuestsTest extends TestCase
             ->set('form.client_name', 'Agent Booker')
             ->assertSet('form.guests.0.full_name', '')
             ->assertSet('form.guests.0.is_booker', false);
+    }
+
+    public function test_one_person_can_book_alone_and_add_or_remove_guests_one_at_a_time(): void
+    {
+        $seller = $this->seller();
+        $departure = $this->departure($seller);
+
+        $component = Livewire::actingAs($seller)->test(Create::class)
+            ->set('packageId', (string) $departure->package_id)
+            ->set('departureId', (string) $departure->id)
+            ->assertSet('travellingFor', 'alone')
+            ->assertSet('form.adults', '1')
+            ->assertCount('form.guests', 1)
+            ->set('form.client_name', 'Solo Traveler')
+            ->set('form.client_phone', '0700333444')
+            ->call('removeGuest', 0)
+            ->assertCount('form.guests', 1)
+            ->call('addGuest')
+            ->assertSet('travellingFor', 'group')
+            ->assertSet('form.adults', '2')
+            ->set('newGuestType', 'child')
+            ->call('addGuest')
+            ->assertSet('form.children', '1')
+            ->assertCount('form.guests', 3)
+            ->set('form.guests.1.full_name', 'Second Adult')
+            ->call('removeGuest', 1)
+            ->assertSet('form.adults', '1')
+            ->assertSet('form.children', '1')
+            ->assertCount('form.guests', 2)
+            ->assertSet('form.guests.1.type', 'child')
+            ->assertSet('form.guests.1.full_name', '')
+            ->call('removeGuest', 1)
+            ->assertSet('travellingFor', 'alone')
+            ->assertCount('form.guests', 1)
+            ->assertSet('form.guests.0.full_name', 'Solo Traveler');
+
+        $component->call('save')->assertHasNoErrors()->assertRedirect();
+
+        $booking = PackageBooking::query()->sole();
+        $this->assertSame(1, (int) $booking->adults);
+        $this->assertSame(['Solo Traveler'], $booking->guests->pluck('full_name')->all());
+
+        Livewire::actingAs($seller)->test(Create::class)
+            ->set('travellingFor', 'group')
+            ->assertSet('form.adults', '2')
+            ->assertSet('form.guests.0.is_booker', true)
+            ->set('travellingFor', 'others')
+            ->assertSet('bookerTravelling', false)
+            ->assertSet('form.guests.0.is_booker', false)
+            ->set('travellingFor', 'alone')
+            ->assertSet('form.adults', '1')
+            ->assertSet('bookerTravelling', true);
     }
 
     public function test_guest_details_can_be_added_and_edited_later_with_an_audit_trail(): void

@@ -43,6 +43,12 @@ class Create extends Component
 
     public bool $bookerTravelling = true;
 
+    /** alone = only the client, group = the client and others, others = the client is not travelling. */
+    public string $travellingFor = 'alone';
+
+    /** Type of the guest the "Add another guest" button adds. */
+    public string $newGuestType = 'adult';
+
     public function mount(): void
     {
         TravelAccess::abortUnlessWorks(Auth::user());
@@ -53,7 +59,7 @@ class Create extends Component
             'client_email' => '',
             'client_phone' => '',
             'client_country' => 'Kenya',
-            'adults' => '2',
+            'adults' => '1',
             'children' => '0',
             'infants' => '0',
             'special_requirements' => '',
@@ -80,6 +86,11 @@ class Create extends Component
     {
         if (in_array($key, ['adults', 'children', 'infants'], true)) {
             $this->syncGuestRows();
+
+            if ($this->bookerTravelling) {
+                $this->travellingFor = $this->guestCount() > 1 ? 'group' : 'alone';
+            }
+
             $this->applyBooker(overwrite: false);
         }
 
@@ -90,11 +101,97 @@ class Create extends Component
 
     public function updatedBookerTravelling(): void
     {
+        $this->travellingFor = ! $this->bookerTravelling ? 'others' : ($this->guestCount() > 1 ? 'group' : 'alone');
+
         if (! $this->bookerTravelling && isset($this->form['guests'][0])) {
             $this->form['guests'][0] = self::blankGuest($this->form['guests'][0]['type']);
         }
 
         $this->applyBooker();
+    }
+
+    /**
+     * "Just me" shrinks the party to one adult, "Me and others" makes sure
+     * there is room for at least one more, "Someone else" frees guest 1.
+     */
+    public function updatedTravellingFor(): void
+    {
+        if (! in_array($this->travellingFor, ['alone', 'group', 'others'], true)) {
+            $this->travellingFor = 'alone';
+        }
+
+        $wasTravelling = $this->bookerTravelling;
+        $this->bookerTravelling = $this->travellingFor !== 'others';
+
+        if ($this->travellingFor === 'alone') {
+            $this->form['adults'] = '1';
+            $this->form['children'] = '0';
+            $this->form['infants'] = '0';
+            $this->syncGuestRows();
+        } elseif ($this->travellingFor === 'group' && $this->guestCount() < 2) {
+            $this->form['adults'] = (string) ((int) $this->form['adults'] + 1);
+            $this->syncGuestRows();
+        }
+
+        if ($wasTravelling !== $this->bookerTravelling) {
+            $this->updatedBookerTravelling();
+
+            return;
+        }
+
+        $this->applyBooker(overwrite: false);
+    }
+
+    public function addGuest(): void
+    {
+        $type = in_array($this->newGuestType, ['adult', 'child', 'infant'], true) ? $this->newGuestType : 'adult';
+        $field = ['adult' => 'adults', 'child' => 'children', 'infant' => 'infants'][$type];
+
+        if ($this->guestCount() >= $this->maxGuestRows) {
+            return;
+        }
+
+        $this->form[$field] = (string) ((int) $this->form[$field] + 1);
+        $this->syncGuestRows();
+
+        if ($this->travellingFor === 'alone') {
+            $this->travellingFor = 'group';
+        }
+
+        $this->applyBooker(overwrite: false);
+    }
+
+    /**
+     * Drops one guest row (never the first) and lowers its traveler count.
+     */
+    public function removeGuest(int $index): void
+    {
+        if ($index < 1 || ! isset($this->form['guests'][$index])) {
+            return;
+        }
+
+        $rows = $this->form['guests'];
+        unset($rows[$index]);
+        $rows = array_values($rows);
+
+        $count = fn (string $type): int => count(array_filter($rows, fn (array $row): bool => ($row['type'] ?? null) === $type));
+        $this->form['adults'] = (string) $count('adult');
+        $this->form['children'] = (string) $count('child');
+        $this->form['infants'] = (string) $count('infant');
+        $this->form['guests'] = $rows;
+
+        $this->syncGuestRows();
+
+        if ($this->bookerTravelling && count($this->form['guests']) === 1) {
+            $this->travellingFor = 'alone';
+        }
+
+        $this->applyBooker(overwrite: false);
+    }
+
+    private function guestCount(): int
+    {
+        return max(0, (int) $this->form['adults']) + max(0, (int) $this->form['children']) + max(0, (int) $this->form['infants']);
     }
 
     public function updatedPackageId(): void

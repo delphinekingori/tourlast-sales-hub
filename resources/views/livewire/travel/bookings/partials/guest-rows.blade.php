@@ -23,6 +23,9 @@
                 Guest {{ $i + 1 }}
                 <span class="font-normal text-ink-subtle">· {{ $typeLabels[$type] ?? ucfirst($type) }} {{ $counters[$type] }}</span>
                 @if (! empty($guest['is_booker']))<x-ui.pill tone="brand" :dot="false">Booker</x-ui.pill>@endif
+                @if (! empty($canRemove) && $i > 0)
+                    <button type="button" wire:click="removeGuest({{ $i }})" wire:confirm="Remove this guest?" class="ml-1 text-xs font-medium text-danger hover:underline">Remove guest</button>
+                @endif
             </legend>
             <div class="grid gap-3 md:grid-cols-3">
                 <x-ui.input label="Full name (as on ID / passport)" wire:model="{{ $model }}.{{ $i }}.full_name" id="{{ $id }}-name" required />
