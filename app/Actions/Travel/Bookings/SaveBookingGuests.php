@@ -6,6 +6,7 @@ use App\Enums\Travel\GuestType;
 use App\Models\PackageBooking;
 use App\Models\User;
 use App\Support\Audit;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -84,6 +85,26 @@ class SaveBookingGuests
 
         if (($types['adult'] ?? 0) !== $adults || ($types['child'] ?? 0) !== $children || ($types['infant'] ?? 0) !== $infants) {
             throw ValidationException::withMessages(['guests' => 'The guests must match the booking: '.$adults.' '.($adults === 1 ? 'adult' : 'adults').', '.$children.' '.($children === 1 ? 'child' : 'children').', '.$infants.' '.($infants === 1 ? 'infant' : 'infants').'.']);
+        }
+
+        if (($children + $infants) > 0 && $adults < 1) {
+            throw ValidationException::withMessages(['guests' => 'Children and infants must travel with a guardian or another adult aged 18 or over.']);
+        }
+
+        foreach ($rows as $index => $row) {
+            if (blank($row['date_of_birth'] ?? null)) {
+                continue;
+            }
+
+            $isAdult = Carbon::parse($row['date_of_birth'])->age >= 18;
+
+            if ($row['type'] === GuestType::Adult->value && ! $isAdult) {
+                throw ValidationException::withMessages(["guests.{$index}.date_of_birth" => 'An adult must be 18 or over. Add this person as a child or infant, with a guardian or another adult.']);
+            }
+
+            if ($row['type'] !== GuestType::Adult->value && $isAdult) {
+                throw ValidationException::withMessages(["guests.{$index}.date_of_birth" => 'This person is 18 or over, so add them as an adult.']);
+            }
         }
 
         if (count(array_filter($rows, fn (array $row): bool => (bool) ($row['is_booker'] ?? false))) > 1) {

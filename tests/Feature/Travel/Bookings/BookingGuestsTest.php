@@ -112,6 +112,28 @@ class BookingGuestsTest extends TestCase
         $this->assertSame(0, PackageBookingGuest::count());
     }
 
+    public function test_minors_need_an_adult_aged_18_or_over(): void
+    {
+        $seller = $this->seller();
+        $departure = $this->departure($seller);
+
+        $this->assertValidationFails(fn () => $this->book($seller, $departure, ['adults' => 1, 'children' => 0, 'guests' => [
+            ['full_name' => 'Teen Doe', 'type' => 'adult', 'date_of_birth' => now()->subYears(15)->toDateString()],
+        ]]), 'guests.0.date_of_birth');
+
+        $this->assertValidationFails(fn () => $this->book($seller, $departure, ['adults' => 2, 'children' => 0, 'guests' => [
+            ['full_name' => 'Jane Doe', 'type' => 'adult'],
+            ['full_name' => 'Grown Doe', 'type' => 'adult', 'date_of_birth' => now()->subYears(17)->toDateString()],
+        ]]), 'guests.1.date_of_birth');
+
+        $this->assertValidationFails(fn () => $this->book($seller, $departure, ['adults' => 1, 'children' => 1, 'guests' => [
+            ['full_name' => 'Jane Doe', 'type' => 'adult'],
+            ['full_name' => 'Old Doe', 'type' => 'child', 'date_of_birth' => now()->subYears(30)->toDateString()],
+        ]]), 'guests.1.date_of_birth');
+
+        $this->assertSame(0, PackageBooking::count());
+    }
+
     public function test_the_booking_form_draws_one_row_per_traveler_and_prefills_the_booker(): void
     {
         $seller = $this->seller();
@@ -122,6 +144,8 @@ class BookingGuestsTest extends TestCase
             ->set('departureId', (string) $departure->id)
             ->assertCount('form.guests', 1)
             ->set('form.client_name', 'Peter Doe')
+            ->assertSet('form.guests.0.full_name', '')
+            ->set('travellingFor', 'alone')
             ->set('form.client_phone', '0700111222')
             ->assertSet('form.guests.0.full_name', 'Peter Doe')
             ->assertSet('form.guests.0.phone', '0700111222')
@@ -164,7 +188,8 @@ class BookingGuestsTest extends TestCase
         $component = Livewire::actingAs($seller)->test(Create::class)
             ->set('packageId', (string) $departure->package_id)
             ->set('departureId', (string) $departure->id)
-            ->assertSet('travellingFor', 'alone')
+            ->assertSet('travellingFor', '')
+            ->set('travellingFor', 'alone')
             ->assertSet('form.adults', '1')
             ->assertCount('form.guests', 1)
             ->set('form.client_name', 'Solo Traveler')

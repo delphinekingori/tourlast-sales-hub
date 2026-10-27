@@ -96,15 +96,17 @@
             <x-ui.card title="4. Guests" description="Who is travelling: one row per traveler. A name is needed for everyone; the rest helps the driver, guide and lodges.">
                 <div class="grid gap-3">
                     <fieldset class="grid gap-2">
-                        <legend class="text-[13px] font-medium text-ink">Who is this booking for?</legend>
+                        <legend class="text-[13px] font-medium text-ink">Is the client also travelling?</legend>
+                        <p class="text-xs text-ink-subtle">If yes, we copy their name, phone, email and country into Guest 1 so you do not type them twice. Children and infants must travel with a guardian or another adult aged 18 or over.</p>
                         <div class="grid gap-2 sm:grid-cols-3">
-                            @foreach (['alone' => ['Just me', 'The client travels alone.'], 'group' => ['Me and others', 'The client travels with other people.'], 'others' => ['Someone else', 'The client books but does not travel.']] as $choice => [$choiceLabel, $choiceHint])
+                            @foreach (['alone' => ['Yes, alone', 'The client is the only traveler.'], 'group' => ['Yes, with others', 'The client travels with other people.'], 'others' => ['No', 'The client books for others and does not travel.']] as $choice => [$choiceLabel, $choiceHint])
                                 <label class="flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-[13px] has-[:checked]:border-brand has-[:checked]:bg-brand-soft {{ $travellingFor === $choice ? 'border-brand bg-brand-soft' : 'border-line' }}">
                                     <input type="radio" wire:model.live="travellingFor" value="{{ $choice }}" class="mt-0.5 size-4 accent-[var(--tl-brand)]" id="nb-for-{{ $choice }}">
                                     <span class="grid"><span class="font-medium text-ink">{{ $choiceLabel }}</span><span class="text-xs text-ink-subtle">{{ $choiceHint }}</span></span>
                                 </label>
                             @endforeach
                         </div>
+                        @error('travellingFor')<p class="text-xs text-danger">{{ $message }}</p>@enderror
                     </fieldset>
                     @include('livewire.travel.bookings.partials.guest-rows', ['model' => 'form.guests', 'rows' => $form['guests'], 'idPrefix' => 'nb-guest', 'canRemove' => true])
                     <div class="flex flex-wrap items-end gap-2">

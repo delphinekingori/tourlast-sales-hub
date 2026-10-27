@@ -50,10 +50,10 @@ class Create extends Component
     /** @var array<string, mixed> */
     public array $form = [];
 
-    public bool $bookerTravelling = true;
+    public bool $bookerTravelling = false;
 
-    /** alone = only the client, group = the client and others, others = the client is not travelling. */
-    public string $travellingFor = 'alone';
+    /** Empty until the salesperson answers; alone = only the client, group = the client and others, others = the client is not travelling. */
+    public string $travellingFor = '';
 
     /** Type of the guest the "Add another guest" button adds. */
     public string $newGuestType = 'adult';
@@ -120,8 +120,8 @@ class Create extends Component
     }
 
     /**
-     * "Just me" shrinks the party to one adult, "Me and others" makes sure
-     * there is room for at least one more, "Someone else" frees guest 1.
+     * "Yes, alone" shrinks the party to one adult, "Yes, with others" makes sure
+     * there is room for at least one more, "No" frees guest 1.
      */
     public function updatedTravellingFor(): void
     {
@@ -292,6 +292,13 @@ class Create extends Component
     public function save(CreatePackageBooking $create): void
     {
         $this->resetErrorBag();
+
+        if ($this->travellingFor === '') {
+            $this->addError('travellingFor', 'Say whether the client is also travelling.');
+
+            return;
+        }
+
         $this->applyBooker(overwrite: false);
 
         $input = array_merge($this->form, [
