@@ -7,7 +7,9 @@
     <x-ui.page-header :title="($booking->booking_reference ?? $booking->external_id).' · '.$booking->route()" description="Bookings are managed in Tourlast Flights Super Admin. Changes made there appear here after the next sync.">
         <x-slot:actions>
             <x-ui.button variant="secondary" icon="arrow-right" :href="route('travel.flights.index')" wire:navigate>All flights</x-ui.button>
+            {{-- Hidden for now, to return later:
             <x-ui.button icon="link" :href="$booking->adminUrl()" target="_blank" rel="noopener">Open in Flights Admin</x-ui.button>
+            --}}
         </x-slot:actions>
     </x-ui.page-header>
 

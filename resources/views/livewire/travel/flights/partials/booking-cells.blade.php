@@ -45,7 +45,9 @@
         @case('actions')
             <td class="text-right whitespace-nowrap">
                 <x-ui.button size="sm" variant="ghost" :href="route('travel.flights.show', $booking)" wire:navigate>View</x-ui.button>
+                {{-- Hidden for now, to return later:
                 <x-ui.button size="sm" variant="ghost" :href="$booking->adminUrl()" target="_blank" rel="noopener">Open in Flights Admin</x-ui.button>
+                --}}
             </td>
             @break
     @endswitch

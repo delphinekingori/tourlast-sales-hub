@@ -78,7 +78,7 @@ class FlightBookingResource extends JsonResource
                 'type' => $passenger->passenger_type,
                 'ticket_number' => $passenger->ticket_number,
             ])->all()),
-            'admin_url' => $this->adminUrl(),
+            // Hidden for now, to return later: 'admin_url' => $this->adminUrl(),
             'last_synced_at' => $this->last_synced_at?->toIso8601String(),
             'sync_status' => $this->sync_status,
         ];

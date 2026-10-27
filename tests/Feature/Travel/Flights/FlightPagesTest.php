@@ -59,7 +59,7 @@ class FlightPagesTest extends TestCase
 
         $this->actingAs($user)->get(route('travel.flights.show', FlightBooking::query()->whereNotNull('refund_status')->first()))
             ->assertOk()
-            ->assertSee('Open in Flights Admin')
+            ->assertDontSee('Open in Flights Admin')
             ->assertSee('Cancellation &amp; refund', false);
     }
 
