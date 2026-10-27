@@ -60,6 +60,12 @@ Schedule::command('travel:sync-flights')
     ->onOneServer()
     ->skip(fn (): bool => config('travel.flights.source') === 'push');
 
+Schedule::command('travel:sync-flights --full')
+    ->dailyAt(config('tourlast.full_sync_at'))
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->skip(fn (): bool => config('travel.flights.source') === 'push');
+
 Schedule::command('travel:mpesa-reconcile')
     ->everyFiveMinutes()
     ->withoutOverlapping()
