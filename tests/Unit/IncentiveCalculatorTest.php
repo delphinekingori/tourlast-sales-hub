@@ -131,12 +131,14 @@ class IncentiveCalculatorTest extends TestCase
         $this->assertSame(25600.0, $withPending->total());
     }
 
-    public function test_the_retainer_needs_the_reporting_conditions(): void
+    public function test_the_retainer_and_bonuses_need_the_reporting_conditions(): void
     {
         $earnings = (new Calculator)->calculate($this->policy, [1 => 40], [], false);
 
         $this->assertSame(0, $earnings->retainer);
-        $this->assertSame(7500, $earnings->monthlyBonus);
+        $this->assertSame(0, $earnings->monthlyBonus);
+        $this->assertSame(0, $earnings->weeklyBonusTotal());
+        $this->assertSame(0, $earnings->exceptional);
     }
 
     public function test_airtime_is_capped_at_400(): void

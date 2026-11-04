@@ -120,7 +120,7 @@ class AgreementWindowAndOwnershipTest extends TestCase
         $this->assertSame($before, app(MonthlyEarnings::class)->expectedTotal($this->john, CarbonImmutable::parse('2026-09-01')));
     }
 
-    public function test_expected_pay_drops_the_retainer_once_accounts_marks_the_month_not_compliant(): void
+    public function test_expected_pay_drops_the_retainer_and_bonuses_once_accounts_marks_the_month_not_compliant(): void
     {
         IncentiveAgreement::factory()->for($this->john)->create(['starts_on' => '2026-01-01']);
         PointEntry::factory()->for($this->john)->on(CarbonImmutable::parse('2026-09-03'))->create(['points' => 20]);
@@ -129,7 +129,7 @@ class AgreementWindowAndOwnershipTest extends TestCase
 
         $statements->setCompliance($statement, ['reports' => true, 'training' => false, 'follow_up' => true, 'support' => true]);
 
-        $this->assertSame(4000.0, app(MonthlyEarnings::class)->expectedTotal($this->john, CarbonImmutable::parse('2026-09-01')));
+        $this->assertSame(0.0, app(MonthlyEarnings::class)->expectedTotal($this->john, CarbonImmutable::parse('2026-09-01')));
     }
 
     public function test_an_approved_month_shows_its_frozen_statement_total(): void

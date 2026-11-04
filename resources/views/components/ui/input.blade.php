@@ -14,7 +14,7 @@
 
 <div class="grid gap-1">
     @if ($label)
-        <label for="{{ $id }}" class="text-[13px] font-medium text-ink">{{ $label }}@if ($optional) <span class="font-normal text-ink-subtle">(optional)</span>@endif</label>
+        <label for="{{ $id }}" class="text-[13px] font-medium text-ink">{{ $label }}{!! $optional ? ' <span class="font-normal text-ink-subtle">(optional)</span>' : '' !!}</label>
     @endif
 
     <input

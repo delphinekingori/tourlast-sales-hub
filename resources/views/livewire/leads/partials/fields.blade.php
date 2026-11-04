@@ -5,7 +5,7 @@
             <option value="{{ $value }}">{{ $label }}</option>
         @endforeach
     </x-ui.select>
-    <x-ui.input label="Location" wire:model="form.location" id="lead-location" placeholder="e.g. Nairobi" />
+    <x-ui.input label="Location" :optional="true" wire:model="form.location" id="lead-location" placeholder="e.g. Nairobi" />
 </div>
 <details class="group rounded-md border border-line" @if (filled($form['trading_name'] ?? null) || filled($form['website'] ?? null) || filled($form['registration_number'] ?? null) || filled($form['kra_pin'] ?? null)) open @endif>
     <summary class="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-medium text-ink-muted hover:text-ink">
