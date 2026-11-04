@@ -3,6 +3,7 @@
 namespace App\Incentives;
 
 use App\Actions\TransitionEngagement;
+use App\Enums\AccountStatus;
 use App\Enums\EngagementStatus;
 use App\Enums\OnboardingStatus;
 use App\Models\IncentiveAgreement;
@@ -12,7 +13,9 @@ use App\Models\Onboarding;
 use App\Models\PartnerAccount;
 use App\Models\PointEntry;
 use App\Models\PropertyEngagement;
+use App\Models\ReferralCode;
 use App\Models\User;
+use App\Support\Audit;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -56,7 +59,7 @@ class AccountPoints
                 $onboarding->forceFill(['partner_account_id' => $account->id])->saveQuietly();
             }
 
-            if (! $account->user_id && $onboarding->user_id) {
+            if ($onboarding->user_id && (! $account->user_id || ($account->user_id !== $onboarding->user_id && $this->isOnlyProperty($account, $onboarding)))) {
                 $account->user_id = $onboarding->user_id;
             }
 
@@ -65,9 +68,79 @@ class AccountPoints
             }
 
             $account->save();
+            $this->passOwnerToProperties($account);
 
             return $this->refresh($account);
         });
+    }
+
+    /**
+     * The salesperson an owner was first linked to, found from the owner's Tourlast
+     * account id, or null when the owner is not linked yet (or that salesperson is gone).
+     */
+    public function ownerFor(?string $tourlastAccountId, ?Onboarding $applying = null): ?User
+    {
+        if (blank($tourlastAccountId)) {
+            return null;
+        }
+
+        $account = PartnerAccount::query()->where('account_key', 'A:'.$tourlastAccountId)->first();
+
+        while ($account?->merged_into_id) {
+            $account = PartnerAccount::find($account->merged_into_id);
+        }
+
+        // A lone property is what set the owner, so a corrected code on it moves the owner too.
+        if ($account && $applying?->exists && $this->isOnlyProperty($account, $applying)) {
+            return null;
+        }
+
+        $owner = $account?->user_id ? User::find($account->user_id) : null;
+
+        return $owner && $owner->accountStatus() !== AccountStatus::Terminated ? $owner : null;
+    }
+
+    private function isOnlyProperty(PartnerAccount $account, Onboarding $onboarding): bool
+    {
+        $ids = Onboarding::query()->where('partner_account_id', $account->id)->pluck('id');
+
+        return $ids->count() === 1 && $ids->first() === $onboarding->id;
+    }
+
+    /**
+     * Every property of an owner belongs to the salesperson the owner was linked to.
+     * Properties the admin assigned by hand are left alone.
+     */
+    private function passOwnerToProperties(PartnerAccount $account): void
+    {
+        if (! $account->user_id) {
+            return;
+        }
+
+        $referralCodeId = ReferralCode::query()->where('user_id', $account->user_id)->value('id');
+
+        Onboarding::query()
+            ->where('partner_account_id', $account->id)
+            ->where(fn ($query) => $query->whereNull('attribution')->orWhere('attribution', '!=', 'manual'))
+            ->where(fn ($query) => $query->whereNull('user_id')->orWhere('user_id', '!=', $account->user_id))
+            ->get()
+            ->each(function (Onboarding $onboarding) use ($account, $referralCodeId): void {
+                $previous = $onboarding->user?->name ?? 'nobody';
+                $previousId = $onboarding->user_id;
+
+                $onboarding->forceFill([
+                    'user_id' => $account->user_id,
+                    'referral_code_id' => $referralCodeId,
+                    'attribution' => 'inherited',
+                ])->saveQuietly();
+
+                Audit::record(
+                    $onboarding,
+                    'onboarding.attribution_inherited',
+                    "{$onboarding->property_name} moved from {$previous} to {$account->user?->name}, the salesperson of its owner ({$account->legal_name})",
+                    ['user_id' => [$previousId, $account->user_id]],
+                );
+            });
     }
 
     /**
@@ -127,6 +200,13 @@ class AccountPoints
 
         $this->reconcile($account);
 
+        Audit::record(
+            $account,
+            'account.verified',
+            "Verified {$account->legal_name}: {$inventory} {$basis} at activation".($note ? " ({$note})" : ''),
+            userId: $admin->id,
+        );
+
         return $account->fresh();
     }
 
@@ -150,6 +230,13 @@ class AccountPoints
 
         $this->reconcile($account);
 
+        Audit::record(
+            $account,
+            'account.inventory_recorded',
+            "Recorded {$count} live for {$account->legal_name} from {$liveOn->format('j M Y')}".($note ? " ({$note})" : ''),
+            userId: $admin->id,
+        );
+
         return $snapshot;
     }
 
@@ -157,6 +244,13 @@ class AccountPoints
     {
         $snapshot->update(['verified_at' => now(), 'verified_by' => $admin->id]);
         $this->reconcile($snapshot->partnerAccount);
+
+        Audit::record(
+            $snapshot->partnerAccount,
+            'account.inventory_verified',
+            "Verified {$snapshot->count} live for {$snapshot->partnerAccount->legal_name} from {$snapshot->live_on->format('j M Y')}",
+            userId: $admin->id,
+        );
     }
 
     /**
@@ -176,6 +270,8 @@ class AccountPoints
 
         $this->reconcile($account);
         $this->closeRegistryRecords($account, $admin, $reason);
+
+        Audit::record($account, 'account.review_failed', "Failed the 14-day review for {$account->legal_name}: {$reason}. Its points were cancelled.", userId: $admin->id);
     }
 
     /**
@@ -216,6 +312,8 @@ class AccountPoints
             ]);
 
             $target->update(['activation_date' => null, 'qualification_status' => 'pending', 'verified_at' => null, 'verified_by' => null]);
+
+            Audit::record($target, 'account.merged', "Merged {$source->legal_name} into {$target->legal_name}", userId: $admin->id);
 
             return $this->refresh($target);
         });
@@ -392,7 +490,7 @@ class AccountPoints
 
         $onboardings = $account->onboardings;
         $facts = [
-            ChecklistItem::ReferralRecorded->value => $onboardings->isNotEmpty() && $onboardings->every(fn (Onboarding $onboarding): bool => filled($onboarding->ref_code) || $onboarding->attribution === 'manual'),
+            ChecklistItem::ReferralRecorded->value => $onboardings->isNotEmpty() && $onboardings->every(fn (Onboarding $onboarding): bool => filled($onboarding->ref_code) || in_array($onboarding->attribution, ['manual', 'inherited'], true)),
             ChecklistItem::ProvisionallyApproved->value => $onboardings->contains(fn (Onboarding $onboarding): bool => in_array($onboarding->status, [OnboardingStatus::Approved, OnboardingStatus::Active], true)),
             ChecklistItem::LiveAndBookable->value => $onboardings->contains(fn (Onboarding $onboarding): bool => $onboarding->status === OnboardingStatus::Active),
         ];

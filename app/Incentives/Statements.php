@@ -7,6 +7,7 @@ use App\Models\IncentiveAgreement;
 use App\Models\IncentivePolicy;
 use App\Models\PayoutStatement;
 use App\Models\User;
+use App\Support\Audit;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,9 @@ class Statements
             return $statement;
         }
 
-        if (! $statement->exists) {
+        $isNew = ! $statement->exists;
+
+        if ($isNew) {
             $statement->compliance = array_fill_keys(array_keys(PayoutStatement::ComplianceItems), false);
             $statement->status = 'draft';
         }
@@ -63,8 +66,13 @@ class Statements
             'transport' => $earnings->transport,
             'adjustments' => $earnings->adjustments,
             'adjustment_lines' => $earnings->adjustmentLines,
+            'agreement_windows' => $this->earnings->agreementWindows($user, $month),
             'total' => $earnings->total(),
         ])->save();
+
+        if ($isNew) {
+            Audit::record($statement, 'statement.drafted', "Drafted the {$month->format('F Y')} statement for {$user->name}: KES ".number_format($statement->total, 2));
+        }
 
         return $statement;
     }
@@ -78,7 +86,21 @@ class Statements
             throw ValidationException::withMessages(['compliance' => 'This statement is already approved.']);
         }
 
-        $statement->update(['compliance' => array_map('boolval', array_intersect_key($compliance, PayoutStatement::ComplianceItems))]);
+        $before = $statement->compliance ?? [];
+
+        $statement->update([
+            'compliance' => array_map('boolval', array_intersect_key($compliance, PayoutStatement::ComplianceItems)),
+            'compliance_reviewed_at' => now(),
+        ]);
+
+        $met = collect(PayoutStatement::ComplianceItems)->filter(fn (string $label, string $item): bool => ! empty($statement->compliance[$item]))->count();
+
+        Audit::record(
+            $statement,
+            'statement.compliance_set',
+            "Reporting conditions for {$statement->user->name}'s {$statement->month->format('F Y')} statement: {$met} of ".count(PayoutStatement::ComplianceItems).' met',
+            Audit::diff($before, $statement->compliance),
+        );
 
         return $this->draft($statement->user, $statement->month);
     }
@@ -96,6 +118,14 @@ class Statements
             }
 
             $statement->update(['status' => 'approved', 'approved_by' => $approver->id, 'approved_at' => now()]);
+
+            Audit::record(
+                $statement,
+                'statement.approved',
+                "Approved the {$statement->month->format('F Y')} statement for {$statement->user->name}: KES ".number_format((float) $statement->total, 2),
+                ['status' => ['draft', 'approved'], 'total' => [null, (float) $statement->total]],
+                $approver->id,
+            );
 
             return $statement;
         });
@@ -116,6 +146,14 @@ class Statements
                 ->whereDate('month', $statement->month->toDateString())
                 ->where('status', 'approved')
                 ->update(['status' => 'paid', 'paid_at' => now(), 'paid_by' => $payer->id, 'payment_reference' => $reference]);
+
+            Audit::record(
+                $statement,
+                'statement.paid',
+                "Marked the {$statement->month->format('F Y')} statement for {$statement->user->name} paid: KES ".number_format((float) $statement->total, 2).", ref {$reference}",
+                ['status' => ['approved', 'paid']],
+                $payer->id,
+            );
 
             return $statement;
         });

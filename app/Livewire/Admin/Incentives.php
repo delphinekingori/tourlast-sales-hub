@@ -8,6 +8,8 @@ use App\Models\IncentiveAgreement;
 use App\Models\IncentivePolicy;
 use App\Models\PartnerAccount;
 use App\Models\User;
+use App\Support\Audit;
+use DateTimeInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -77,9 +79,22 @@ class Incentives extends Component
             'notes' => $this->agreement['notes'] ?: null,
         ];
 
-        $this->editingId
-            ? IncentiveAgreement::findOrFail($this->editingId)->update($data)
-            : IncentiveAgreement::create([...$data, 'created_by' => Auth::id()]);
+        $person = User::findOrFail($data['user_id'])->name;
+
+        if ($this->editingId) {
+            $agreement = IncentiveAgreement::findOrFail($this->editingId);
+            $plain = fn (IncentiveAgreement $model): array => array_map(fn (mixed $value): mixed => $value instanceof DateTimeInterface ? $value->format('Y-m-d') : $value, $model->only(array_keys($data)));
+            $before = $plain($agreement);
+            $agreement->update($data);
+            $changes = Audit::diff($before, $plain($agreement));
+
+            if ($changes !== []) {
+                Audit::record($agreement, 'agreement.updated', "Changed the incentive agreement of {$person}", $changes);
+            }
+        } else {
+            $agreement = IncentiveAgreement::create([...$data, 'created_by' => Auth::id()]);
+            Audit::record($agreement, 'agreement.created', "Created an incentive agreement for {$person} from {$agreement->starts_on->format('j M Y')}".($agreement->ends_on ? ' to '.$agreement->ends_on->format('j M Y') : ' with no end date'));
+        }
 
         PartnerAccount::query()->current()->where('user_id', $data['user_id'])->whereNotNull('activation_date')
             ->each(fn (PartnerAccount $account) => $accountPoints->reconcile($account));

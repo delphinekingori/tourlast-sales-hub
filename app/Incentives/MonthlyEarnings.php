@@ -28,19 +28,41 @@ class MonthlyEarnings
         return IncentiveAgreement::query()->where('user_id', $user->id)->coveringMonth($month)->exists();
     }
 
-    public function for(User $user, CarbonImmutable $month, ?bool $compliant = null, bool $withAdjustments = true): Earnings
+    /**
+     * The dates inside the month that an agreement covers, as Y-m-d pairs (null end = open).
+     *
+     * @return list<array{0: string, 1: ?string}>
+     */
+    public function agreementWindows(User $user, CarbonImmutable $month): array
+    {
+        return IncentiveAgreement::query()
+            ->where('user_id', $user->id)
+            ->coveringMonth($month->startOfMonth())
+            ->orderBy('starts_on')
+            ->get()
+            ->map(fn (IncentiveAgreement $agreement): array => [
+                $agreement->starts_on->toDateString(),
+                $agreement->ends_on?->toDateString(),
+            ])
+            ->all();
+    }
+
+    /**
+     * @param  ?list<array{0: string, 1: ?string}>  $windows  agreement dates to price on (null = the agreements in force now)
+     */
+    public function for(User $user, CarbonImmutable $month, ?bool $compliant = null, bool $withAdjustments = true, ?array $windows = null): Earnings
     {
         $month = $month->startOfMonth();
         $policy = $this->policyFor($month);
 
-        [$approved, $provisional] = $this->weeklyPoints($user, $month);
+        [$approved, $provisional] = $this->weeklyPoints($user, $month, $windows);
 
         if (! $this->hasAgreement($user, $month)) {
             return $this->calculator->calculate($policy, [], [], false);
         }
 
         $statement = PayoutStatement::query()->where('user_id', $user->id)->whereDate('month', $month->toDateString())->first();
-        $compliant ??= $statement ? $statement->isCompliant() : true;
+        $compliant ??= $statement?->complianceReviewed() ? $statement->isCompliant() : true;
 
         return $this->calculator->calculate(
             $policy,
@@ -54,17 +76,43 @@ class MonthlyEarnings
     }
 
     /**
-     * Points per bonus week, whether or not the salesperson has an agreement.
+     * What to show as the month's pay on dashboards: the frozen statement total once
+     * the month is approved or paid, otherwise the live approved figures.
+     */
+    public function expectedTotal(User $user, CarbonImmutable $month): float
+    {
+        $statement = PayoutStatement::query()->where('user_id', $user->id)->whereDate('month', $month->startOfMonth()->toDateString())->first();
+
+        return $statement?->isLocked() ? (float) $statement->total : $this->for($user, $month)->total();
+    }
+
+    /**
+     * Points per bonus week. Only points earned on a day an agreement covers
+     * count toward pay: points from before it started or after it ended do not.
      *
+     * @param  ?list<array{0: string, 1: ?string}>  $windows
      * @return array{0: array<int, float>, 1: array<int, float>}
      */
-    public function weeklyPoints(User $user, CarbonImmutable $month): array
+    public function weeklyPoints(User $user, CarbonImmutable $month, ?array $windows = null): array
     {
+        $windows ??= $this->agreementWindows($user, $month);
+
         $entries = PointEntry::query()
             ->where('user_id', $user->id)
             ->forMonth($month)
             ->counting()
-            ->get(['points', 'bonus_week', 'status']);
+            ->get(['points', 'bonus_week', 'status', 'earned_on'])
+            ->filter(function (PointEntry $entry) use ($windows): bool {
+                $day = $entry->earned_on->toDateString();
+
+                foreach ($windows as [$from, $to]) {
+                    if ($day >= $from && ($to === null || $day <= $to)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
 
         $approved = [];
         $provisional = [];
@@ -106,7 +154,8 @@ class MonthlyEarnings
             ->get();
 
         foreach ($earlier as $statement) {
-            $now = $this->for($user, $statement->month, $statement->isCompliant(), false);
+            // Priced on the agreement dates the month was paid on; statements from before this was recorded had no date limit.
+            $now = $this->for($user, $statement->month, $statement->isCompliant(), false, $statement->agreement_windows ?? [['0001-01-01', null]]);
             $paid = $statement->retainer + $statement->weekly_bonus + $statement->monthly_bonus + $statement->exceptional;
             $difference = round($now->incentives() - $paid - $statement->recovered_amount, 2);
 

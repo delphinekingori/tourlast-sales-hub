@@ -119,7 +119,7 @@ class Dashboard extends Component
             'range' => $period,
             'metrics' => $metrics->forUser($subject, $period),
             'expected' => Gate::allows('view-earnings', $subject) && $monthlyEarnings->hasAgreement($subject, CarbonImmutable::now())
-                ? $monthlyEarnings->for($subject, CarbonImmutable::now())->total()
+                ? $monthlyEarnings->expectedTotal($subject, CarbonImmutable::now())
                 : null,
             'trend' => $metrics->monthlyTrend($subject),
             'currentTarget' => Target::query()->where('user_id', $subject->id)->whereDate('month', $currentMonth->toDateString())->value('target'),

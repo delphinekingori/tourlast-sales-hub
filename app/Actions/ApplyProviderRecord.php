@@ -10,6 +10,7 @@ use App\Models\Lead;
 use App\Models\Onboarding;
 use App\Models\ReferralCode;
 use App\Support\Alerts;
+use App\Support\Audit;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -98,7 +99,20 @@ class ApplyProviderRecord
             // A code the Hub does not know (renamed since, or retyped wrongly at the
             // source) never removes credit already given: that is by design, and so is a fired owner's code. Only a
             // property with no credit yet is left unattributed by an unknown code.
-            if ($onboarding->attribution !== 'manual' && $record->refCode) {
+            // A property of an owner already linked to a salesperson always goes to that
+            // salesperson, whatever code (or none) came with it.
+            $owner = $onboarding->attribution !== 'manual' ? $this->accountPoints->ownerFor($record->accountId, $onboarding) : null;
+
+            $inherited = null;
+
+            if ($owner) {
+                if ($onboarding->user_id !== $owner->id) {
+                    $inherited = ['from' => $onboarding->user?->name ?? 'nobody', 'fromId' => $onboarding->user_id, 'to' => $owner];
+                    $onboarding->user_id = $owner->id;
+                    $onboarding->referral_code_id = $owner->referralCode?->id;
+                    $onboarding->attribution = 'inherited';
+                }
+            } elseif ($onboarding->attribution !== 'manual' && $record->refCode) {
                 $referralCode = ReferralCode::query()->where('code', $record->refCode)->with('user')->first();
 
                 // A fired salesperson's code credits nothing new: treated like an unknown code.
@@ -121,6 +135,15 @@ class ApplyProviderRecord
             }
 
             $onboarding->save();
+
+            if ($inherited) {
+                Audit::record(
+                    $onboarding,
+                    'onboarding.attribution_inherited',
+                    "{$onboarding->property_name} went to {$inherited['to']->name}, the salesperson of its owner (was {$inherited['from']})",
+                    ['user_id' => [$inherited['fromId'], $inherited['to']->id]],
+                );
+            }
 
             if ($previousStatus !== $record->status) {
                 $onboarding->statusChanges()->create([

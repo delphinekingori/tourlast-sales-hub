@@ -57,7 +57,11 @@ class PartnerRegisterExport implements FromQuery, ShouldAutoSize, WithHeadings, 
             $row->submitted_at?->format('Y-m-d'),
             $row->credited_at?->format('Y-m-d'),
             $row->status->label(),
-            $row->attribution === 'manual' ? 'Assigned by admin' : 'Referral link',
+            match ($row->attribution) {
+                'manual' => 'Assigned by admin',
+                'inherited' => "Owner's salesperson",
+                default => 'Referral link',
+            },
             $row->tourlast_property_id,
         ];
     }

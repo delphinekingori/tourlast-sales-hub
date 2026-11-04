@@ -41,7 +41,7 @@ class TeamController extends ApiController
                 'status' => $row['status'],
                 'progress' => $row['progress'],
                 'expected_pay' => $canSeePay && $monthlyEarnings->hasAgreement($row['user'], $period->from)
-                    ? $monthlyEarnings->for($row['user'], $period->from)->total()
+                    ? $monthlyEarnings->expectedTotal($row['user'], $period->from)
                     : null,
             ])->values(),
             'meta' => [

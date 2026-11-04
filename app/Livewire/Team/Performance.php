@@ -34,7 +34,7 @@ class Performance extends Component
         $rows = $metrics->team($period, $this->region ?: null);
         $canSeePay = Auth::user()->can(Permission::ViewTeamEarnings->value) && $period->key === 'month';
         $pay = $canSeePay
-            ? $rows->mapWithKeys(fn (array $row): array => [$row['user']->id => $monthlyEarnings->hasAgreement($row['user'], $period->from) ? $monthlyEarnings->for($row['user'], $period->from)->total() : null])
+            ? $rows->mapWithKeys(fn (array $row): array => [$row['user']->id => $monthlyEarnings->hasAgreement($row['user'], $period->from) ? $monthlyEarnings->expectedTotal($row['user'], $period->from) : null])
             : collect();
 
         return view('livewire.team.performance', [

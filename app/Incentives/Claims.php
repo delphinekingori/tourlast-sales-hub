@@ -7,6 +7,7 @@ use App\Models\ClaimAttachment;
 use App\Models\ExpenseClaim;
 use App\Models\IncentivePolicy;
 use App\Models\User;
+use App\Support\Audit;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -100,6 +101,8 @@ class Claims
                 'status' => $next ? 'pending' : 'approved',
             ]);
 
+            Audit::record($claim, 'claim.approved', "Approved {$claim->type} claim {$claim->id} for {$claim->user->name}: KES ".number_format((float) $amount, 2).($next ? " (next: {$next})" : ' (fully approved)'), userId: $approver->id);
+
             return $claim;
         });
     }
@@ -117,6 +120,8 @@ class Claims
 
         $claim->update(['status' => 'rejected', 'current_step' => null]);
 
+        Audit::record($claim, 'claim.rejected', "Rejected {$claim->type} claim {$claim->id} for {$claim->user->name}: {$note}", userId: $approver->id);
+
         return $claim;
     }
 
@@ -130,6 +135,8 @@ class Claims
         }
 
         $claim->update(['status' => 'paid', 'paid_at' => now(), 'paid_by' => $finance->id, 'payment_reference' => $reference]);
+
+        Audit::record($claim, 'claim.paid', "Paid {$claim->type} claim {$claim->id} for {$claim->user->name}, ref {$reference}", userId: $finance->id);
 
         return $claim;
     }

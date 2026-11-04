@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Models\PaymentDetail;
 use App\Models\User;
 use App\Support\Alerts;
+use App\Support\Audit;
 
 class SavePaymentDetail
 {
@@ -33,7 +34,18 @@ class SavePaymentDetail
             ];
         }
 
+        $changedFields = $existing
+            ? array_keys(array_filter($data, fn (mixed $value, string $field): bool => (string) $existing->{$field} !== (string) $value, ARRAY_FILTER_USE_BOTH))
+            : array_keys($data);
+
         $detail = PaymentDetail::updateOrCreate(['user_id' => $user->id], $data);
+
+        // Field names only: account numbers and phone numbers never go in the log.
+        Audit::record(
+            $detail,
+            'payment_details.changed',
+            ($existing ? "{$user->name} changed their payout details" : "{$user->name} added payout details").' ('.PaymentDetail::Methods[$detail->method].'; changed: '.str_replace('_', ' ', implode(', ', $changedFields)).')',
+        );
 
         Alerts::sendToPaymentReviewers(
             'payment_details_changed',

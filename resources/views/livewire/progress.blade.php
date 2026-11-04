@@ -165,7 +165,7 @@
                 <x-ui.kpi size="lg" label="Partners gone live" :value="number_format($onboarded)" :hint="$range->label()" :href="$accountsUrl" />
                 <x-ui.kpi size="lg" label="Not live yet" :value="number_format($metrics['awaiting'])" :hint="$metrics['approvedNotLive'].' approved, going live'.($metrics['stalled'] ? ' · '.$metrics['stalled'].' waiting '.config('hub.stalled_after_days').'+ days' : '')" :tone="$metrics['stalled'] ? 'text-warning' : 'text-ink'" :href="$accountsUrl" />
                 @if ($expected !== null)
-                    <x-ui.kpi size="lg" :label="'Expected pay · '.now()->format('F')" :value="'KES '.number_format($expected)" hint="Open My Earnings →" :href="$isOwn ? route('earnings.mine') : route('earnings.member', $subject)" />
+                    <x-ui.kpi size="lg" :label="'Expected pay (approved points) · '.now()->format('F')" :value="'KES '.number_format($expected)" hint="Open My Earnings →" :href="$isOwn ? route('earnings.mine') : route('earnings.member', $subject)" />
                 @else
                     <x-ui.kpi size="lg" label="Link clicks" :value="number_format($metrics['clicks'])" :hint="$metrics['conversion'] !== null ? $metrics['conversion'].'% became live partners' : 'Share your link to start counting'" />
                 @endif
