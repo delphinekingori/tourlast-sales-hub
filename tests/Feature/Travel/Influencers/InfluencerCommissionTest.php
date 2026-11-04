@@ -4,6 +4,7 @@ namespace Tests\Feature\Travel\Influencers;
 
 use App\Actions\Travel\Influencers\SyncInfluencerCommission;
 use App\Actions\Travel\RefreshBookingPayment;
+use App\Enums\Role;
 use App\Enums\Travel\CommissionEntryStatus;
 use App\Enums\Travel\InfluencerCodeScope;
 use App\Enums\Travel\InfluencerCommissionType;
@@ -17,6 +18,8 @@ use App\Models\InfluencerCommission;
 use App\Models\PackageBooking;
 use App\Models\TravelPayment;
 use App\Models\TravelRefund;
+use App\Models\User;
+use App\Support\Travel\InfluencerCodeFilters;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -234,11 +237,34 @@ class InfluencerCommissionTest extends TestCase
             'booked_at' => now(),
         ]);
 
+        $admin = User::factory()->withRole(Role::SuperAdmin)->create();
+
         FlightBookingSynced::dispatch($flight, true);
         FlightBookingSynced::dispatch($flight, true);
 
         $this->assertNull($this->line($flight));
         $this->assertSame(1, AuditEvent::query()->where('action', 'influencer.commission_not_calculated')->count());
+        $this->assertSame(1, $admin->notifications()->get()->filter(fn ($n) => ($n->data['title'] ?? '') === 'Influencer code needs an amount')->count(), 'Management is told once per code and currency.');
+    }
+
+    public function test_a_third_currency_gets_its_own_totals_and_is_not_added_to_kes_or_usd(): void
+    {
+        $admin = User::factory()->withRole(Role::SuperAdmin)->create();
+        $code = InfluencerCode::factory()->create(['applies_to' => InfluencerCodeScope::Flights, 'commission_value' => 10]);
+        $flight = FlightBooking::factory()->create([
+            'influencer_code_id' => $code->id,
+            'currency' => 'EUR',
+            'total_amount' => 400,
+            'payment_status' => 'Ticketed',
+            'booked_at' => now(),
+        ]);
+
+        FlightBookingSynced::dispatch($flight, true);
+
+        $row = InfluencerCodeFilters::fromArray([])->query($admin)->whereKey($code->id)->sole();
+        $this->assertSame(40.0, $row->amountsByCurrency('commission_payable')['EUR']);
+        $this->assertSame(0.0, $row->amountsByCurrency('commission_payable')['USD']);
+        $this->assertSame(['KES', 'USD', 'EUR'], InfluencerCommission::currenciesInUse());
     }
 
     public function test_paid_flight_bookings_earn_through_the_sync_event(): void

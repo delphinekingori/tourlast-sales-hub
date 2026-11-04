@@ -85,6 +85,28 @@ class PartnerRegisterTest extends TestCase
         $this->actingAs(User::factory()->withRole(Role::SalesManager)->create())->get(route('onboardings.unattributed'))->assertForbidden();
     }
 
+    public function test_an_admin_assigns_several_unattributed_properties_at_once(): void
+    {
+        $admin = User::factory()->withRole(Role::SalesAdmin)->create();
+        $john = User::factory()->withRole(Role::Salesperson)->create(['name' => 'John Doe']);
+        app(IssueReferralCode::class)->handle($john);
+        $first = Onboarding::factory()->create();
+        $second = Onboarding::factory()->create();
+        $left = Onboarding::factory()->create();
+
+        Livewire::actingAs($admin)->test(Unattributed::class)
+            ->set('selected', [(string) $first->id, (string) $second->id])
+            ->call('openAssignSelected')
+            ->set('salespersonId', (string) $john->id)
+            ->set('reason', 'Owner confirmed John guided these properties.')
+            ->call('assign')
+            ->assertHasNoErrors();
+
+        $this->assertTrue($first->fresh()->user->is($john));
+        $this->assertTrue($second->fresh()->user->is($john));
+        $this->assertNull($left->fresh()->user_id);
+    }
+
     public function test_managers_get_a_daily_alert_when_something_needs_attention(): void
     {
         Mail::fake();

@@ -13,8 +13,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('payout_statements', function (Blueprint $table): void {
-            $table->json('agreement_windows')->nullable()->after('adjustment_lines');
-            $table->timestamp('compliance_reviewed_at')->nullable()->after('compliance');
+            if (! Schema::hasColumn('payout_statements', 'agreement_windows')) {
+                $table->json('agreement_windows')->nullable()->after('adjustment_lines');
+            }
+
+            if (! Schema::hasColumn('payout_statements', 'compliance_reviewed_at')) {
+                $table->timestamp('compliance_reviewed_at')->nullable()->after('compliance');
+            }
         });
     }
 

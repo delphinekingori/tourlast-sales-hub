@@ -129,7 +129,7 @@ class Show extends Component
             ->with('creator:id,name')
             ->withCount(['commissions as bookings_used' => $live])
             ->tap(function (Builder $query) use ($live): void {
-                foreach (InfluencerCommission::Currencies as $currency) {
+                foreach (InfluencerCommission::currenciesInUse() as $currency) {
                     $inCurrency = fn (Builder $lines) => $live($lines)->where('currency', $currency);
 
                     $query->withSum(['commissions as revenue_generated_'.strtolower($currency) => $inCurrency], 'booking_amount')

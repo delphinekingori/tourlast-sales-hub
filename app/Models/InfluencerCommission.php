@@ -28,6 +28,19 @@ class InfluencerCommission extends Model
     public const Currencies = [self::DefaultCurrency, self::FlightCurrency];
 
     /**
+     * KES and USD always, plus any other currency a line was earned in, so a
+     * flight priced in a third currency still gets its own totals.
+     *
+     * @return list<string>
+     */
+    public static function currenciesInUse(): array
+    {
+        $others = static::query()->whereNotIn('currency', self::Currencies)->distinct()->orderBy('currency')->pluck('currency')->all();
+
+        return [...self::Currencies, ...$others];
+    }
+
+    /**
      * The currency commission on this booking is calculated and paid in: the
      * flight's own currency (USD when it does not say), KES for packages.
      */

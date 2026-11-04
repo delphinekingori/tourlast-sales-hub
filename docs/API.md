@@ -2261,6 +2261,21 @@ Filters `status`, `method`, and `unmatched=1` (Accounts and managers: paybill pa
 
 **Scope:** `travel:read` · Influencer codes with their terms (`commission_type`, `commission_value`, `terms`, `applies_to`, `max_bookings`, period) and results (`bookings_used`, `bookings_remaining`, `revenue_generated`, `commission_pending`, `commission_payable`, `commission_paid`). Travel salespeople see their own influencers' codes. Filters `q`, `status`, `applies_to`.
 
+Commission is worked out on the gross booking total (`commission_base` is always `gross_booking_total`; refunds do not reduce it) and is paid in the currency of the booking, never converted: KES for packages, and a flight's own currency (USD from the Flights app). So money fields are objects keyed by currency, and different currencies are never added together:
+
+```json
+{
+  "commission_type": "fixed",
+  "fixed_amounts": { "KES": 500, "USD": 25 },
+  "revenue_generated": { "KES": 180000, "USD": 1600 },
+  "commission_pending": { "KES": 500, "USD": 0 },
+  "commission_payable": { "KES": 0, "USD": 25 },
+  "commission_paid": { "KES": 1500, "USD": 0 }
+}
+```
+
+`fixed_amounts` is set only when `commission_type` is `fixed` (otherwise `null`); a currency with no entry earns no commission on that code until an admin sets one. For a fixed code `commission_value` is only the first amount set. A percentage code applies the same percentage in every currency. `KES` and `USD` are always present in the money objects, and another currency appears when a flight was booked in it.
+
 ### GET /travel/reports
 
 **Scope:** `travel:read` · **Who:** travel salespeople (own figures), Sales Admin, Super Admin, Accounts

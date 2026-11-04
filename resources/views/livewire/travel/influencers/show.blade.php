@@ -1,7 +1,7 @@
 @php
     $money = fn ($value, string $currency = 'KES') => $currency.' '.number_format((float) $value, 2);
     $amounts = fn (array $byCurrency): string => collect($byCurrency)->filter()->map(fn ($amount, $currency) => $currency.' '.number_format((float) $amount, 2))->implode(' · ') ?: '—';
-    $total = fn (string $status): array => collect(\App\Models\InfluencerCommission::Currencies)->mapWithKeys(fn ($currency) => [$currency => (float) ($totals[$currency.':'.$status] ?? 0)])->all();
+    $total = fn (string $status): array => collect([...\App\Models\InfluencerCommission::Currencies, ...collect($totals)->keys()->map(fn ($key) => explode(':', $key)[0])->all()])->unique()->mapWithKeys(fn ($currency) => [$currency => (float) ($totals[$currency.':'.$status] ?? 0)])->all();
 @endphp
 
 <div class="grid gap-5">

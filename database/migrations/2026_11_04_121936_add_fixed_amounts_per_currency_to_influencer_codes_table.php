@@ -15,8 +15,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('influencer_codes', function (Blueprint $table) {
-            $table->decimal('fixed_kes', 12, 2)->nullable()->after('commission_value');
-            $table->decimal('fixed_usd', 12, 2)->nullable()->after('fixed_kes');
+            if (! Schema::hasColumn('influencer_codes', 'fixed_kes')) {
+                $table->decimal('fixed_kes', 12, 2)->nullable()->after('commission_value');
+            }
+
+            if (! Schema::hasColumn('influencer_codes', 'fixed_usd')) {
+                $table->decimal('fixed_usd', 12, 2)->nullable()->after('fixed_kes');
+            }
         });
 
         DB::table('influencer_codes')->where('commission_type', 'fixed')->where('applies_to', 'flights')->update(['fixed_usd' => DB::raw('commission_value')]);

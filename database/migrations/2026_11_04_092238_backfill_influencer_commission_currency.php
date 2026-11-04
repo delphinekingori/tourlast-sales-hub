@@ -7,15 +7,24 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
-     * Flight commission is USD and everything else KES, never converted.
-     * Earlier lines took the booking's currency, so set them to the rule.
+     * Commission is paid in the booking's own currency and never converted:
+     * a flight line takes its flight's currency (USD when it has none) and
+     * everything else is KES. Earlier lines took the package's currency.
      */
     public function up(): void
     {
         $flight = (new FlightBooking)->getMorphClass();
 
-        DB::table('influencer_commissions')->where('bookable_type', $flight)->update(['currency' => 'USD']);
         DB::table('influencer_commissions')->where('bookable_type', '!=', $flight)->update(['currency' => 'KES']);
+
+        DB::table('influencer_commissions')
+            ->where('bookable_type', $flight)
+            ->orderBy('id')
+            ->each(function (object $line): void {
+                $currency = strtoupper(trim((string) DB::table('flight_bookings')->where('id', $line->bookable_id)->value('currency'))) ?: 'USD';
+
+                DB::table('influencer_commissions')->where('id', $line->id)->update(['currency' => $currency]);
+            });
     }
 
     public function down(): void

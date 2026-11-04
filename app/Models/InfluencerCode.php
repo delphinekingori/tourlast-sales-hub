@@ -169,8 +169,14 @@ class InfluencerCode extends Model
      */
     public function amountsByCurrency(string $name): array
     {
+        $prefix = $name.'_';
+        $loaded = collect($this->getAttributes())
+            ->filter(fn ($value, string $key): bool => str_starts_with($key, $prefix))
+            ->mapWithKeys(fn ($value, string $key): array => [strtoupper(substr($key, strlen($prefix))) => round((float) ($value ?? 0), 2)]);
+
         return collect(InfluencerCommission::Currencies)
-            ->mapWithKeys(fn (string $currency): array => [$currency => round((float) ($this->getAttribute($name.'_'.strtolower($currency)) ?? 0), 2)])
+            ->mapWithKeys(fn (string $currency): array => [$currency => 0.0])
+            ->merge($loaded)
             ->all();
     }
 }

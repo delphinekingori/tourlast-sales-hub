@@ -50,7 +50,7 @@ class LivewireTamperingTest extends TestCase
             'claim approvals' => [Approvals::class, 'viewingId'],
             'my claims' => [ClaimsIndex::class, 'viewingId', true],
             'my onboardings' => [Mine::class, 'viewingId', true],
-            'unattributed onboardings' => [Unattributed::class, 'assigningId'],
+            'unattributed onboardings' => [Unattributed::class, 'assigningIds'],
             'payouts' => [PayoutsIndex::class, 'viewingId'],
             'team member edit' => [TeamIndex::class, 'editingUserId'],
         ];

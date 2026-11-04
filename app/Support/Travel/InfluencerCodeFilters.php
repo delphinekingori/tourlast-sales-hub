@@ -94,7 +94,7 @@ class InfluencerCodeFilters
             })
             ->withCount(['commissions as bookings_used' => $live])
             ->tap(function (Builder $query) use ($live): void {
-                foreach (InfluencerCommission::Currencies as $currency) {
+                foreach (InfluencerCommission::currenciesInUse() as $currency) {
                     $suffix = strtolower($currency);
                     $inCurrency = fn (Builder $lines) => $lines->where('currency', $currency);
 

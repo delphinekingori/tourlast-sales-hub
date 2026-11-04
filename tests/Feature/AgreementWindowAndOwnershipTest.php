@@ -182,22 +182,47 @@ class AgreementWindowAndOwnershipTest extends TestCase
         $this->assertTrue($admin->notifications()->get()->contains(fn ($n) => ($n->data['title'] ?? '') === 'Properties need a salesperson'));
     }
 
-    public function test_a_property_that_already_earned_credit_stays_with_the_fired_salesperson_but_later_ones_do_not(): void
+    public function test_a_property_whose_credit_was_already_paid_stays_with_the_fired_salesperson_but_later_ones_do_not(): void
     {
         $admin = User::factory()->withRole(Role::SuperAdmin)->create();
+        IncentiveAgreement::factory()->for($this->mary)->create(['starts_on' => '2026-01-01']);
         $this->provider(['account_id' => 'H-4', 'ref_code' => $this->mary->referralCode->code, 'property_name' => 'Paid Lodge']);
         $this->provider(['account_id' => 'H-5', 'ref_code' => $this->mary->referralCode->code, 'property_name' => 'Waiting Lodge']);
         $this->sync();
         $earned = Onboarding::query()->where('property_name', 'Paid Lodge')->sole();
-        PointEntry::factory()->for($this->mary)->create(['partner_account_id' => $earned->partner_account_id, 'points' => 5]);
+        PointEntry::factory()->for($this->mary)->on(CarbonImmutable::parse('2026-08-05'))->create(['partner_account_id' => $earned->partner_account_id, 'points' => 5]);
+        $this->payMonth($this->mary, $admin, '2026-08-01');
 
         app(ChangeAccountStatus::class)->terminate($this->mary, $admin, 'other');
         $this->provider(['account_id' => 'H-4', 'ref_code' => null, 'property_name' => 'Later Lodge']);
         $this->sync();
 
-        $this->assertSame($this->mary->id, $earned->fresh()->user_id, 'Credit already earned stays on the salesperson.');
+        $this->assertSame($this->mary->id, $earned->fresh()->user_id, 'Credit already paid stays on the salesperson.');
         $this->assertNull(Onboarding::query()->where('property_name', 'Waiting Lodge')->value('user_id'));
         $this->assertNull(Onboarding::query()->where('property_name', 'Later Lodge')->value('user_id'), 'Properties that come later are unattributed.');
+    }
+
+    public function test_a_property_with_approved_points_in_a_month_not_yet_paid_is_released(): void
+    {
+        $admin = User::factory()->withRole(Role::SuperAdmin)->create();
+        IncentiveAgreement::factory()->for($this->mary)->create(['starts_on' => '2026-01-01']);
+        $this->provider(['account_id' => 'H-6', 'ref_code' => $this->mary->referralCode->code, 'property_name' => 'Unpaid Lodge']);
+        $this->sync();
+        $onboarding = Onboarding::query()->sole();
+        PointEntry::factory()->for($this->mary)->on(CarbonImmutable::parse('2026-08-05'))->create(['partner_account_id' => $onboarding->partner_account_id, 'points' => 5]);
+
+        app(ChangeAccountStatus::class)->terminate($this->mary, $admin, 'other');
+
+        $this->assertNull($onboarding->fresh()->user_id, 'Approved points alone are not enough: the month was never paid.');
+    }
+
+    private function payMonth(User $salesperson, User $accounts, string $month): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-09-02 09:00'));
+        $statements = app(Statements::class);
+        $statement = $statements->setCompliance($statements->draft($salesperson, CarbonImmutable::parse($month)), ['reports' => true, 'training' => true, 'follow_up' => true, 'support' => true]);
+        $statements->approve($statement, $accounts);
+        $statements->markPaid($statement->fresh(), $accounts, 'BANK-9');
     }
 
     public function test_earlier_properties_with_no_salesperson_follow_the_owner_once_one_is_known(): void

@@ -2,13 +2,21 @@
     <x-ui.page-header
         eyebrow="Management"
         title="Unattributed signups"
-        description="Providers that signed up on tourlast.com without a referral code. Assign one to a salesperson only when you're sure who brought it in. Every assignment is logged with your name and reason."
-    />
+        description="Properties with no salesperson: signups without a referral code, and properties released from a fired salesperson. Assign one only when you're sure who brought it in. Every assignment is logged with your name and reason."
+    >
+        <x-slot:actions>
+            @if ($onboardings->count() > 1)
+                <x-ui.button variant="secondary" wire:click="openAssignSelected">Assign selected ({{ count($selected) }})</x-ui.button>
+            @endif
+        </x-slot:actions>
+    </x-ui.page-header>
+    @error('selected')<p class="text-[13px] text-danger">{{ $message }}</p>@enderror
 
     <x-ui.table-card :paginator="$onboardings">
         <table class="w-full min-w-[720px] text-sm">
             <thead class="text-left text-ink-subtle uppercase">
                 <tr>
+                    <th class="w-8 text-left"><span class="sr-only">Select</span></th>
                     <th class="text-left">Property</th>
                     <th class="text-left">Contact</th>
                     <th class="text-left">Signed up</th>
@@ -19,6 +27,7 @@
             <tbody class="divide-y divide-line">
                 @forelse ($onboardings as $onboarding)
                     <tr wire:key="un-{{ $onboarding->id }}">
+                        <td><input type="checkbox" wire:model="selected" value="{{ $onboarding->id }}" aria-label="Select {{ $onboarding->property_name }}" class="size-4 rounded border-line-strong"></td>
                         <td>
                             <div class="grid leading-tight">
                                 <span class="font-semibold text-ink">{{ $onboarding->property_name }}</span>
@@ -33,13 +42,13 @@
                         <td class="text-right"><x-ui.button size="sm" variant="secondary" wire:click="openAssign({{ $onboarding->id }})">Assign</x-ui.button></td>
                     </tr>
                 @empty
-                    <tr><td colspan="5"><x-ui.empty-state icon="check-circle" title="Every signup has a salesperson" description="Signups that arrive without a referral code will wait here for you." /></td></tr>
+                    <tr><td colspan="6"><x-ui.empty-state icon="check-circle" title="Every signup has a salesperson" description="Signups that arrive without a referral code, and properties released from a fired salesperson, will wait here for you." /></td></tr>
                 @endforelse
             </tbody>
         </table>
     </x-ui.table-card>
 
-    <x-ui.slide-over wire:model="showAssign" title="Assign to a salesperson" :description="$assigning?->property_name">
+    <x-ui.slide-over wire:model="showAssign" title="Assign to a salesperson" :description="$assigning->count() === 1 ? $assigning->first()->property_name : $assigning->count().' properties'">
         <form id="assign-form" wire:submit="assign" class="grid gap-4">
             <x-ui.select label="Salesperson" wire:model="salespersonId" id="assign-salesperson">
                 <option value="">Choose…</option>

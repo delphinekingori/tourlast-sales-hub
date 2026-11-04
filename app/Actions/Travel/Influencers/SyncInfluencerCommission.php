@@ -10,6 +10,7 @@ use App\Models\FlightBooking;
 use App\Models\InfluencerCode;
 use App\Models\InfluencerCommission;
 use App\Models\PackageBooking;
+use App\Support\Alerts;
 use App\Support\Audit;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -73,6 +74,15 @@ class SyncInfluencerCommission
 
             if ($amount === null) {
                 $this->auditOnce($code, 'influencer.commission_not_calculated', "Code {$code->code} has no fixed amount in {$facts['currency']}: no commission on {$facts['reference']}. Set one on the code.", $bookable);
+
+                if ($this->auditOnce($code, 'influencer.missing_amount_'.strtolower($facts['currency']), "Code {$code->code} has no fixed amount in {$facts['currency']}")) {
+                    Alerts::send(
+                        'influencer_commission',
+                        'Influencer code needs an amount',
+                        "Code {$code->code} earned a booking in {$facts['currency']} but has no fixed amount in that currency, so no commission was calculated. Set one on the code.",
+                        route('travel.influencers.index'),
+                    );
+                }
 
                 return $line;
             }
@@ -195,7 +205,10 @@ class SyncInfluencerCommission
     /**
      * Write an audit line only once per subject and action (keeps the sync idempotent).
      */
-    private function auditOnce(Model $subject, string $action, string $summary, ?Model $about = null): void
+    /**
+     * Records the event unless it is already on file; true when it was new.
+     */
+    private function auditOnce(Model $subject, string $action, string $summary, ?Model $about = null): bool
     {
         $exists = AuditEvent::query()
             ->where('subject_type', $subject->getMorphClass())
@@ -204,8 +217,12 @@ class SyncInfluencerCommission
             ->when($about, fn ($query) => $query->where('summary', $summary))
             ->exists();
 
-        if (! $exists) {
-            Audit::record($subject, $action, $summary, userId: null);
+        if ($exists) {
+            return false;
         }
+
+        Audit::record($subject, $action, $summary, userId: null);
+
+        return true;
     }
 }

@@ -22,8 +22,12 @@ class Unattributed extends Component
 
     public bool $showAssign = false;
 
+    /** @var list<int> */
     #[Locked]
-    public ?int $assigningId = null;
+    public array $assigningIds = [];
+
+    /** @var list<string> */
+    public array $selected = [];
 
     public string $salespersonId = '';
 
@@ -36,11 +40,20 @@ class Unattributed extends Component
 
     public function openAssign(int $onboardingId): void
     {
-        $this->resetValidation();
-        $this->assigningId = Onboarding::query()->unattributed()->findOrFail($onboardingId)->id;
-        $this->salespersonId = '';
-        $this->reason = '';
-        $this->showAssign = true;
+        $this->openFor([Onboarding::query()->unattributed()->findOrFail($onboardingId)->id]);
+    }
+
+    public function openAssignSelected(): void
+    {
+        $ids = Onboarding::query()->unattributed()->whereIn('id', array_map('intval', $this->selected))->pluck('id')->all();
+
+        if ($ids === []) {
+            $this->addError('selected', 'Tick at least one property to assign.');
+
+            return;
+        }
+
+        $this->openFor($ids);
     }
 
     public function assign(AssignOnboarding $assignOnboarding): void
@@ -52,13 +65,19 @@ class Unattributed extends Component
             'reason' => ['required', 'string', 'min:10', 'max:500'],
         ], ['reason.min' => 'Give a short reason (at least 10 characters) so the change can be understood later.'], ['salespersonId' => 'salesperson']);
 
-        $onboarding = Onboarding::query()->unattributed()->findOrFail($this->assigningId);
+        $onboardings = Onboarding::query()->unattributed()->whereIn('id', $this->assigningIds)->get();
         $salesperson = User::findOrFail($this->salespersonId);
 
-        $assignOnboarding->handle($onboarding, $salesperson, Auth::user(), $this->reason);
+        foreach ($onboardings as $onboarding) {
+            $assignOnboarding->handle($onboarding->fresh(), $salesperson, Auth::user(), $this->reason);
+        }
 
         $this->showAssign = false;
-        $this->dispatch('toast', message: "{$onboarding->property_name} is now credited to {$salesperson->name}.");
+        $this->selected = [];
+        $this->assigningIds = [];
+        $this->dispatch('toast', message: $onboardings->count() === 1
+            ? "{$onboardings->first()->property_name} is now credited to {$salesperson->name}."
+            : "{$onboardings->count()} properties are now credited to {$salesperson->name}.");
     }
 
     public function render(): View
@@ -66,8 +85,20 @@ class Unattributed extends Component
         return view('livewire.onboardings.unattributed', [
             'onboardings' => Onboarding::query()->unattributed()->latest('submitted_at')->paginate(20),
             'salespeople' => $this->salespeople(),
-            'assigning' => $this->assigningId ? Onboarding::find($this->assigningId) : null,
+            'assigning' => Onboarding::query()->whereIn('id', $this->assigningIds)->get(),
         ]);
+    }
+
+    /**
+     * @param  list<int>  $ids
+     */
+    private function openFor(array $ids): void
+    {
+        $this->resetValidation();
+        $this->assigningIds = $ids;
+        $this->salespersonId = '';
+        $this->reason = '';
+        $this->showAssign = true;
     }
 
     /**
