@@ -23,7 +23,10 @@ use Illuminate\Support\Facades\DB;
  * - Pending until the booking is fully paid, then Payable.
  * - Cancelled / no-show / fully refunded bookings cancel the line (a line
  *   already Paid stays Paid and the refund is flagged in the audit log).
- * - A partly refunded booking earns on what the client kept.
+ * - Commission is on the gross booking total (before any refund). A partly
+ *   refunded booking keeps its commission; only a full refund cancels it.
+ * - Flight commission is calculated and paid in USD, everything else in KES.
+ *   Amounts are never converted between currencies.
  * - Only bookings made within the code's dates earn, and only the first
  *   max_bookings of them (a cancelled line frees its slot).
  */
@@ -122,15 +125,13 @@ class SyncInfluencerCommission
      */
     private function packageFacts(PackageBooking $booking): array
     {
-        $partlyRefunded = $booking->payment_status === BookingPaymentStatus::PartiallyRefunded;
-
         return [
-            'base' => round($partlyRefunded ? (float) $booking->amount_paid - (float) $booking->amount_refunded : (float) $booking->amount_total, 2),
+            'base' => round((float) $booking->amount_total, 2),
             'paid' => in_array($booking->payment_status, [BookingPaymentStatus::Paid, BookingPaymentStatus::PartiallyRefunded], true),
             'cancelled' => in_array($booking->status, [TravelBookingStatus::Cancelled, TravelBookingStatus::NoShow], true)
                 || $booking->payment_status === BookingPaymentStatus::Refunded,
             'madeOn' => $booking->created_at ?? now(),
-            'currency' => $booking->currency ?: 'KES',
+            'currency' => InfluencerCommission::currencyFor($booking),
             'reference' => 'booking '.$booking->reference,
         ];
     }
@@ -145,7 +146,7 @@ class SyncInfluencerCommission
             'paid' => in_array(strtolower((string) $booking->payment_status), self::FlightPaidStatuses, true),
             'cancelled' => filled($booking->cancellation_status) || $booking->cancelled_at !== null,
             'madeOn' => $booking->booked_at ?? $booking->created_at ?? now(),
-            'currency' => $booking->currency ?: 'KES',
+            'currency' => InfluencerCommission::currencyFor($booking),
             'reference' => 'flight '.($booking->booking_reference ?? $booking->external_id),
         ];
     }

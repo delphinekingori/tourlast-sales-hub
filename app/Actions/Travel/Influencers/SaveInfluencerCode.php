@@ -106,6 +106,10 @@ class SaveInfluencerCode
         $value = (float) $data['commission_value'];
         $type = InfluencerCommissionType::from($data['commission_type']);
 
+        if ($type === InfluencerCommissionType::Fixed && $data['applies_to'] === InfluencerCodeScope::All->value) {
+            throw ValidationException::withMessages(['applies_to' => 'A fixed amount is in one currency (KES for packages, USD for flights). Choose packages or flights, or use a percentage.']);
+        }
+
         $message = match (true) {
             $type === InfluencerCommissionType::Percentage && ($value < 0.5 || $value > 50) => 'A percentage must be between 0.5 and 50.',
             $type === InfluencerCommissionType::Fixed && $value <= 0 => 'Enter an amount above zero.',

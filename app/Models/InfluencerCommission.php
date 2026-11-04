@@ -19,6 +19,22 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 ])]
 class InfluencerCommission extends Model
 {
+    /** Flight commission is always in USD, everything else in KES. Amounts are never converted between them. */
+    public const FlightCurrency = 'USD';
+
+    public const DefaultCurrency = 'KES';
+
+    /** @var list<string> */
+    public const Currencies = [self::DefaultCurrency, self::FlightCurrency];
+
+    /**
+     * The currency commission on this kind of booking is calculated and paid in.
+     */
+    public static function currencyFor(Model $bookable): string
+    {
+        return $bookable instanceof FlightBooking ? self::FlightCurrency : self::DefaultCurrency;
+    }
+
     /**
      * @return array<string, string>
      */

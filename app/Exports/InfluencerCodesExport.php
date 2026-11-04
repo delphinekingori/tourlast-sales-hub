@@ -37,8 +37,9 @@ class InfluencerCodesExport implements FromQuery, ShouldAutoSize, WithHeadings, 
     {
         return [
             'Influencer', 'Platforms', 'Handles', 'Salesperson', 'Code', 'Created by', 'Commission terms', 'Applies to',
-            'Starts', 'Ends', 'Booking limit', 'Bookings used', 'Bookings left', 'Revenue (KES)',
-            'Commission pending (KES)', 'Commission payable (KES)', 'Commission paid (KES)', 'Status',
+            'Starts', 'Ends', 'Booking limit', 'Bookings used', 'Bookings left', 'Gross revenue (KES)', 'Gross revenue (USD)',
+            'Commission pending (KES)', 'Commission pending (USD)', 'Commission payable (KES)', 'Commission payable (USD)',
+            'Commission paid (KES)', 'Commission paid (USD)', 'Status',
         ];
     }
 
@@ -64,10 +65,14 @@ class InfluencerCodesExport implements FromQuery, ShouldAutoSize, WithHeadings, 
             $row->max_bookings ?? 'No limit',
             $used,
             $row->max_bookings !== null ? max(0, $row->max_bookings - $used) : null,
-            round((float) $row->revenue_generated, 2),
-            round((float) $row->commission_pending, 2),
-            round((float) $row->commission_payable, 2),
-            round((float) $row->commission_paid, 2),
+            $row->amountsByCurrency('revenue_generated')['KES'],
+            $row->amountsByCurrency('revenue_generated')['USD'],
+            $row->amountsByCurrency('commission_pending')['KES'],
+            $row->amountsByCurrency('commission_pending')['USD'],
+            $row->amountsByCurrency('commission_payable')['KES'],
+            $row->amountsByCurrency('commission_payable')['USD'],
+            $row->amountsByCurrency('commission_paid')['KES'],
+            $row->amountsByCurrency('commission_paid')['USD'],
             $row->status->label(),
         ];
     }

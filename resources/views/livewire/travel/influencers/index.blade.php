@@ -1,6 +1,6 @@
 @php
     $selectClass = 'h-9 rounded-md border border-line-strong bg-surface px-3 text-[13px] text-ink focus:border-brand focus:ring-3 focus:ring-brand-soft focus:outline-none';
-    $money = fn ($value) => 'KES '.number_format((float) $value);
+    $amounts = fn (array $byCurrency): string => collect($byCurrency)->filter()->map(fn ($amount, $currency) => $currency.' '.number_format((float) $amount))->implode(' · ') ?: '—';
     $perCurrency = fn (array $totals): string => collect($totals)->filter()->map(fn ($amount, $currency) => $currency.' '.number_format((float) $amount))->implode(' · ') ?: 'KES 0';
     $hasFilters = $search !== '' || $salesperson !== '' || $status !== '' || $platform !== '' || $appliesTo !== '' || $activeFrom !== '' || $activeTo !== '';
 @endphp
@@ -132,11 +132,17 @@
                             <span class="font-semibold text-ink">{{ (int) $code->bookings_used }}</span>
                             <span class="text-ink-subtle">/ {{ $remaining === null ? '∞' : $remaining.' left' }}</span>
                         </td>
-                        <td class="tabular text-right whitespace-nowrap text-ink">{{ $money($code->revenue_generated) }}</td>
+                        <td class="tabular text-right whitespace-nowrap text-ink">{{ $amounts($code->amountsByCurrency('revenue_generated')) }}</td>
                         <td class="tabular text-right whitespace-nowrap">
+                            @php
+                                $pending = $code->amountsByCurrency('commission_pending');
+                                $payable = $code->amountsByCurrency('commission_payable');
+                                $paid = $code->amountsByCurrency('commission_paid');
+                                $earned = collect($pending)->map(fn ($amount, $currency) => $amount + $payable[$currency] + $paid[$currency])->all();
+                            @endphp
                             <span class="grid leading-tight">
-                                <span class="font-semibold text-ink">{{ $money((float) $code->commission_pending + (float) $code->commission_payable + (float) $code->commission_paid) }}</span>
-                                <span class="text-[11.5px] text-ink-subtle">{{ $money($code->commission_pending) }} pending · {{ $money($code->commission_payable) }} payable · {{ $money($code->commission_paid) }} paid</span>
+                                <span class="font-semibold text-ink">{{ $amounts($earned) }}</span>
+                                <span class="text-[11.5px] text-ink-subtle">{{ $amounts($pending) }} pending · {{ $amounts($payable) }} payable · {{ $amounts($paid) }} paid</span>
                             </span>
                         </td>
                         <td class="whitespace-nowrap"><x-ui.pill :tone="$code->status->tone()">{{ $code->status->label() }}</x-ui.pill></td>
@@ -195,10 +201,10 @@
                         <option value="{{ $option->value }}">{{ $option->label() }}</option>
                     @endforeach
                 </x-ui.select>
-                <x-ui.input :label="($codeForm['commission_type'] ?? '') === 'fixed' ? 'Amount per booking (KES)' : 'Percentage (%)'" type="number" step="0.01" min="0" wire:model="codeForm.commission_value" id="code-value" />
+                <x-ui.input :label="($codeForm['commission_type'] ?? '') === 'fixed' ? 'Amount per booking ('.(($codeForm['applies_to'] ?? '') === 'flights' ? 'USD' : 'KES').')' : 'Percentage of gross booking total (%)'"type="number" step="0.01" min="0" wire:model="codeForm.commission_value" id="code-value" />
             </div>
             <div class="grid grid-cols-2 gap-3">
-                <x-ui.select label="Applies to" wire:model="codeForm.applies_to" id="code-applies">
+                <x-ui.select label="Applies to" wire:model.live="codeForm.applies_to" id="code-applies" hint="Flights pay commission in USD, packages in KES. Never converted.">
                     @foreach (\App\Enums\Travel\InfluencerCodeScope::cases() as $option)
                         <option value="{{ $option->value }}">{{ $option->label() }}</option>
                     @endforeach

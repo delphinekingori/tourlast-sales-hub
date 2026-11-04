@@ -42,6 +42,14 @@ class MarkCommissionsPaid
             throw ValidationException::withMessages(['selected' => 'Select at least one payable commission line.']);
         }
 
+        $currencies = $lines->pluck('currency')->unique();
+
+        if ($currencies->count() > 1) {
+            throw ValidationException::withMessages(['selected' => 'KES and USD commission are paid separately. Select lines in one currency only.']);
+        }
+
+        $currency = (string) $currencies->first();
+
         DB::transaction(function () use ($lines, $actor, $reference): void {
             foreach ($lines as $line) {
                 $line->forceFill([
@@ -55,7 +63,7 @@ class MarkCommissionsPaid
 
         $total = (float) $lines->sum('commission_amount');
         $summary = 'Paid '.$lines->count().' commission '.str('line')->plural($lines->count()).' to '.$influencer->name
-            .' (KES '.number_format($total, 2).', ref '.$reference.')';
+            .' ('.$currency.' '.number_format($total, 2).', ref '.$reference.')';
 
         Audit::record($influencer, 'influencer.commission_paid', $summary, ['lines' => [null, $lines->pluck('id')->all()]]);
 

@@ -121,12 +121,35 @@ class InfluencerCode extends Model
         }, 2);
     }
 
+    /**
+     * The currency a fixed amount is in: USD on a flights code, KES otherwise.
+     * A fixed amount cannot cover both, so a fixed code never applies to "all".
+     */
+    public function fixedCurrency(): string
+    {
+        return $this->applies_to === InfluencerCodeScope::Flights
+            ? InfluencerCommission::FlightCurrency
+            : InfluencerCommission::DefaultCurrency;
+    }
+
     public function termsLabel(): string
     {
         $value = $this->commission_type === InfluencerCommissionType::Percentage
-            ? rtrim(rtrim(number_format((float) $this->commission_value, 2), '0'), '.').'%'
-            : 'KES '.number_format((float) $this->commission_value);
+            ? rtrim(rtrim(number_format((float) $this->commission_value, 2), '0'), '.').'% of the gross booking total'
+            : $this->fixedCurrency().' '.number_format((float) $this->commission_value, 2).' per booking';
 
-        return $value.' per booking'.($this->max_bookings ? ', first '.$this->max_bookings.' bookings' : '');
+        return $value.($this->max_bookings ? ', first '.$this->max_bookings.' bookings' : '');
+    }
+
+    /**
+     * Sums loaded by InfluencerCodeFilters, per currency: ['KES' => 1200.0, 'USD' => 0.0].
+     *
+     * @return array<string, float>
+     */
+    public function amountsByCurrency(string $name): array
+    {
+        return collect(InfluencerCommission::Currencies)
+            ->mapWithKeys(fn (string $currency): array => [$currency => round((float) ($this->getAttribute($name.'_'.strtolower($currency)) ?? 0), 2)])
+            ->all();
     }
 }

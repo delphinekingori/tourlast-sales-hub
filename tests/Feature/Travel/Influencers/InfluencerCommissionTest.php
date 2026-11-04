@@ -137,7 +137,29 @@ class InfluencerCommissionTest extends TestCase
         $this->assertSame(1, AuditEvent::query()->where('action', 'influencer.commission_paid_on_refund')->count());
     }
 
-    public function test_a_partly_refunded_booking_earns_on_what_the_client_kept(): void
+    public function test_flight_commission_is_always_usd_and_package_commission_is_always_kes(): void
+    {
+        $flightCode = InfluencerCode::factory()->create(['applies_to' => InfluencerCodeScope::Flights, 'commission_type' => InfluencerCommissionType::Fixed, 'commission_value' => 25]);
+        $flight = FlightBooking::factory()->create([
+            'influencer_code_id' => $flightCode->id,
+            'currency' => 'KES',
+            'total_amount' => 800,
+            'payment_status' => 'Ticketed',
+            'booked_at' => now(),
+        ]);
+        FlightBookingSynced::dispatch($flight, true);
+
+        $packageCode = InfluencerCode::factory()->create(['applies_to' => InfluencerCodeScope::Packages, 'commission_type' => InfluencerCommissionType::Fixed, 'commission_value' => 500]);
+        $booking = $this->bookingWith($packageCode, ['currency' => 'USD']);
+        $this->pay($booking, 90000);
+
+        $this->assertSame('USD', $this->line($flight)->currency);
+        $this->assertEquals(25, (float) $this->line($flight)->commission_amount);
+        $this->assertSame('KES', $this->line($booking)->currency);
+        $this->assertEquals(500, (float) $this->line($booking)->commission_amount);
+    }
+
+    public function test_commission_is_on_the_gross_booking_total_even_after_a_part_refund(): void
     {
         $code = InfluencerCode::factory()->create(['commission_value' => 10]);
         $booking = $this->bookingWith($code);
@@ -154,8 +176,8 @@ class InfluencerCommissionTest extends TestCase
 
         $line = $this->line($booking);
         $this->assertSame(CommissionEntryStatus::Payable, $line->status);
-        $this->assertEquals(60000, (float) $line->booking_amount);
-        $this->assertEquals(6000, (float) $line->commission_amount);
+        $this->assertEquals(90000, (float) $line->booking_amount);
+        $this->assertEquals(9000, (float) $line->commission_amount);
     }
 
     public function test_a_fully_refunded_booking_cancels_unpaid_commission(): void

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V1;
 
+use App\Enums\Travel\InfluencerCommissionType;
 use App\Models\InfluencerCode;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -48,10 +49,12 @@ class InfluencerCodeResource extends JsonResource
             'max_bookings' => $this->max_bookings,
             'bookings_used' => $used,
             'bookings_remaining' => $this->max_bookings !== null ? max(0, $this->max_bookings - $used) : null,
-            'revenue_generated' => round((float) ($this->revenue_generated ?? 0), 2),
-            'commission_pending' => round((float) ($this->commission_pending ?? 0), 2),
-            'commission_payable' => round((float) ($this->commission_payable ?? 0), 2),
-            'commission_paid' => round((float) ($this->commission_paid ?? 0), 2),
+            'commission_base' => 'gross_booking_total',
+            'fixed_currency' => $this->commission_type === InfluencerCommissionType::Fixed ? $this->fixedCurrency() : null,
+            'revenue_generated' => $this->amountsByCurrency('revenue_generated'),
+            'commission_pending' => $this->amountsByCurrency('commission_pending'),
+            'commission_payable' => $this->amountsByCurrency('commission_payable'),
+            'commission_paid' => $this->amountsByCurrency('commission_paid'),
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
         ];

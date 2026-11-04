@@ -67,7 +67,7 @@ class InfluencerCodesTest extends TestCase
             ->call('saveCode')
             ->assertHasNoErrors()
             ->assertSee('AMINA10')
-            ->assertSee('12.5% per booking, first 20 bookings');
+            ->assertSee('12.5% of the gross booking total, first 20 bookings');
 
         $influencer = Influencer::query()->sole();
         $this->assertSame($seller->id, $influencer->owner_id);
@@ -110,7 +110,24 @@ class InfluencerCodesTest extends TestCase
         }
 
         $save->handle($seller, $influencer, $this->terms(['commission_type' => 'fixed', 'commission_value' => '1500']));
-        $this->assertSame('KES 1,500 per booking, first 5 bookings', InfluencerCode::query()->sole()->termsLabel());
+        $this->assertSame('KES 1,500.00 per booking, first 5 bookings', InfluencerCode::query()->sole()->termsLabel());
+    }
+
+    public function test_a_fixed_amount_is_usd_on_flights_and_cannot_cover_both_currencies(): void
+    {
+        $seller = $this->travelSeller();
+        $influencer = Influencer::factory()->create(['owner_id' => $seller->id]);
+        $save = app(SaveInfluencerCode::class);
+
+        try {
+            $save->handle($seller, $influencer, $this->terms(['commission_type' => 'fixed', 'commission_value' => '20', 'applies_to' => 'all']));
+            $this->fail('A fixed amount on packages and flights should be rejected');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('applies_to', $exception->errors());
+        }
+
+        $code = $save->handle($seller, $influencer, $this->terms(['commission_type' => 'fixed', 'commission_value' => '20', 'applies_to' => 'flights']));
+        $this->assertSame('USD 20.00 per booking, first 5 bookings', $code->termsLabel());
     }
 
     public function test_suggested_codes_skip_taken_ones(): void

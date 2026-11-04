@@ -1,6 +1,7 @@
 @php
-    $money = fn ($value) => 'KES '.number_format((float) $value, 2);
-    $total = fn (string $status) => (float) ($totals[$status] ?? 0);
+    $money = fn ($value, string $currency = 'KES') => $currency.' '.number_format((float) $value, 2);
+    $amounts = fn (array $byCurrency): string => collect($byCurrency)->filter()->map(fn ($amount, $currency) => $currency.' '.number_format((float) $amount, 2))->implode(' · ') ?: '—';
+    $total = fn (string $status): array => collect(\App\Models\InfluencerCommission::Currencies)->mapWithKeys(fn ($currency) => [$currency => (float) ($totals[$currency.':'.$status] ?? 0)])->all();
 @endphp
 
 <div class="grid gap-5">
@@ -15,9 +16,9 @@
 
     <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line shadow-card sm:grid-cols-4">
         @foreach ([
-            ['Pending (booking not fully paid)', $money($total('pending')), 'text-ink'],
-            ['Payable', $money($total('payable')), $total('payable') > 0 ? 'text-warning' : 'text-ink'],
-            ['Paid', $money($total('paid')), 'text-success'],
+            ['Pending (booking not fully paid)', $amounts($total('pending')), 'text-ink'],
+            ['Payable', $amounts($total('payable')), array_sum($total('payable')) > 0 ? 'text-warning' : 'text-ink'],
+            ['Paid', $amounts($total('paid')), 'text-success'],
             ['Codes', $codes->count(), 'text-ink'],
         ] as [$label, $value, $tone])
             <div class="grid gap-0.5 bg-surface px-4 py-3">
@@ -103,8 +104,8 @@
                                     <td class="px-4 py-2.5 text-ink">{{ $code->termsLabel() }}<span class="block text-xs text-ink-subtle">{{ $code->applies_to->label() }}</span></td>
                                     <td class="tabular px-4 py-2.5 whitespace-nowrap text-ink-muted">{{ $code->starts_on->format('j M Y') }} – {{ $code->ends_on?->format('j M Y') ?? 'open' }}</td>
                                     <td class="tabular px-4 py-2.5 text-right text-ink">{{ (int) $code->bookings_used }}{{ $code->max_bookings ? ' / '.$code->max_bookings : '' }}</td>
-                                    <td class="tabular px-4 py-2.5 text-right text-ink">{{ $money($code->revenue_generated) }}</td>
-                                    <td class="tabular px-4 py-2.5 text-right text-ink">{{ $money($code->commission_earned) }}</td>
+                                    <td class="tabular px-4 py-2.5 text-right text-ink">{{ $amounts($code->amountsByCurrency('revenue_generated')) }}</td>
+                                    <td class="tabular px-4 py-2.5 text-right text-ink">{{ $amounts($code->amountsByCurrency('commission_earned')) }}</td>
                                     <td class="px-4 py-2.5"><x-ui.pill :tone="$code->status->tone()">{{ $code->status->label() }}</x-ui.pill></td>
                                     <td class="px-4 py-2.5 text-right whitespace-nowrap">
                                         @if ($canManage && $code->status !== \App\Enums\Travel\InfluencerCodeStatus::Ended)
@@ -146,7 +147,7 @@
                         <th class="px-4 py-2 font-medium">Booking</th>
                         <th class="px-4 py-2 font-medium">Client / customer</th>
                         <th class="px-4 py-2 font-medium">Code</th>
-                        <th class="px-4 py-2 text-right font-medium">Booking amount</th>
+                        <th class="px-4 py-2 text-right font-medium">Gross booking total</th>
                         <th class="px-4 py-2 text-right font-medium">Commission</th>
                         <th class="px-4 py-2 font-medium">Status</th>
                         <th class="px-4 py-2 font-medium">Earned</th>
@@ -178,8 +179,8 @@
                             </td>
                             <td class="max-w-72 truncate px-4 py-2.5 text-ink-muted">{{ $about['client'] ?: '—' }}</td>
                             <td class="px-4 py-2.5 font-mono text-[12.5px] text-ink">{{ $line->code?->code }}</td>
-                            <td class="tabular px-4 py-2.5 text-right text-ink">{{ $money($line->booking_amount) }}</td>
-                            <td class="tabular px-4 py-2.5 text-right font-semibold text-ink">{{ $money($line->commission_amount) }}</td>
+                            <td class="tabular px-4 py-2.5 text-right text-ink">{{ $money($line->booking_amount, $line->currency) }}</td>
+                            <td class="tabular px-4 py-2.5 text-right font-semibold text-ink">{{ $money($line->commission_amount, $line->currency) }}</td>
                             <td class="px-4 py-2.5"><x-ui.pill :tone="$line->status->tone()">{{ $line->status->label() }}</x-ui.pill></td>
                             <td class="tabular px-4 py-2.5 whitespace-nowrap text-ink-muted">{{ $line->earned_at->format('j M Y') }}</td>
                             <td class="px-4 py-2.5 whitespace-nowrap text-ink-muted">
@@ -212,7 +213,7 @@
 
     <x-ui.modal wire:model="showPay" title="Mark commission paid" description="Record the M-Pesa or bank reference for the payment to the influencer.">
         <form wire:submit="markPaid" id="pay-form" class="grid gap-3">
-            <p class="text-[13px] text-ink-muted">{{ count($selected) }} {{ \Illuminate\Support\Str::plural('line', count($selected)) }} selected.</p>
+            <p class="text-[13px] text-ink-muted">{{ count($selected) }} {{ \Illuminate\Support\Str::plural('line', count($selected)) }} selected. KES and USD commission are paid separately, so pick lines in one currency.</p>
             <x-ui.input label="Payment reference" wire:model="payReference" id="pay-reference" placeholder="e.g. SJK3H7Q2LP" />
         </form>
         <x-slot:footer>

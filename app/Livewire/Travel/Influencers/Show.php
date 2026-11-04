@@ -128,8 +128,14 @@ class Show extends Component
         $codes = $influencer->codes()
             ->with('creator:id,name')
             ->withCount(['commissions as bookings_used' => $live])
-            ->withSum(['commissions as revenue_generated' => $live], 'booking_amount')
-            ->withSum(['commissions as commission_earned' => $live], 'commission_amount')
+            ->tap(function (Builder $query) use ($live): void {
+                foreach (InfluencerCommission::Currencies as $currency) {
+                    $inCurrency = fn (Builder $lines) => $live($lines)->where('currency', $currency);
+
+                    $query->withSum(['commissions as revenue_generated_'.strtolower($currency) => $inCurrency], 'booking_amount')
+                        ->withSum(['commissions as commission_earned_'.strtolower($currency) => $inCurrency], 'commission_amount');
+                }
+            })
             ->latest('id')
             ->get();
 
@@ -146,7 +152,8 @@ class Show extends Component
             ->paginate(25);
 
         $totals = InfluencerCommission::query()->where('influencer_id', $influencer->id)
-            ->selectRaw('status, sum(commission_amount) as total')->groupBy('status')->pluck('total', 'status');
+            ->selectRaw('currency, status, sum(commission_amount) as total')->groupBy('currency', 'status')->get()
+            ->mapWithKeys(fn (InfluencerCommission $row): array => [$row->currency.':'.$row->status->value => (float) $row->total]);
 
         return view('livewire.travel.influencers.show', [
             'influencer' => $influencer,

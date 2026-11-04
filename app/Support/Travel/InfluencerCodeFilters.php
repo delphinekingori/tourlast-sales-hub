@@ -7,6 +7,7 @@ use App\Enums\Travel\InfluencerCodeScope;
 use App\Enums\Travel\InfluencerCodeStatus;
 use App\Models\Influencer;
 use App\Models\InfluencerCode;
+use App\Models\InfluencerCommission;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -92,10 +93,18 @@ class InfluencerCodeFilters
                         ->orWhereHas('platforms', fn (Builder $platforms) => $platforms->where('handle', 'like', $like))));
             })
             ->withCount(['commissions as bookings_used' => $live])
-            ->withSum(['commissions as revenue_generated' => $live], 'booking_amount')
-            ->withSum(['commissions as commission_pending' => fn (Builder $query) => $query->where('status', CommissionEntryStatus::Pending)], 'commission_amount')
-            ->withSum(['commissions as commission_payable' => fn (Builder $query) => $query->where('status', CommissionEntryStatus::Payable)], 'commission_amount')
-            ->withSum(['commissions as commission_paid' => fn (Builder $query) => $query->where('status', CommissionEntryStatus::Paid)], 'commission_amount')
+            ->tap(function (Builder $query) use ($live): void {
+                foreach (InfluencerCommission::Currencies as $currency) {
+                    $suffix = strtolower($currency);
+                    $inCurrency = fn (Builder $lines) => $lines->where('currency', $currency);
+
+                    $query->withSum(['commissions as revenue_generated_'.$suffix => fn (Builder $lines) => $live($inCurrency($lines))], 'booking_amount');
+
+                    foreach (['pending' => CommissionEntryStatus::Pending, 'payable' => CommissionEntryStatus::Payable, 'paid' => CommissionEntryStatus::Paid] as $name => $status) {
+                        $query->withSum(['commissions as commission_'.$name.'_'.$suffix => fn (Builder $lines) => $inCurrency($lines)->where('status', $status)], 'commission_amount');
+                    }
+                }
+            })
             ->orderByRaw('case when status = ? then 0 when status = ? then 1 else 2 end', [InfluencerCodeStatus::Active->value, InfluencerCodeStatus::Paused->value])
             ->latest('id');
     }
