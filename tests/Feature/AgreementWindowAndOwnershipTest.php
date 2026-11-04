@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Actions\ChangeAccountStatus;
 use App\Actions\IssueReferralCode;
 use App\Actions\SyncOnboardings;
 use App\Enums\Role;
 use App\Incentives\Earnings;
 use App\Incentives\MonthlyEarnings;
 use App\Incentives\Statements;
+use App\Models\AuditEvent;
 use App\Models\IncentiveAgreement;
 use App\Models\Onboarding;
 use App\Models\PartnerAccount;
@@ -161,6 +163,41 @@ class AgreementWindowAndOwnershipTest extends TestCase
             'Every property of the owner belongs to the salesperson the owner was linked to.',
         );
         $this->assertSame($this->mary->id, PartnerAccount::sole()->user_id);
+    }
+
+    public function test_a_fired_salespersons_properties_become_unattributed_and_management_is_told(): void
+    {
+        $admin = User::factory()->withRole(Role::SuperAdmin)->create();
+        $this->provider(['account_id' => 'H-3', 'ref_code' => $this->mary->referralCode->code, 'property_name' => 'First Lodge']);
+        $this->sync();
+
+        app(ChangeAccountStatus::class)->terminate($this->mary, $admin, 'other');
+
+        $this->provider(['account_id' => 'H-3', 'ref_code' => null, 'property_name' => 'Late Lodge']);
+        $this->sync();
+
+        $this->assertSame([null], Onboarding::query()->pluck('user_id')->unique()->values()->all(), 'Neither the old nor the new property is credited to the fired salesperson.');
+        $this->assertNull(PartnerAccount::sole()->user_id);
+        $this->assertSame(1, AuditEvent::query()->where('action', 'onboarding.released_unattributed')->count());
+        $this->assertTrue($admin->notifications()->get()->contains(fn ($n) => ($n->data['title'] ?? '') === 'Properties need a salesperson'));
+    }
+
+    public function test_a_property_that_already_earned_credit_stays_with_the_fired_salesperson_but_later_ones_do_not(): void
+    {
+        $admin = User::factory()->withRole(Role::SuperAdmin)->create();
+        $this->provider(['account_id' => 'H-4', 'ref_code' => $this->mary->referralCode->code, 'property_name' => 'Paid Lodge']);
+        $this->provider(['account_id' => 'H-5', 'ref_code' => $this->mary->referralCode->code, 'property_name' => 'Waiting Lodge']);
+        $this->sync();
+        $earned = Onboarding::query()->where('property_name', 'Paid Lodge')->sole();
+        PointEntry::factory()->for($this->mary)->create(['partner_account_id' => $earned->partner_account_id, 'points' => 5]);
+
+        app(ChangeAccountStatus::class)->terminate($this->mary, $admin, 'other');
+        $this->provider(['account_id' => 'H-4', 'ref_code' => null, 'property_name' => 'Later Lodge']);
+        $this->sync();
+
+        $this->assertSame($this->mary->id, $earned->fresh()->user_id, 'Credit already earned stays on the salesperson.');
+        $this->assertNull(Onboarding::query()->where('property_name', 'Waiting Lodge')->value('user_id'));
+        $this->assertNull(Onboarding::query()->where('property_name', 'Later Lodge')->value('user_id'), 'Properties that come later are unattributed.');
     }
 
     public function test_earlier_properties_with_no_salesperson_follow_the_owner_once_one_is_known(): void

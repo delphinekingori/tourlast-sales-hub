@@ -100,34 +100,35 @@ class InfluencerCodesTest extends TestCase
         $influencer = Influencer::factory()->create(['owner_id' => $seller->id]);
         $save = app(SaveInfluencerCode::class);
 
-        foreach ([['percentage', '60'], ['percentage', '0.2'], ['fixed', '0']] as [$type, $value]) {
+        foreach ([['percentage', '60', []], ['percentage', '0.2', []], ['fixed', '0', ['fixed_kes' => '0']]] as [$type, $value, $extra]) {
             try {
-                $save->handle($seller, $influencer, $this->terms(['commission_type' => $type, 'commission_value' => $value]));
+                $save->handle($seller, $influencer, $this->terms(['commission_type' => $type, 'commission_value' => $value, ...$extra]));
                 $this->fail("{$type} {$value} should be rejected");
             } catch (ValidationException $exception) {
-                $this->assertArrayHasKey('commission_value', $exception->errors());
+                $this->assertNotEmpty($exception->errors());
             }
         }
 
-        $save->handle($seller, $influencer, $this->terms(['commission_type' => 'fixed', 'commission_value' => '1500']));
+        $save->handle($seller, $influencer, $this->terms(['commission_type' => 'fixed', 'fixed_kes' => '1500']));
         $this->assertSame('KES 1,500.00 per booking, first 5 bookings', InfluencerCode::query()->sole()->termsLabel());
     }
 
-    public function test_a_fixed_amount_is_usd_on_flights_and_cannot_cover_both_currencies(): void
+    public function test_a_fixed_amount_is_set_per_currency_for_the_bookings_the_code_covers(): void
     {
         $seller = $this->travelSeller();
         $influencer = Influencer::factory()->create(['owner_id' => $seller->id]);
         $save = app(SaveInfluencerCode::class);
 
         try {
-            $save->handle($seller, $influencer, $this->terms(['commission_type' => 'fixed', 'commission_value' => '20', 'applies_to' => 'all']));
-            $this->fail('A fixed amount on packages and flights should be rejected');
+            $save->handle($seller, $influencer, $this->terms(['commission_type' => 'fixed', 'fixed_kes' => '500', 'applies_to' => 'all']));
+            $this->fail('A code for packages and flights needs a USD amount too');
         } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('applies_to', $exception->errors());
+            $this->assertArrayHasKey('fixed_usd', $exception->errors());
         }
 
-        $code = $save->handle($seller, $influencer, $this->terms(['commission_type' => 'fixed', 'commission_value' => '20', 'applies_to' => 'flights']));
-        $this->assertSame('USD 20.00 per booking, first 5 bookings', $code->termsLabel());
+        $code = $save->handle($seller, $influencer, $this->terms(['commission_type' => 'fixed', 'fixed_kes' => '500', 'fixed_usd' => '20', 'applies_to' => 'all']));
+        $this->assertSame('KES 500.00 / USD 20.00 per booking, first 5 bookings', $code->termsLabel());
+        $this->assertSame(20.0, $code->fixedAmountIn('USD'));
     }
 
     public function test_suggested_codes_skip_taken_ones(): void

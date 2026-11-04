@@ -33,6 +33,8 @@ class SaveInfluencerCode
             ],
             'commission_type' => ['required', Rule::enum(InfluencerCommissionType::class)],
             'commission_value' => ['required', 'numeric'],
+            'fixed_kes' => ['nullable', 'numeric', 'gt:0', 'max:1000000'],
+            'fixed_usd' => ['nullable', 'numeric', 'gt:0', 'max:1000000'],
             'applies_to' => ['required', Rule::enum(InfluencerCodeScope::class)],
             'max_bookings' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'starts_on' => ['required', 'date'],
@@ -68,6 +70,16 @@ class SaveInfluencerCode
         $data['code'] = strtoupper(trim((string) ($data['code'] ?? '')));
         $data['max_bookings'] = ($data['max_bookings'] ?? '') === '' ? null : $data['max_bookings'];
         $data['ends_on'] = ($data['ends_on'] ?? '') === '' ? null : $data['ends_on'];
+
+        foreach (['fixed_kes', 'fixed_usd'] as $field) {
+            $data[$field] = ($data[$field] ?? '') === '' ? null : $data[$field];
+        }
+
+        if (($data['commission_type'] ?? null) === InfluencerCommissionType::Fixed->value) {
+            $data['commission_value'] = $data['fixed_kes'] ?? $data['fixed_usd'] ?? '';
+        } else {
+            $data['fixed_kes'] = $data['fixed_usd'] = null;
+        }
 
         $data = Validator::make($data, self::rules($code), self::messages())->validate();
         $this->checkValue($data);
@@ -106,8 +118,21 @@ class SaveInfluencerCode
         $value = (float) $data['commission_value'];
         $type = InfluencerCommissionType::from($data['commission_type']);
 
-        if ($type === InfluencerCommissionType::Fixed && $data['applies_to'] === InfluencerCodeScope::All->value) {
-            throw ValidationException::withMessages(['applies_to' => 'A fixed amount is in one currency (KES for packages, USD for flights). Choose packages or flights, or use a percentage.']);
+        if ($type === InfluencerCommissionType::Fixed) {
+            $scope = $data['applies_to'];
+            $errors = [];
+
+            if ($scope !== InfluencerCodeScope::Flights->value && ($data['fixed_kes'] ?? null) === null) {
+                $errors['fixed_kes'] = 'Enter the KES amount paid per package booking.';
+            }
+
+            if ($scope !== InfluencerCodeScope::Packages->value && ($data['fixed_usd'] ?? null) === null) {
+                $errors['fixed_usd'] = 'Enter the USD amount paid per flight booking.';
+            }
+
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
+            }
         }
 
         $message = match (true) {

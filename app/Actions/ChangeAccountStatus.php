@@ -23,13 +23,16 @@ class ChangeAccountStatus
 
     /**
      * Fire (terminate) an account. Their leads, history, points and pay
-     * records are all kept; only a Sales Admin can reinstate them.
+     * records are all kept; their properties become unattributed and
+     * management is alerted. Only a Sales Admin can reinstate them.
      */
     public function terminate(User $user, User $by, string $reason, ?string $notes = null): void
     {
         $this->change($user, $by, AccountStatus::Terminated, $reason, $notes);
 
-        Alerts::send('account_status', 'Account terminated', "{$user->name} was fired by {$by->name}. Reason: ".AccountStatus::reasonLabel($reason).'. Their open leads and properties need a new owner.', route('people.show', $user));
+        Alerts::send('account_status', 'Account terminated', "{$user->name} was fired by {$by->name}. Reason: ".AccountStatus::reasonLabel($reason).'. Their open leads need a new owner.', route('people.show', $user));
+
+        app(ReleaseTerminatedSalespersonProperties::class)->handle($user, $by);
     }
 
     public function reinstate(User $user, ?User $by, ?string $notes = null): void

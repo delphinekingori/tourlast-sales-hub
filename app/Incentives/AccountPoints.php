@@ -113,7 +113,7 @@ class AccountPoints
      */
     private function passOwnerToProperties(PartnerAccount $account): void
     {
-        if (! $account->user_id) {
+        if (! $account->user_id || $account->user?->accountStatus() === AccountStatus::Terminated) {
             return;
         }
 

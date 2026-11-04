@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * max_bookings bookings (no limit when null).
  */
 #[Fillable([
-    'influencer_id', 'code', 'commission_type', 'commission_value', 'applies_to', 'max_bookings',
+    'influencer_id', 'code', 'commission_type', 'commission_value', 'fixed_kes', 'fixed_usd', 'applies_to', 'max_bookings',
     'starts_on', 'ends_on', 'status', 'created_by',
 ])]
 class InfluencerCode extends Model
@@ -41,6 +41,8 @@ class InfluencerCode extends Model
         return [
             'commission_type' => InfluencerCommissionType::class,
             'commission_value' => 'decimal:2',
+            'fixed_kes' => 'decimal:2',
+            'fixed_usd' => 'decimal:2',
             'applies_to' => InfluencerCodeScope::class,
             'status' => InfluencerCodeStatus::class,
             'max_bookings' => 'integer',
@@ -111,32 +113,51 @@ class InfluencerCode extends Model
     }
 
     /**
-     * Commission on a booking amount under this code's terms.
+     * Commission on a booking amount under this code's terms, in the booking's
+     * own currency. A fixed code with no amount set for that currency earns
+     * nothing (null): amounts are never converted.
      */
-    public function commissionOn(float $amount): float
+    public function commissionOn(float $amount, string $currency = InfluencerCommission::DefaultCurrency): ?float
     {
-        return round(match ($this->commission_type) {
-            InfluencerCommissionType::Percentage => $amount * (float) $this->commission_value / 100,
-            InfluencerCommissionType::Fixed => (float) $this->commission_value,
-        }, 2);
+        if ($this->commission_type === InfluencerCommissionType::Percentage) {
+            return round($amount * (float) $this->commission_value / 100, 2);
+        }
+
+        return $this->fixedAmountIn($currency);
     }
 
     /**
-     * The currency a fixed amount is in: USD on a flights code, KES otherwise.
-     * A fixed amount cannot cover both, so a fixed code never applies to "all".
+     * The fixed amount the admin set for a currency, or null when none is set.
      */
-    public function fixedCurrency(): string
+    public function fixedAmountIn(string $currency): ?float
     {
-        return $this->applies_to === InfluencerCodeScope::Flights
-            ? InfluencerCommission::FlightCurrency
-            : InfluencerCommission::DefaultCurrency;
+        $value = match (strtoupper($currency)) {
+            'KES' => $this->fixed_kes,
+            'USD' => $this->fixed_usd,
+            default => null,
+        };
+
+        return $value === null ? null : round((float) $value, 2);
+    }
+
+    /**
+     * Fixed amounts that are set, keyed by currency: ['KES' => 500.0, 'USD' => 25.0].
+     *
+     * @return array<string, float>
+     */
+    public function fixedAmounts(): array
+    {
+        return collect(InfluencerCommission::Currencies)
+            ->mapWithKeys(fn (string $currency): array => [$currency => $this->fixedAmountIn($currency)])
+            ->filter(fn (?float $value): bool => $value !== null)
+            ->all();
     }
 
     public function termsLabel(): string
     {
         $value = $this->commission_type === InfluencerCommissionType::Percentage
             ? rtrim(rtrim(number_format((float) $this->commission_value, 2), '0'), '.').'% of the gross booking total'
-            : $this->fixedCurrency().' '.number_format((float) $this->commission_value, 2).' per booking';
+            : collect($this->fixedAmounts())->map(fn (float $amount, string $currency): string => $currency.' '.number_format($amount, 2))->implode(' / ').' per booking';
 
         return $value.($this->max_bookings ? ', first '.$this->max_bookings.' bookings' : '');
     }

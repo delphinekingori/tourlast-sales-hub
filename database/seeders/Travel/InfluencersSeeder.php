@@ -69,6 +69,8 @@ class InfluencersSeeder extends Seeder
                     'influencer_id' => $influencer->id,
                     'commission_type' => $type,
                     'commission_value' => $value,
+                    'fixed_kes' => $type === InfluencerCommissionType::Fixed ? $value : null,
+                    'fixed_usd' => $type === InfluencerCommissionType::Fixed && $scope !== InfluencerCodeScope::Packages ? round($value / 130, 2) : null,
                     'applies_to' => $scope,
                     'max_bookings' => $max,
                     'starts_on' => today()->addDays($startOffset),

@@ -201,10 +201,21 @@
                         <option value="{{ $option->value }}">{{ $option->label() }}</option>
                     @endforeach
                 </x-ui.select>
-                <x-ui.input :label="($codeForm['commission_type'] ?? '') === 'fixed' ? 'Amount per booking ('.(($codeForm['applies_to'] ?? '') === 'flights' ? 'USD' : 'KES').')' : 'Percentage of gross booking total (%)'"type="number" step="0.01" min="0" wire:model="codeForm.commission_value" id="code-value" />
+                @if (($codeForm['commission_type'] ?? '') === 'fixed')
+                    <div class="space-y-3">
+                        @if (($codeForm['applies_to'] ?? '') !== 'flights')
+                            <x-ui.input label="Amount per package booking (KES)" type="number" step="0.01" min="0" wire:model="codeForm.fixed_kes" id="code-fixed-kes" />
+                        @endif
+                        @if (($codeForm['applies_to'] ?? '') !== 'packages')
+                            <x-ui.input label="Amount per flight booking (USD)" type="number" step="0.01" min="0" wire:model="codeForm.fixed_usd" id="code-fixed-usd" />
+                        @endif
+                    </div>
+                @else
+                    <x-ui.input label="Percentage of gross booking total (%)" type="number" step="0.01" min="0" wire:model="codeForm.commission_value" id="code-value" />
+                @endif
             </div>
             <div class="grid grid-cols-2 gap-3">
-                <x-ui.select label="Applies to" wire:model.live="codeForm.applies_to" id="code-applies" hint="Flights pay commission in USD, packages in KES. Never converted.">
+                <x-ui.select label="Applies to" wire:model.live="codeForm.applies_to" id="code-applies" hint="Each currency is paid separately and never converted. Set a fixed amount per currency.">
                     @foreach (\App\Enums\Travel\InfluencerCodeScope::cases() as $option)
                         <option value="{{ $option->value }}">{{ $option->label() }}</option>
                     @endforeach

@@ -25,8 +25,9 @@ use Illuminate\Support\Facades\DB;
  *   already Paid stays Paid and the refund is flagged in the audit log).
  * - Commission is on the gross booking total (before any refund). A partly
  *   refunded booking keeps its commission; only a full refund cancels it.
- * - Flight commission is calculated and paid in USD, everything else in KES.
- *   Amounts are never converted between currencies.
+ * - Commission is calculated and paid in the booking's own currency (flights
+ *   USD, packages KES). Amounts are never converted. A fixed code needs an
+ *   amount set for that currency, otherwise nothing is earned and it is flagged.
  * - Only bookings made within the code's dates earn, and only the first
  *   max_bookings of them (a cancelled line frees its slot).
  */
@@ -68,7 +69,14 @@ class SyncInfluencerCommission
                 return $line;
             }
 
-            $amount = $code->commissionOn($facts['base']);
+            $amount = $code->commissionOn($facts['base'], $facts['currency']);
+
+            if ($amount === null) {
+                $this->auditOnce($code, 'influencer.commission_not_calculated', "Code {$code->code} has no fixed amount in {$facts['currency']}: no commission on {$facts['reference']}. Set one on the code.", $bookable);
+
+                return $line;
+            }
+
             $status = $facts['paid'] ? CommissionEntryStatus::Payable : CommissionEntryStatus::Pending;
 
             if ($line && $line->status !== CommissionEntryStatus::Cancelled) {

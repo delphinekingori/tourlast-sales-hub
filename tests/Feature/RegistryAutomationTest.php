@@ -78,14 +78,14 @@ class RegistryAutomationTest extends TestCase
         $this->assertSame(1, Onboarding::unattributed()->count());
     }
 
-    public function test_firing_a_salesperson_keeps_credit_already_given_and_reinstating_restores_the_code(): void
+    public function test_firing_a_salesperson_releases_their_properties_to_unattributed_and_reinstating_restores_the_code(): void
     {
         $this->sync();
         $admin = User::factory()->withRole(Role::SuperAdmin)->create();
 
         app(ChangeAccountStatus::class)->terminate($this->mary, $admin, 'other');
         $this->sync(['updated_at' => now()->addMinute()->toIso8601String(), 'status' => 'approved']);
-        $this->assertSame($this->mary->id, Onboarding::sole()->user_id);
+        $this->assertNull(Onboarding::sole()->user_id, "A fired salesperson's properties become unattributed.");
 
         app(ChangeAccountStatus::class)->reinstate($this->mary, $admin);
         $this->sync(['property_id' => 'TL-90002', 'contact_email' => 'x@other.example.com', 'contact_phone' => '+254 700 000 000']);

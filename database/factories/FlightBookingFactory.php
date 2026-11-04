@@ -38,7 +38,7 @@ class FlightBookingFactory extends Factory
             'departure_at' => $departure,
             'arrival_at' => $departure->copy()->addHour(),
             'passenger_count' => 1,
-            'currency' => 'KES',
+            'currency' => 'USD',
             'fare_amount' => $total * 0.9,
             'total_amount' => $total,
             'markup_amount' => $total * 0.05,

@@ -50,7 +50,7 @@ class InfluencerCodeResource extends JsonResource
             'bookings_used' => $used,
             'bookings_remaining' => $this->max_bookings !== null ? max(0, $this->max_bookings - $used) : null,
             'commission_base' => 'gross_booking_total',
-            'fixed_currency' => $this->commission_type === InfluencerCommissionType::Fixed ? $this->fixedCurrency() : null,
+            'fixed_amounts' => $this->commission_type === InfluencerCommissionType::Fixed ? $this->fixedAmounts() : null,
             'revenue_generated' => $this->amountsByCurrency('revenue_generated'),
             'commission_pending' => $this->amountsByCurrency('commission_pending'),
             'commission_payable' => $this->amountsByCurrency('commission_payable'),

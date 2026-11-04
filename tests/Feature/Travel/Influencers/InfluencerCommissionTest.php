@@ -57,7 +57,7 @@ class InfluencerCommissionTest extends TestCase
 
     public function test_fixed_commission_is_the_same_whatever_the_booking_amount(): void
     {
-        $code = InfluencerCode::factory()->create(['commission_type' => InfluencerCommissionType::Fixed, 'commission_value' => 1500]);
+        $code = InfluencerCode::factory()->create(['commission_type' => InfluencerCommissionType::Fixed, 'commission_value' => 1500, 'fixed_kes' => 1500]);
         $booking = $this->bookingWith($code, ['amount_total' => 250000]);
 
         $this->pay($booking, 250000);
@@ -139,17 +139,17 @@ class InfluencerCommissionTest extends TestCase
 
     public function test_flight_commission_is_always_usd_and_package_commission_is_always_kes(): void
     {
-        $flightCode = InfluencerCode::factory()->create(['applies_to' => InfluencerCodeScope::Flights, 'commission_type' => InfluencerCommissionType::Fixed, 'commission_value' => 25]);
+        $flightCode = InfluencerCode::factory()->create(['applies_to' => InfluencerCodeScope::Flights, 'commission_type' => InfluencerCommissionType::Fixed, 'commission_value' => 25, 'fixed_usd' => 25]);
         $flight = FlightBooking::factory()->create([
             'influencer_code_id' => $flightCode->id,
-            'currency' => 'KES',
+            'currency' => 'USD',
             'total_amount' => 800,
             'payment_status' => 'Ticketed',
             'booked_at' => now(),
         ]);
         FlightBookingSynced::dispatch($flight, true);
 
-        $packageCode = InfluencerCode::factory()->create(['applies_to' => InfluencerCodeScope::Packages, 'commission_type' => InfluencerCommissionType::Fixed, 'commission_value' => 500]);
+        $packageCode = InfluencerCode::factory()->create(['applies_to' => InfluencerCodeScope::Packages, 'commission_type' => InfluencerCommissionType::Fixed, 'commission_value' => 500, 'fixed_kes' => 500]);
         $booking = $this->bookingWith($packageCode, ['currency' => 'USD']);
         $this->pay($booking, 90000);
 
@@ -198,11 +198,55 @@ class InfluencerCommissionTest extends TestCase
         $this->assertSame(CommissionEntryStatus::Cancelled, $this->line($booking)->status);
     }
 
+    public function test_a_flight_not_priced_in_usd_earns_no_commission_and_is_flagged_once(): void
+    {
+        $code = InfluencerCode::factory()->create(['applies_to' => InfluencerCodeScope::Flights, 'commission_value' => 2]);
+        $flight = FlightBooking::factory()->create([
+            'influencer_code_id' => $code->id,
+            'currency' => 'KES',
+            'total_amount' => 50000,
+            'payment_status' => 'Ticketed',
+            'booked_at' => now(),
+        ]);
+
+        FlightBookingSynced::dispatch($flight, true);
+        FlightBookingSynced::dispatch($flight, true);
+
+        $line = $this->line($flight);
+        $this->assertSame('KES', $line->currency, 'The line keeps the flight currency and is never converted to USD.');
+        $this->assertEquals(1000, (float) $line->commission_amount);
+        $this->assertSame(0, AuditEvent::query()->where('action', 'influencer.commission_not_calculated')->count());
+    }
+
+    public function test_a_fixed_code_with_no_amount_in_the_booking_currency_earns_nothing_and_is_flagged_once(): void
+    {
+        $code = InfluencerCode::factory()->create([
+            'applies_to' => InfluencerCodeScope::All,
+            'commission_type' => InfluencerCommissionType::Fixed,
+            'commission_value' => 500,
+            'fixed_kes' => 500,
+        ]);
+        $flight = FlightBooking::factory()->create([
+            'influencer_code_id' => $code->id,
+            'currency' => 'USD',
+            'total_amount' => 800,
+            'payment_status' => 'Ticketed',
+            'booked_at' => now(),
+        ]);
+
+        FlightBookingSynced::dispatch($flight, true);
+        FlightBookingSynced::dispatch($flight, true);
+
+        $this->assertNull($this->line($flight));
+        $this->assertSame(1, AuditEvent::query()->where('action', 'influencer.commission_not_calculated')->count());
+    }
+
     public function test_paid_flight_bookings_earn_through_the_sync_event(): void
     {
         $code = InfluencerCode::factory()->create(['applies_to' => InfluencerCodeScope::Flights, 'commission_value' => 2]);
         $flight = FlightBooking::factory()->create([
             'influencer_code_id' => $code->id,
+            'currency' => 'USD',
             'total_amount' => 50000,
             'payment_status' => 'Ticketed',
             'booked_at' => now(),
